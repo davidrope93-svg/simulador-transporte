@@ -1305,7 +1305,7 @@ const DEVS = {
     holds: [1, 0],
     modes: { tube: [['APV', 'APVcmv'], ['SIMV_A', 'APVsimv'], ['PCV', 'PCV+'], ['SIMV_P', 'PSIMV+'], ['PSV', 'SPONT'], ['ASV', 'ASV']], mask: [['PSV', 'NIV'], ['PST', 'NIV-ST']], nasal: [['HFNC', 'HiFlowO2']] },
     lab: { fr: 'Rate', ti: 'TI', peep: 'PEEP/CPAP', pinsp: 'Pcontrol', ps: 'Psupport', trigI: 'Flowtrigger', trigE: 'ETS', rise: 'P-ramp', fio2: 'Oxygen', pmax: 'Pmax', timax: 'TI max', minvol: '%MinVol', flow: 'Flow', vt: 'Vt' },
-    spec: { vt: { min: 20, max: 2000 }, fr: { min: 4, max: 80 }, ti: { min: .1, max: 12 }, peep: { max: 35 }, ps: { max: 60 }, trigI: { min: .5, max: 20 }, trigE: { min: 5, max: 80 }, flow: { min: 2, max: 60 },
+    spec: { vt: { min: 20, max: 2000 }, fr: { min: 4, max: 80 }, ti: { min: .1, max: 12 }, peep: { max: 35 }, ps: { max: 60 }, trigI: { min: .5, max: 20 }, trigE: { min: 5, max: 80 }, flow: { min: 2, max: 100 },
       rise: { min: 0, max: 2, step: .025, ms: true, spontMax: .2 } }, // P-ramp en ms: 0–2000, hasta 200 en modos espontáneos
     limitsPmax: true, // el límite de presión alta está en Alarmas; la presión aplicada no pasa de límite − 10
     keys: ['o2boost', 'manual', 'neb', 'freeze', 'lock', 'silence', 'standby'],

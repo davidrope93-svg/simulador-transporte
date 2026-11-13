@@ -54,7 +54,7 @@ Cada versión tiene que pasar 45 pruebas con rangos de referencia: regresión de
 ## Cambios en la v0.6
 
 - Medumat: relación I:E, rangos del equipo (PEEP hasta 30, ΔpASB hasta 35), SIMV + ASB, modo CPR 30:2 con MEDUtrigger y metrónomo a 110/min o continuo a 10/min con PEEP 0, preajuste RSI → IPPV y alarma de suministro que no se silencia.
-- Hamilton T1: P-ramp en ms (0–2000, hasta 200 en SPONT y NIV), TI 0,1–12 s, Vt desde 20 mL, APVsimv y PSIMV+.
+- Hamilton T1: P-ramp en ms (0–2000, hasta 200 en SPONT, NIV y ASV), TI 0,1–12 s, Vt desde 20 mL, HiFlowO2 hasta 100 L/min, APVsimv y PSIMV+.
 - Monnal T60: CPV con presión alta y baja sincronizadas y fase RCE, VSIMV y PSIMV, PS máxima 25 en VMNI y preajuste de preoxigenación.
 - SIMV en el motor: mandatorias programadas con ventana de sincronización y soporte de presión entre ellas.
 - RCP: relación compresión-ventilación (continuas, 30:2, 15:2) con pausas que bajan la fracción de compresión; insuflaciones con bolsa solo en las pausas.
