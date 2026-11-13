@@ -1,0 +1,448 @@
+<title>Simulador VMI de transporte</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: barra de caso arriba; a la izquierda la pantalla del ventilador (siempre oscura, como el equipo) con curvas, valores y mandos; a la derecha el monitor-desfibrilador (también oscuro), la botella de O2, las acciones y la lectura; debajo lo que pasa dentro, el instructor y el registro */
+:root{
+  --bg:#edf1f2; --surface:#ffffff; --surface2:#f5f8f9; --ink:#13202a; --muted:#566874; --line:#d3dce0;
+  --accent:#1c6b9e; --accent-ink:#ffffff; --ok:#2a8653; --warn:#a96f00; --bad:#bf3528;
+  --display:"Saira Semi Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  /* pantalla del equipo: siempre oscura */
+  --scr:#0a1218; --scr2:#111c24; --scr3:#18252f; --scr-line:#22323d; --scr-ink:#e6eef2; --scr-mut:#8ea2af;
+  --tr-p:#ffc848; --tr-f:#5cd3c2; --tr-v:#8db5ff; --tr-c:#c0ec66; --tr-m:#ff8fb1; --scr-go:#ffd23f; --scr-bad:#ff6a57; --scr-warn:#ffb340;
+  /* monitor-desfibrilador: siempre oscuro */
+  --z-bg:#05080a; --z-ecg:#3fe27c; --z-spo:#3fd0f2; --z-co2:#ffd84a; --z-pni:#f2f4f5; --z-mut:#7f9099; --z-line:#1b252b;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0c1317; --surface:#131d23; --surface2:#18242b; --ink:#e3ebef; --muted:#93a5b0; --line:#25343d;
+  --accent:#6cb2e4; --accent-ink:#06202f; --ok:#4cc184; --warn:#e5b244; --bad:#f0695a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0c1317; --surface:#131d23; --surface2:#18242b; --ink:#e3ebef; --muted:#93a5b0; --line:#25343d;
+  --accent:#6cb2e4; --accent-ink:#06202f; --ok:#4cc184; --warn:#e5b244; --bad:#f0695a; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:14.5px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+main{max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+h1,h2,h3{font-family:var(--display);margin:0;line-height:1.1;text-wrap:balance;letter-spacing:.01em}
+h1{font-size:clamp(1.8rem,4vw,2.5rem);font-weight:700}
+h2{font-size:1.15rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+p{margin:0}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.eyebrow{font-family:var(--mono);font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.small{font-size:.82rem;color:var(--muted)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* cabecera */
+.top{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-end;justify-content:space-between}
+.brand{display:flex;flex-direction:column;gap:4px}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field>label,.flabel{font-family:var(--mono);font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+select{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 10px;max-width:min(100%,calc(100vw - 32px))}
+.top>*,.field{max-width:100%;min-width:0}
+#caseSel{width:100%}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:transparent;padding:7px 10px;cursor:pointer;border-right:1px solid var(--line);font-family:var(--mono);font-size:.8rem}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 12px;cursor:pointer;font-weight:500}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.clock{font-family:var(--mono);font-size:.82rem;padding:7px 10px;border-radius:8px;background:var(--surface2);border:1px solid var(--line);white-space:nowrap}
+.toolbar>*{min-width:0}
+
+/* caso */
+.case{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 18px;align-items:start;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.case h3{font-size:1.25rem;font-weight:600}
+.case p{max-width:80ch}
+@media (max-width:640px){.case{grid-template-columns:minmax(0,1fr)}.targets{justify-content:flex-start}}
+.case details{grid-column:1/-1;font-size:.9rem}
+.case summary{cursor:pointer;color:var(--accent);font-weight:500}
+.case details p{margin-top:6px;color:var(--muted)}
+.targets{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;min-width:0}
+.chip{font-family:var(--mono);font-size:.72rem;border:1px solid var(--line);border-radius:999px;padding:3px 9px;white-space:nowrap;background:var(--surface2)}
+.chip.ok{border-color:color-mix(in srgb,var(--ok) 55%,transparent);color:var(--ok)}
+.chip.off{border-color:color-mix(in srgb,var(--bad) 55%,transparent);color:var(--bad)}
+
+/* rejilla principal */
+.grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);grid-template-rows:auto 1fr;grid-template-areas:"vent side" "read side";gap:14px;align-items:start}
+.grid>.vent{grid-area:vent}.grid>.side{grid-area:side}.grid>.readc{grid-area:read}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
+@media (max-width:960px){.grid,.grid2{grid-template-columns:minmax(0,1fr)}.grid{grid-template-rows:none;grid-template-areas:"vent" "side" "read"}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.side{display:flex;flex-direction:column;gap:14px;min-width:0}
+
+/* ventilador: carcasa del equipo (color fijo, como un objeto real) con pantalla oscura, teclas y mandos giratorios */
+.vent{--hous:#d7dde1;--hous2:#c3cbd0;--hous-ink:#1b262d;--hous-mut:#4b5a63;--key:#1d252b;--key-ink:#e8eff3;--led:#ffd23f;
+  background:linear-gradient(180deg,var(--hous),var(--hous2));color:var(--hous-ink);border-radius:20px;border:1px solid rgba(0,0,0,.35);box-shadow:0 12px 30px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.35);padding:12px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.vent.medumat{--hous:#3a4045;--hous2:#2b3034;--hous-ink:#eef2f4;--hous-mut:#a6b2ba}
+.vent.t1{--hous:#c9d0d5;--hous2:#aab4ba;--hous-ink:#162229;--hous-mut:#43525b}
+.vplate{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;justify-content:space-between;padding:0 4px}
+.vplate b{font-family:var(--display);font-size:1.12rem;letter-spacing:.05em}
+.vplate span{font-family:var(--mono);font-size:.7rem;color:var(--hous-mut)}
+.vframe{display:grid;grid-template-columns:minmax(0,1fr) 148px;gap:12px;align-items:start}
+.vent.medumat .vframe{grid-template-columns:minmax(0,1fr)}
+@media (max-width:760px){.vframe{grid-template-columns:minmax(0,1fr)}}
+.vscreen{background:var(--scr);color:var(--scr-ink);border-radius:12px;border:3px solid #05090c;box-shadow:inset 0 0 0 1px var(--scr3);padding:10px;display:flex;flex-direction:column;gap:9px;min-width:0}
+.vbar{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between}
+.vbar .vr{display:flex;flex-wrap:wrap;gap:8px;align-items:center;min-width:0}
+.ifl{font-family:var(--mono);font-size:.72rem;color:var(--scr-mut)}
+.seg.dark{border-color:var(--scr-line);background:var(--scr2)}
+.seg.dark button{color:var(--scr-ink);border-color:var(--scr-line);padding:4px 9px;font-size:.72rem}
+.seg.dark button[aria-pressed="true"]{background:var(--scr-ink);color:var(--scr)}
+.alarm{font-family:var(--mono);font-size:.78rem;font-weight:600;padding:5px 10px;border-radius:6px;background:var(--scr2);color:var(--scr-mut);min-width:0}
+.alarm.hi{background:var(--scr-bad);color:#1a0603;animation:blink 1s steps(2) infinite}
+.alarm.med{background:var(--scr-warn);color:#1f1300}
+@keyframes blink{50%{opacity:.6}}
+@media (prefers-reduced-motion:reduce){.alarm.hi{animation:none}}
+.vbody{display:grid;grid-template-columns:minmax(0,1fr) 236px;gap:9px}
+@media (max-width:1100px){.vbody{grid-template-columns:minmax(0,1fr)}}
+.curves{background:var(--scr2);border-radius:10px;padding:6px 4px;min-width:0;position:relative;min-height:240px}
+.voff{position:absolute;inset:0;display:flex;overflow:auto;padding:12px;border-radius:10px;background:rgba(8,14,19,.9);color:var(--scr-ink)}
+.sby{margin:auto;display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center;max-width:600px}
+.sby>b{font-family:var(--display);font-size:1.3rem;letter-spacing:.06em;text-transform:uppercase;color:var(--scr-go)}
+.sby p{font-size:.82rem;color:var(--scr-mut)}
+.sbysub{font-family:var(--mono);font-size:.72rem;color:var(--scr-mut)}
+.sbyrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center}
+.sbyrow .ml{font-family:var(--mono);font-size:.66rem;color:var(--scr-mut);letter-spacing:.08em;text-transform:uppercase}
+.sbyibw{font-size:.72rem;color:var(--scr-mut)}
+.sbtn{background:var(--scr3);border:1px solid var(--scr-line);color:var(--scr-ink);border-radius:8px;padding:5px 10px;cursor:pointer;font-family:var(--mono);font-size:.76rem;min-height:32px}
+.sbtn[aria-pressed="true"]{background:var(--scr-ink);color:var(--scr)}
+.sbtn.wide{display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 10px;font-weight:600}
+.sbtn.wide small{font-weight:400;font-size:.64rem;color:var(--scr-mut)}
+.sbtn:disabled{opacity:.4;cursor:not-allowed}
+.sbynote{max-width:52ch}
+.warnt{color:var(--scr-warn)}
+.go{background:var(--scr-go);color:#1e1800;border:0;border-radius:9px;padding:9px 18px;font-weight:700;cursor:pointer;font-size:.95rem}
+.go:disabled{opacity:.35;cursor:not-allowed}
+canvas{display:block;width:100%}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;align-content:start}
+@media (max-width:1100px){.tiles{grid-template-columns:repeat(auto-fill,minmax(104px,1fr))}}
+.tile{background:var(--scr2);border-radius:8px;padding:5px 8px;display:flex;flex-direction:column;min-width:0;border:1px solid transparent}
+.tile .tl{font-family:var(--mono);font-size:.64rem;letter-spacing:.04em;color:var(--scr-mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile .tv{font-family:var(--mono);font-size:1.22rem;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.15;white-space:nowrap}
+.tile .tu{font-family:var(--mono);font-size:.6rem;color:var(--scr-mut)}
+.tile.p .tv{color:var(--tr-p)} .tile.f .tv{color:var(--tr-f)} .tile.v .tv{color:var(--tr-v)} .tile.c .tv{color:var(--tr-c)}
+.tile.warn{border-color:var(--scr-warn)} .tile.hi{border-color:var(--scr-bad);background:#2a1210}
+.tile.calc .tl::after{content:" ·p";color:var(--scr-mut)}
+.tile.calcc .tl::after{content:" ·c";color:var(--scr-mut)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 10px;font-family:var(--mono);font-size:.66rem;color:var(--scr-mut)}
+.legend i{display:inline-block;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:8px solid;margin-right:4px;vertical-align:middle}
+.modes{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.modes .ml{font-family:var(--mono);font-size:.66rem;color:var(--scr-mut);letter-spacing:.08em;text-transform:uppercase;margin-right:4px}
+.modes .minfo{flex:1;min-width:0}
+.modes button{background:var(--scr2);border:1px solid var(--scr-line);color:var(--scr-ink);border-radius:8px;padding:6px 11px;font-family:var(--mono);font-weight:600;cursor:pointer;font-size:.8rem}
+.modes button[aria-pressed="true"]{background:var(--scr-ink);color:var(--scr)}
+.modes button.pend{border-color:var(--scr-go);box-shadow:0 0 0 1px var(--scr-go) inset}
+.modes button:disabled{opacity:.5;cursor:not-allowed}
+.minfo{font-family:var(--mono);font-size:.72rem;color:var(--scr-mut);margin:0}
+.knobs{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:6px}
+.knob{background:var(--scr2);border:1px solid var(--scr-line);border-radius:10px;padding:5px 7px;display:flex;flex-direction:column;gap:2px;min-width:0;cursor:pointer}
+.knob.act{border-color:var(--tr-f);box-shadow:0 0 0 1px var(--tr-f) inset}
+.knob.pend{border-color:var(--scr-go);background:#2a2610}
+.knob .kl{font-family:var(--mono);font-size:.64rem;color:var(--scr-mut);display:flex;justify-content:space-between;gap:4px}
+.knob .kl span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.knob .krow,.lrow .krow{display:flex;align-items:center;justify-content:space-between;gap:4px}
+.knob .kv{font-family:var(--mono);font-size:1.12rem;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.knob button{width:30px;height:30px;border-radius:8px;border:1px solid var(--scr-line);background:var(--scr3);color:var(--scr-ink);cursor:pointer;font-size:1.05rem;line-height:1;flex:none}
+.knob button:active{background:var(--scr-line)}
+.knob button:disabled{opacity:.4}
+.confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-height:34px}
+.confirm .msg{font-family:var(--mono);font-size:.74rem;color:var(--scr-go)}
+.confirm .go{padding:7px 14px;font-size:.85rem}
+.confirm .no{background:transparent;color:var(--scr-mut);border:1px solid var(--scr-line);border-radius:8px;padding:7px 12px;cursor:pointer}
+details.lim{border-top:1px solid var(--scr-line);padding-top:6px}
+details.lim>summary{cursor:pointer;font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--scr-mut)}
+.limrows{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:4px 14px;margin:8px 0}
+.lrow{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:.8rem;border-bottom:1px solid var(--scr-line);padding:3px 0}
+.lrow small{display:block;color:var(--scr-mut);font-size:.64rem}
+.lrow .krow b{min-width:78px;text-align:center;font-size:.8rem}
+.lrow .sbtn{min-height:28px;padding:2px 9px}
+/* panel físico: teclas y mandos */
+.vpanel{display:flex;flex-direction:column;gap:10px;align-items:stretch;min-width:0}
+.vent.medumat .vpanel{flex-direction:column-reverse}
+@media (max-width:760px){.vpanel{flex-direction:column-reverse}}
+.vkeys{display:grid;grid-template-columns:minmax(0,1fr);gap:6px}
+.vent.medumat .vkeys{grid-template-columns:repeat(auto-fill,minmax(112px,1fr))}
+@media (max-width:760px){.vkeys{grid-template-columns:repeat(auto-fill,minmax(112px,1fr))}}
+.vbtn{background:linear-gradient(180deg,#2a333a,var(--key));border:1px solid #05080a;color:var(--key-ink);border-radius:9px;padding:8px 10px;cursor:pointer;font-size:.8rem;font-weight:600;line-height:1.2;min-height:40px;text-align:left;position:relative;padding-left:22px;box-shadow:0 2px 0 rgba(0,0,0,.35)}
+.vbtn::before{content:"";position:absolute;left:9px;top:50%;width:6px;height:6px;margin-top:-3px;border-radius:50%;background:#3b464e}
+.vbtn[aria-pressed="true"]::before{background:var(--led);box-shadow:0 0 6px var(--led)}
+.vbtn[aria-pressed="true"]{color:var(--led)}
+.vbtn:active{transform:translateY(1px);box-shadow:none}
+.vbtn:disabled{opacity:.4;cursor:not-allowed}
+.dials{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.dial{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0;width:128px}
+.vent.medumat .dial{width:min(30%,150px)}
+.dlab{font-family:var(--mono);font-size:.62rem;letter-spacing:.06em;text-transform:uppercase;color:var(--hous-mut);text-align:center}
+.dring{width:96px;height:96px;border-radius:50%;position:relative;cursor:grab;touch-action:none;
+  background:radial-gradient(circle at 35% 30%,#59636b,#20272c 62%,#11161a);border:2px solid #06090b;box-shadow:0 4px 10px rgba(0,0,0,.4),inset 0 0 0 6px rgba(255,255,255,.04)}
+.dring:active{cursor:grabbing}
+.dmark{position:absolute;inset:6px;border-radius:50%;pointer-events:none}
+.dmark::before{content:"";position:absolute;left:50%;top:2px;width:4px;height:14px;margin-left:-2px;border-radius:2px;background:var(--led)}
+.dpress{position:absolute;left:50%;top:50%;width:42px;height:42px;margin:-21px 0 0 -21px;border-radius:50%;border:1px solid #06090b;background:radial-gradient(circle at 40% 35%,#3c464e,#1a2025);color:var(--key-ink);font-family:var(--mono);font-size:.7rem;font-weight:700;cursor:pointer}
+.dval{font-family:var(--mono);font-size:.72rem;color:var(--hous-ink);text-align:center;min-height:2.4em}
+/* monitor-desfibrilador */
+.zoll{background:var(--z-bg);color:var(--z-pni);border-radius:14px;border:1px solid #000;box-shadow:0 0 0 5px #2a2f33 inset,0 8px 24px rgba(0,0,0,.25);padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.zoll.corpuls{--z-bg:#071017;--z-ecg:#5dff8f;--z-spo:#56b4ff;--z-co2:#ffe27a;--z-mut:#8095a3;--z-line:#18303d;box-shadow:0 0 0 5px #1d3a4a inset,0 8px 24px rgba(0,0,0,.25)}
+.zbar{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.zbar b{font-family:var(--display);letter-spacing:.05em;font-size:1rem}
+.zal{font-family:var(--mono);font-size:.72rem;font-weight:600;padding:3px 8px;border-radius:5px;background:#11181c;color:var(--z-mut)}
+.zal.hi{background:var(--scr-bad);color:#1a0603;animation:blink 1s steps(2) infinite}
+.zal.med{background:var(--scr-warn);color:#1f1300}
+@media (prefers-reduced-motion:reduce){.zal.hi{animation:none}}
+.znum{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.zn{background:#0b1014;border-radius:8px;padding:6px 9px;display:flex;flex-direction:column;min-width:0;border:1px solid transparent}
+.zn.al{border-color:var(--scr-bad)}
+.zn .zl{font-family:var(--mono);font-size:.64rem;letter-spacing:.06em;color:var(--z-mut);display:flex;justify-content:space-between;gap:6px}
+.zn .zv{font-family:var(--mono);font-weight:600;font-size:1.75rem;line-height:1.05;font-variant-numeric:tabular-nums}
+.zn .zs{font-family:var(--mono);font-size:.68rem;color:var(--z-mut);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.zn.hr .zv{color:var(--z-ecg)} .zn.sp .zv{color:var(--z-spo)} .zn.co .zv{color:var(--z-co2)} .zn.pn .zv{color:var(--z-pni);font-size:1.45rem}
+.zsec{display:flex;flex-direction:column;gap:5px;border-top:1px solid var(--z-line);padding-top:7px}
+.zh{font-family:var(--mono);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--z-mut)}
+.zctl{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.zbtn{background:#11181c;border:1px solid #26323a;color:var(--z-pni);border-radius:7px;padding:5px 10px;cursor:pointer;font-family:var(--mono);font-size:.76rem;min-height:32px}
+.zbtn[aria-pressed="true"]{border-color:var(--z-pni);background:#1d272d}
+.zbtn:disabled{opacity:.4;cursor:not-allowed}
+.zsel{background:#11181c;border:1px solid #26323a;color:var(--z-pni);border-radius:7px;padding:4px 6px;font-family:var(--mono);font-size:.76rem;max-width:100%;min-height:32px}
+.zrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-family:var(--mono);font-size:.7rem;color:var(--z-mut)}
+.zbtn.charge{border-color:#ffb340;color:#ffb340}
+.zbtn.shock{background:#c0392b;border-color:#e0533f;color:#fff}
+.zbtn.ready{animation:blink .8s steps(2) infinite}
+.zmsg{font-family:var(--mono);font-size:.74rem;color:#ffb340;min-height:1.2em}
+.zcpr{font-family:var(--mono);font-size:.72rem;color:#ffb340}
+details.dg{border-top:1px solid var(--line);padding-top:6px}
+details.dg>summary{cursor:pointer;font-family:var(--mono);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+details.dg .abtns{margin-top:6px}
+.btn small{color:var(--muted);font-family:var(--mono);font-size:.7rem;margin-left:4px}
+
+/* botella */
+.gauge{height:12px;border-radius:6px;background:var(--surface2);border:1px solid var(--line);overflow:hidden}
+.gauge span{display:block;height:100%;background:var(--ok);transition:width .4s}
+.gauge.warn span{background:var(--warn)} .gauge.bad span{background:var(--bad)}
+.o2row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+
+/* acciones */
+.agroup{display:flex;flex-direction:column;gap:6px}
+.abtns{display:flex;flex-wrap:wrap;gap:6px}
+.abtns .btn{font-size:.84rem;padding:6px 10px}
+.findings{background:var(--surface2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:.88rem}
+.findings ul{margin:0;padding-left:18px}
+.range{display:flex;align-items:center;gap:6px 8px;flex-wrap:wrap}
+.range>label{min-width:96px}
+.range select{min-width:0;max-width:100%}
+.range input{flex:1;min-width:0;accent-color:var(--accent)}
+
+/* lectura */
+.read{display:flex;flex-direction:column;gap:6px}
+.ri{border-left:3px solid var(--line);padding:4px 0 4px 10px}
+.ri b{font-weight:600}
+.ri p{font-size:.86rem;color:var(--muted)}
+.ri p.fix{color:var(--ink)}
+.ri.bad{border-color:var(--bad)} .ri.warn{border-color:var(--warn)} .ri.ok{border-color:var(--ok)}
+
+/* verdad y registro */
+.truth{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 14px;margin:0;font-size:.88rem}
+.truth dt{color:var(--muted)} .truth dd{margin:0;font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+details.box>summary{cursor:pointer;font-weight:600;font-family:var(--display);text-transform:uppercase;letter-spacing:.06em;font-size:1.05rem}
+.log{display:flex;flex-direction:column;gap:2px;font-family:var(--mono);font-size:.76rem;color:var(--muted);max-height:180px;overflow:auto}
+.inrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+/* debrief */
+.modal{position:fixed;inset:0;background:rgba(5,12,16,.55);display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));z-index:20}
+.sheet{background:var(--surface);color:var(--ink);border-radius:14px;max-width:640px;width:100%;max-height:100%;overflow:auto;padding:18px 20px;display:flex;flex-direction:column;gap:12px;border:1px solid var(--line)}
+.dtable{width:100%;border-collapse:collapse;font-size:.88rem}
+.dtable td,.dtable th{padding:5px 6px;border-bottom:1px solid var(--line);text-align:left}
+.dtable td.n{font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums}
+.bar{height:8px;border-radius:4px;background:var(--surface2);overflow:hidden;min-width:60px}
+.bar span{display:block;height:100%}
+footer{font-size:.8rem;color:var(--muted);max-width:90ch}
+</style>
+
+<main>
+  <header class="top">
+    <div class="brand">
+      <span class="eyebrow">Simulador docente · SVA terrestre y HEMS · v0.4</span>
+      <h1>Ventilación, monitor y RCP</h1>
+    </div>
+    <div class="toolbar">
+      <div class="field"><label for="caseSel">Caso</label><select id="caseSel"></select></div>
+      <div class="field" id="phenoField" hidden><label for="phenoSel">Paciente</label><select id="phenoSel"></select></div>
+      <div class="field" id="ifaceField" hidden><label for="ifaceSel">Interfaz</label><select id="ifaceSel"><option value="tube">Tubo endotraqueal</option><option value="mask">Mascarilla (VMNI)</option><option value="nasal">Alto flujo</option><option value="o2">Oxigenoterapia</option></select></div>
+      <div class="field"><label for="ventSel">Ventilador</label><select id="ventSel"><option value="monnal">Monnal T60</option><option value="medumat">Medumat Standard²</option><option value="t1">Hamilton T1</option></select></div>
+      <div class="field"><label for="monSel">Monitor</label><select id="monSel"><option value="zoll">ZOLL X Series</option><option value="corpuls">corpuls3</option></select></div>
+      <div class="field"><span class="flabel" id="speedLbl">Tiempo clínico</span><div class="seg" id="speedSeg" role="group" aria-labelledby="speedLbl"><button data-s="1">×1</button><button data-s="5">×5</button><button data-s="10" aria-pressed="true">×10</button><button data-s="20">×20</button></div></div>
+      <button class="btn" id="soundBtn" aria-pressed="true">Sonido</button>
+      <button class="btn" id="pauseBtn" aria-pressed="false">Pausa</button>
+      <button class="btn" id="resetBtn">Reiniciar</button>
+      <button class="btn primary" id="endBtn">Terminar caso</button>
+      <span class="clock" id="clock">00:00:00</span>
+    </div>
+  </header>
+
+  <section class="case" id="caseCard" aria-live="polite"></section>
+
+  <div class="grid">
+    <section class="vent" id="vent" aria-label="Ventilador">
+      <div class="vplate"><b id="devName">Ventilador</b><span id="devSub"></span></div>
+      <div class="vframe">
+        <div class="vscreen">
+          <div class="vbar">
+            <span class="ifl" id="ifaceLbl">tubo endotraqueal</span>
+            <div class="vr">
+              <div class="seg dark" id="viewSeg" role="group" aria-label="Vista de la pantalla"><button data-v="curves" aria-pressed="true">Curvas</button><button data-v="loops" aria-pressed="false">Bucles</button></div>
+              <div class="alarm" id="alarm" role="status">Sin alarmas</div>
+            </div>
+          </div>
+          <div class="vbody">
+            <div class="curves"><canvas id="cv" aria-label="Curvas de presión, flujo, volumen y CO2" role="img"></canvas><div class="voff" id="ventOff" hidden></div></div>
+            <div class="tiles" id="tiles"></div>
+          </div>
+          <div class="legend"><span><i style="color:#4fd18b"></i>disparo del paciente</span><span><i style="color:#6aa8ff"></i>ciclo del equipo</span><span><i style="color:#ffa53a"></i>autodisparo</span><span><i style="color:#ff6a57"></i>corte por P máx</span><span id="legIE" hidden>✕ esfuerzo ineficaz</span><span id="legCalc">·p = solo tras pausa</span></div>
+          <div class="modes" id="modes"></div>
+          <p class="minfo" id="modeInfo"></p>
+          <div class="knobs" id="knobs"></div>
+          <div class="confirm" id="confirm"></div>
+          <details class="lim" id="limBox"><summary>Alarmas · límites</summary>
+            <div class="limrows" id="limRows"></div>
+            <button class="sbtn" id="limAuto">Auto: ajustar a los valores actuales</button>
+          </details>
+        </div>
+        <div class="vpanel">
+          <div class="vkeys" id="vkeys"></div>
+          <div class="dials" id="dials"></div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="side">
+      <section class="zoll" id="zoll" aria-label="Monitor-desfibrilador">
+        <div class="zbar"><b id="monName">Monitor</b><span class="zal" id="zal" role="status">Sin alarmas</span></div>
+        <canvas id="zcv" aria-label="ECG, pletismografía y capnografía" role="img"></canvas>
+        <div class="zcpr" id="zCpr" hidden></div>
+        <div class="znum">
+          <div class="zn hr" id="zHrBox"><span class="zl"><span>FC lpm</span><span>II</span></span><span class="zv" id="zHr">–</span><span class="zs" id="zRhy">derivación II</span></div>
+          <div class="zn sp" id="zSpBox"><span class="zl"><span>SpO₂ %</span><span id="zPi"></span></span><span class="zv" id="zSp">–</span><span class="zs" id="zSpT"></span></div>
+          <div class="zn co" id="zCoBox"><span class="zl"><span>EtCO₂ mmHg</span><span>capno</span></span><span class="zv" id="zEt">–</span><span class="zs" id="zRr">FR –</span></div>
+          <div class="zn pn" id="zPnBox"><span class="zl"><span>PNI mmHg</span><span id="zPnAge"></span></span><span class="zv" id="zPn">–/–</span><span class="zs" id="zPnM">media –</span></div>
+        </div>
+        <div class="zctl"><button class="zbtn" id="zPniBtn" aria-pressed="false">PNI ahora</button><label for="zAuto" class="zrow">Auto</label><select class="zsel" id="zAuto"><option value="0">no</option><option value="3">3 min</option><option value="5" selected>5 min</option><option value="10">10 min</option></select><button class="zbtn" id="zSil" aria-pressed="false">Silenciar</button></div>
+        <div class="zsec"><span class="zh">Desfibrilador</span>
+          <div class="zctl"><select class="zsel" id="zMode" aria-label="Modo del desfibrilador"><option value="manual">Manual</option><option value="aed">DEA</option></select><select class="zsel" id="zJ" aria-label="Energía"></select><button class="zbtn" id="zSync" aria-pressed="false">SINC</button><button class="zbtn" id="zAnalyze" hidden>Analizar</button><button class="zbtn charge" id="zCharge">Cargar</button><button class="zbtn shock" id="zShock" disabled>Descarga</button></div>
+          <div class="zmsg" id="zMsg" aria-live="polite"></div>
+        </div>
+        <div class="zsec"><span class="zh">Marcapasos transcutáneo</span>
+          <div class="zctl"><label class="zrow"><input type="checkbox" id="zPace"> Encendido</label><select class="zsel" id="zPaceMode" aria-label="Modo del marcapasos"><option value="demand">Demanda</option><option value="fixed">Fijo</option></select><select class="zsel" id="zRate" aria-label="Frecuencia del marcapasos"></select><span class="zrow">lpm</span><select class="zsel" id="zmA" aria-label="Intensidad del marcapasos"></select><span class="zrow">mA</span></div>
+        </div>
+        <div class="zsec"><span class="zh">Marcadores de evento</span>
+          <div class="zctl"><select class="zsel" id="zMark" aria-label="Marcador"><option>Adrenalina</option><option>Amiodarona</option><option>Intubación</option><option>Acceso IV / IO</option><option>Inicio de RCP</option><option>RCE</option><option>Sedación</option><option>Gasometría</option></select><button class="zbtn" id="zMarkBtn">Marcar</button></div>
+        </div>
+        <canvas id="spark" aria-label="Tendencia de SpO2 y EtCO2" role="img"></canvas>
+      </section>
+
+      <section class="card" aria-labelledby="o2H">
+        <div class="o2row"><h2 id="o2H">Botella de O₂</h2><span class="chip" id="o2Pill">suministro</span></div>
+        <div class="gauge" id="o2Gauge"><span style="width:100%"></span></div>
+        <p class="small num" id="o2Txt">–</p>
+      </section>
+
+      <section class="card" aria-labelledby="actH">
+        <h2 id="actH">Acciones</h2>
+        <div class="agroup"><span class="flabel">Vía aérea y soporte</span>
+          <div class="abtns">
+            <button class="btn primary" data-act="explore">Explorar</button>
+            <button class="btn" data-act="gas">Gasometría venosa</button>
+            <button class="btn" data-act="bag" aria-pressed="false">Ambú con reservorio</button>
+            <button class="btn" data-act="toO2" data-if="mask nasal">Pasar a oxigenoterapia</button>
+            <button class="btn" data-act="toMask" data-if="o2 nasal">Colocar mascarilla de VMNI</button>
+            <button class="btn" data-act="toNasal" data-if="o2 mask">Colocar alto flujo</button>
+            <button class="btn" data-act="apox" data-if="o2 mask nasal" aria-pressed="false">Gafas 15 L/min (apneica)</button>
+            <button class="btn" data-act="vl" data-if="o2 mask nasal" aria-pressed="false">Videolaringoscopio + bougie</button>
+            <button class="btn" data-act="intubate" data-if="o2 mask nasal">Intubar</button>
+            <button class="btn" data-act="cric" data-if="o2 mask nasal">Cricotiroidotomía</button>
+            <button class="btn" data-act="mask" data-if="mask">Recolocar mascarilla</button>
+            <button class="btn" data-act="reconnect" data-if="tube mask">Reconectar tubuladura</button>
+            <button class="btn" data-act="reintub" data-if="tube">Reintubar</button>
+            <button class="btn" data-act="pull" data-if="tube">Retirar tubo 2 cm</button>
+            <button class="btn" data-act="suction" data-if="tube">Aspirar y revisar tubo</button>
+            <button class="btn" data-act="cuff" data-if="tube">Inflar balón</button>
+            <button class="btn" data-act="clamp" data-if="tube">Pinzar tubo</button>
+            <button class="btn" data-act="opencirc" data-if="tube">Desconectar 15 s</button>
+            <button class="btn" data-act="recruit">Reclutamiento</button>
+            <button class="btn" data-act="decomp">Descompresión con aguja</button>
+            <button class="btn" data-act="bottle">Cambiar botella</button>
+          </div>
+          <div class="range"><label class="small" for="o2dev">Oxigenoterapia</label><select id="o2dev"><option value="gafas">Gafas nasales 2 L/min</option><option value="venturi35">Venturi 35 %</option><option value="venturi50">Venturi 50 %</option><option value="reserv" selected>Mascarilla con reservorio 15 L/min</option></select></div>
+        </div>
+        <div class="findings" id="findings" hidden></div>
+        <div class="agroup"><span class="flabel">Parada</span>
+          <div class="abtns">
+            <button class="btn" data-act="compManual">Compresiones manuales</button>
+            <button class="btn" data-act="compMech">Compresor mecánico</button>
+            <button class="btn" data-act="compOff">Parar compresiones</button>
+            <button class="btn" data-act="relevo">Relevo del compresor</button>
+            <button class="btn" data-act="check">Comprobar pulso y ritmo</button>
+          </div>
+        </div>
+        <div class="agroup" id="drugPanel"></div>
+      </section>
+
+    </aside>
+
+    <section class="card readc" aria-labelledby="readH">
+      <h2 id="readH">Lectura</h2>
+      <div class="read" id="readList"></div>
+    </section>
+  </div>
+
+  <div class="grid2">
+    <section class="card">
+      <details class="box" id="truthBox"><summary>Lo que pasa dentro</summary>
+        <p class="small" style="margin:6px 0 8px">El equipo no ve estos valores; están para entender por qué cambia la pantalla.</p>
+        <label class="small inrow" style="margin-bottom:8px"><input type="checkbox" id="showPmus"> Mostrar el esfuerzo del paciente y los esfuerzos ineficaces en la pantalla del ventilador</label>
+        <dl class="truth" id="truth"></dl>
+      </details>
+    </section>
+    <section class="card">
+      <h2>Instructor y entorno</h2>
+      <div class="inrow">
+        <label class="small" for="evSel">Provocar evento</label>
+        <select id="evSel"></select>
+        <button class="btn" id="evBtn">Provocar</button>
+      </div>
+      <div class="range"><label class="small" for="alt">Altitud de cabina</label><input type="range" id="alt" min="0" max="3000" step="100" value="0"><span class="num small" id="altV">0 m</span></div>
+      <span class="flabel">Registro (hora clínica)</span>
+      <div class="log" id="log"></div>
+    </section>
+  </div>
+
+  <footer>Simulador docente con un modelo unicompartimental (distensibilidad, resistencias, presión crítica de cierre, esfuerzo del paciente, fuga de mascarilla con compensación imperfecta, intercambio de gases con shunt y V/Q, farmacocinética simplificada, RCP y arritmias). Las pantallas siguen la lógica de manejo de tres ventiladores y dos monitores-desfibriladores de transporte (modos, nombres de mandos, unidades, rangos, teclas, puesta en marcha y alarmas) con diseño propio: no reproducen el aspecto ni el software de ningún fabricante, y los valores marcados como «supuesto» no están confirmados en la documentación pública. Dosis de referencia para adulto, calculadas con el peso del caso. Valores orientativos: no sustituyen al manual del equipo ni a los protocolos del servicio. Código y casos editables en <a href="https://github.com/davidrope93-svg/simulador-transporte">github.com/davidrope93-svg/simulador-transporte</a>.</footer>
+
+  <div class="modal" id="debrief" hidden role="dialog" aria-modal="true" aria-labelledby="dbH">
+    <div class="sheet">
+      <span class="eyebrow">Debrief</span>
+      <h3 id="dbH" style="font-size:1.4rem"></h3>
+      <div id="dbBody"></div>
+      <div class="inrow"><button class="btn primary" id="dbRepeat">Repetir caso</button><button class="btn" id="dbClose">Seguir simulando</button></div>
+    </div>
+  </div>
+</main>
+<script>
+/*MODEL*/
+</script>
+<script>
+/*DEVICES*/
+</script>
+<script>
+/*CASES*/
+</script>
+<script>
+/*UI*/
+</script>
