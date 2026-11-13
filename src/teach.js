@@ -230,7 +230,12 @@ function renderHist() {
   $('#hiBody').innerHTML = rows.length ? `<table class="dtable"><tr><th>Fecha</th><th>Alumno</th><th>Caso</th><th>Modo</th><th class="n">Nota</th></tr>${rows.map(a => `<tr><td>${new Date(a.d).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}</td><td>${esc(a.name || 'Sin nombre')}</td><td>${esc(a.title)}</td><td>${a.exam ? 'examen' : 'práctica'}</td><td class="n">${fmt(a.score, 1)}</td></tr>`).join('')}</table>` : '<p class="small">Todavía no hay intentos guardados en este dispositivo.</p>';
   const ex = rows.filter(a => a.exam); $('#hiSum').textContent = rows.length ? `${rows.length} intento${rows.length > 1 ? 's' : ''} · media ${fmt(rows.reduce((s, a) => s + a.score, 0) / rows.length, 1)}${ex.length ? ' · media en examen ' + fmt(ex.reduce((s, a) => s + a.score, 0) / ex.length, 1) : ''}` : '';
 }
-function download(name, text, type) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); }
+// en el visor de claude.ai los archivos se ofrecen con la capacidad «downloads»; en GitHub Pages, con un enlace normal
+let dlNs = null;
+try { if (window.claude && typeof window.claude.use === 'function') window.claude.use('downloads').then(ns => { dlNs = ns; if (ns) { const b = $('#dbPdf'); if (b) b.textContent = 'Guardar informe'; } }, () => {}); } catch (e) { /* sin visor */ }
+function download(name, text, type) {
+  if (dlNs) { dlNs.save({ filename: name, data: text }).catch(e => { if (e && e.code !== 'declined') toast('No se pudo guardar el archivo' + (e.code ? ' (' + e.code + ')' : '') + '.'); }); return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); }
 
 /* ---------- editor de casos ---------- */
 const PARAMS = { pco2: 'PaCO₂ inicial (mmHg)', deficit: 'Pérdida de volemia (0–0,6)', bs: 'Broncoespasmo (1 = basal)', opioid: 'Opiáceo (26 = grave)', rhythm: 'Arritmia: tsv, fa, flutter, tvp, sbrady', arrPen: 'Caída de TAS por la arritmia', bav: 'BAV completo (1)',
@@ -344,7 +349,15 @@ function teachInit() {
   $('#hiClose').addEventListener('click', () => { $('#histModal').hidden = true; });
   $('#hiCsv').addEventListener('click', () => { const h = LS.get('simvmi.hist', []); const rows = [['fecha', 'alumno', 'caso', 'modo', 'nota', 'minutos', 'partes'].join(';')].concat(h.map(a => [a.d, a.name || '', a.title, a.exam ? 'examen' : 'practica', String(a.score).replace('.', ','), String(a.min).replace('.', ','), (a.parts || []).map(p => p[0] + ' ' + p[1] + '%').join(' | ')].map(x => '"' + String(x).replace(/"/g, '""') + '"').join(';'))); download('historial-simulador.csv', '﻿' + rows.join('\n'), 'text/csv;charset=utf-8'); });
   let clr = 0; $('#hiClear').addEventListener('click', e => { if (Date.now() - clr > 4000) { clr = Date.now(); e.target.textContent = 'Pulsa otra vez para borrar'; setTimeout(() => { e.target.textContent = 'Borrar historial'; }, 4000); return; } LS.set('simvmi.hist', []); e.target.textContent = 'Borrar historial'; renderHist(); });
-  $('#dbPdf').addEventListener('click', () => { document.body.classList.add('printing'); setTimeout(() => { window.print(); document.body.classList.remove('printing'); }, 50); });
+  $('#dbPdf').addEventListener('click', () => {
+    if (dlNs) { // el visor no deja imprimir: se guarda el informe como página para abrir e imprimir a PDF
+      const css = [...document.querySelectorAll('style')].map(x => x.textContent).join('\n'), sh = $('#debrief .sheet').cloneNode(true); sh.querySelectorAll('.inrow,button').forEach(x => x.remove());
+      const nm = sh.querySelector('#dbName'); if (nm) nm.replaceWith(Object.assign(document.createElement('b'), { textContent: nm.value || 'Sin nombre' }));
+      download('debrief-' + caseKey + '-' + new Date().toISOString().slice(0, 10) + '.html', '<!doctype html><html lang="es" data-theme="light"><head><meta charset="utf-8"><title>Debrief · ' + esc(CASES[caseKey].title) + '</title><style>' + css + '</style></head><body><main>' + sh.outerHTML + '</main><script>window.onload=()=>print()<\/script></body></html>', 'text/html');
+      return;
+    }
+    document.body.classList.add('printing'); setTimeout(() => { window.print(); document.body.classList.remove('printing'); }, 50);
+  });
   // editor
   $('#edBtn').addEventListener('click', () => edOpen(caseKey));
   $('#edFrom').addEventListener('change', e => edOpen(e.target.value || null));
