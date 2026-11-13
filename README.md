@@ -29,6 +29,7 @@ Diseño propio: las pantallas siguen la lógica de manejo de cada equipo (modos,
 - **Siguiente paso**: un recuadro flotante con el problema más urgente y el botón «Dónde se hace», que lleva al mando exacto y lo hace parpadear (abre el grupo de fármacos y, en el móvil, cambia de pestaña). Se pliega con ▾ y desaparece en el modo examen.
 - **«Dónde»** junto a cada recomendación de la Lectura.
 - **Buscar** (botón o tecla /): se escribe lo que se quiere hacer («calcio», «PEEP», «intubar», «cardioversión», «vía») y con Enter se hace o se va al mando.
+- **Nueva variante**: desde la tarjeta del caso genera otro caso a partir del abierto, con otro paciente (talla, peso, peso ideal; con IMC ≥ 35, pulmón de obeso), otra gravedad, a veces sin vía venosa, otra altitud de cabina en HEMS y una complicación añadida con su acción clave; en la parada del adulto cambian además la causa (hiperpotasemia, TEP, neumotórax, hipovolemia, tricíclicos, opiáceos, hipotermia, anafilaxia, hipoxia o cardíaca) y el ritmo. La solución, las acciones clave y el tutorial se adaptan. Cada variante tiene un código, se puede guardar en «Mis casos» y compartir con un enlace que carga exactamente la misma.
 - **Guíame en este caso**: un tutorial opcional, solo si uno se pierde. Se activa con el botón de la tarjeta del caso o desde el ayudante (que lo ofrece tras un minuto sin tocar nada). Dice el siguiente paso de ese caso concreto con su porqué, señala el mando y avanza solo cuando el paso está hecho; se puede saltar un paso o salir en cualquier momento. Baja la velocidad a ×5, queda anotado en el informe y en el historial («con tutorial») y no está disponible en el modo examen. Los casos propios tienen un tutorial generado a partir de sus acciones clave y objetivos.
 
 ## Docencia
@@ -60,16 +61,21 @@ Además de los modos del motor, la interfaz usa modos propios de cada equipo que
 | `src/devices.js` | Definición de cada ventilador y monitor: modos, mandos, rangos, teclas, preajustes y nombres de alarma. |
 | `src/cases.js` | Casos clínicos. |
 | `src/ui.js` | Interfaz: pantallas, mandos, alarmas, acciones, fármacos, lectura y debrief. |
+| `src/variants.js` | Generador de variantes: a partir de un caso y una semilla crea otro caso reproducible. Sin DOM, lo usan la interfaz y las pruebas. |
 | `src/tutor.js` | Tutorial por caso: guion de pasos de cada caso, comprobación de que cada paso está hecho y tutorial generado para los casos propios. Se inserta después de `guide.js`. |
 | `src/guide.js` | Orientación: guía paso a paso, «Dónde», ayudante con el siguiente paso y buscador. Se inserta dentro de `ui.js` después de `teach.js`. |
 | `src/teach.js` | Docencia: examen y nota, instructor, línea de tiempo, PDF, historial, editor de casos, móvil y proyector. Se inserta dentro de `ui.js` al generar la página. |
 | `src/template.html` | Maquetación y estilos. |
 | `build.py` | Une todo en `index.html`. |
-| `tests/run.js` | Pruebas del motor (`node tests/run.js`): fisiología de referencia, independencia de la velocidad, parada y los 45 casos. GitHub las ejecuta en cada cambio. |
+| `tests/run.js` | Pruebas del motor (`node tests/run.js`): fisiología de referencia, independencia de la velocidad, parada, los 58 casos y sus variantes. GitHub las ejecuta en cada cambio. |
 
 ## Pruebas
 
-Cada versión tiene que pasar 75 pruebas con rangos de referencia: regresión de la mecánica, tiempo de desaturación en apnea (sano preoxigenado 7–9,5 min, con aire 0,6–2 min, obeso 2,3–3,6 min) igual a ×1 que a ×20, PaCO₂ en respiración espontánea (TSV, TEP, opiáceos, EPOC con hiperoxia), SpO₂ del EPOC según FiO₂, EtCO₂ durante la RCP, tiempo de acción del relajante, tasas de RCE según se resuelva o no la causa, frecuencia mandatoria en SIMV, fracción de compresión con 30:2, vía aérea no oxigenable con bolsa y supraglótico, drenaje torácico en altitud, deterioro de la TV con pulso y sobreestimulación; y en la v0.7, hiperpotasemia con y sin calcio, hipoglucemia y su recurrencia, QRS de los tricíclicos con bicarbonato, FV en hipotermia, hemorragia con y sin hemostasia (y el coste del volumen liberal), convulsiones de la eclampsia con magnesio, crup, bronquiolitis con alto flujo, constantes de un lactante sano, nueva parada tras la RCE, parada traumática y compensación respiratoria según Winter.
+Cada versión tiene que pasar 90 pruebas con rangos de referencia: regresión de la mecánica, tiempo de desaturación en apnea (sano preoxigenado 7–9,5 min, con aire 0,6–2 min, obeso 2,3–3,6 min) igual a ×1 que a ×20, PaCO₂ en respiración espontánea (TSV, TEP, opiáceos, EPOC con hiperoxia), SpO₂ del EPOC según FiO₂, EtCO₂ durante la RCP, tiempo de acción del relajante, tasas de RCE según se resuelva o no la causa, frecuencia mandatoria en SIMV, fracción de compresión con 30:2, vía aérea no oxigenable con bolsa y supraglótico, drenaje torácico en altitud, deterioro de la TV con pulso y sobreestimulación; y en la v0.7, hiperpotasemia con y sin calcio, hipoglucemia y su recurrencia, QRS de los tricíclicos con bicarbonato, FV en hipotermia, hemorragia con y sin hemostasia (y el coste del volumen liberal), convulsiones de la eclampsia con magnesio, crup, bronquiolitis con alto flujo, constantes de un lactante sano, nueva parada tras la RCE, parada traumática y compensación respiratoria según Winter.
+
+## Cambios en la v1.0
+
+- Botón «Nueva variante» con su generador (`src/variants.js`) y 15 pruebas nuevas: misma semilla, misma variante; ninguna variante igual al original; ninguna con valores imposibles; y en las paradas por hiperpotasemia, tricíclicos, neumotórax, TEP, hipovolemia y opiáceos, RCE tratando la causa (50–100 %) y no sin tratarla (≤ 25 %).
 
 ## Cambios en la v0.9
 

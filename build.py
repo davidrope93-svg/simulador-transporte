@@ -2,8 +2,9 @@
 Uso: python3 build.py"""
 src = lambda f: open('src/' + f, encoding='utf-8').read()
 t = src('template.html')
-for k, f in [('MODEL', 'model.js'), ('DEVICES', 'devices.js'), ('CASES', 'cases.js')]:
+for k, f in [('MODEL', 'model.js'), ('DEVICES', 'devices.js')]:
     t = t.replace('/*%s*/' % k, src(f))
+t = t.replace('/*CASES*/', src('cases.js') + '\n' + src('variants.js'))  # el generador de variantes va junto a los casos
 t = t.replace('/*UI*/', src('ui.js').replace('/*TEACH*/', src('teach.js')).replace('/*GUIDE*/', src('guide.js')).replace('/*TUTOR*/', src('tutor.js')))  # docencia, orientación y tutorial dentro de la interfaz
 head, body = t.split('<style>', 1)
 style, rest = body.split('</style>', 1)

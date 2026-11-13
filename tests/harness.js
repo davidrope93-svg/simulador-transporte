@@ -2,7 +2,7 @@
 const path = '../src/';
 global.window = global;
 const VMI = require(path + 'model.js'); global.VMI = VMI;
-require(path + 'devices.js'); require(path + 'cases.js');
+require(path + 'devices.js'); require(path + 'cases.js'); require(path + 'variants.js');
 const CASES = global.SIM_CASES;
 const MODEL_KEYS = ['pco2','deficit','bs','opioid','rhythm','arrPen','tep','anaf','cohb','cn','icp','icpGrow','weak','dav','edAir','edAirRate','asp','arrest','arrestCause','comp','bav','tasAdj','fcAdj','sevFloor','bottleL','bottleBar','leak10','relCe','sedE','sedStopped','sev','ptx','ptxTension','shockMul','bmv','sgaFail','peso','k','kRate','glu','gluT','temp','tempRate','bleed','bleedSrc','tca','ecl','croup','postRosc','access','arrestCause2','hco3Off'];
 function load(k, o = {}) {

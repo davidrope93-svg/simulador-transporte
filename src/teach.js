@@ -267,7 +267,7 @@ function validCase(c) {
 function customCases() { return LS.get('simvmi.cases', {}); }
 function installCustom() {
   const cc = customCases();
-  for (const k of Object.keys(CASES)) if (k.startsWith('u_') && !cc[k] && k !== 'u_link') delete CASES[k];
+  for (const k of Object.keys(CASES)) if (k.startsWith('u_') && !cc[k] && k !== 'u_link' && k !== 'u_var') delete CASES[k];
   for (const [k, c] of Object.entries(cc)) { const s = sanitizeCase(c); if (!validCase(s).length) CASES[k] = Object.assign(s, { lvl: 'Mis casos' }); }
   if (!GROUPS.includes('Mis casos')) GROUPS.splice(GROUPS.indexOf('Libre'), 0, 'Mis casos');
   const cur = $('#caseSel').value;
@@ -329,6 +329,28 @@ function loadSharedFromHash() {
   const m = location.hash.match(/^#caso=([A-Za-z0-9_-]+)/); if (!m) return null;
   try { const c = sanitizeCase(JSON.parse(b64d(m[1]))), err = validCase(c); if (err.length) throw new Error(err.join(' ')); CASES.u_link = Object.assign(c, { lvl: 'Mis casos' }); installCustom(); setTimeout(() => toast('Caso compartido cargado. Guárdalo desde «Mis casos» si quieres conservarlo.'), 300); return 'u_link'; }
   catch (e) { setTimeout(() => toast('El enlace del caso no es válido.'), 300); return null; }
+}
+
+/* ---------- variantes: otro paciente y otra complicación a partir del caso abierto (variants.js) ---------- */
+function newVariant() {
+  const c = CASES[caseKey]; if (!c || !c.pheno || !window.SIM_VARIANT) return;
+  const base = c.vbase && CASES[c.vbase] ? c.vbase : caseKey;
+  const v = SIM_VARIANT.make(base, Math.floor(Math.random() * 1679616)); if (!v) { toast('Este caso no admite variantes.'); return; }
+  v.speed = v.speed || GROUP_SPEED[v.vlvl] || 10;
+  CASES.u_var = v; installCustom(); $('#caseSel').value = 'u_var'; loadCase('u_var');
+  logIt(`Variante ${v.vcode} de «${CASES[base].title}»`); toast(`Variante ${v.vcode}: lee el planteamiento, ha cambiado el paciente.`);
+}
+function saveVariant() {
+  const c = CASES[caseKey]; if (!c || !c.vbase) return;
+  const cc = customCases(), key = 'u_v' + c.vcode.toLowerCase() + (c.vbase || '').slice(0, 6);
+  cc[key] = sanitizeCase(Object.assign({}, c, { lvl: 'Mis casos' })); LS.set('simvmi.cases', cc); installCustom();
+  toast(`Guardada en «Mis casos» como «${c.title}».`);
+}
+function linkVariant() {
+  const c = CASES[caseKey]; if (!c || !c.vbase) return;
+  const u = location.href.split('#')[0] + '#caso=' + b64e(JSON.stringify(sanitizeCase(c)));
+  const show = () => { const x = $('#varUrl'); if (x) { x.value = u; x.hidden = false; x.focus(); x.select(); } toast('Copia el enlace del cuadro: quien lo abra carga esta misma variante.'); };
+  (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(() => toast('Enlace copiado: quien lo abra carga esta misma variante.'), show);
 }
 
 /* ---------- vista móvil por pestañas y vista de proyector ---------- */

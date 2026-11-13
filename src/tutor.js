@@ -15,7 +15,7 @@ const TU = {
 };
 const R = { t: 'Lee el planteamiento y los objetivos de la tarjeta del caso (las etiquetas de la derecha se ponen en verde cuando los cumples).', at: ['#caseCard'] };
 const X = (w) => ({ t: 'Explora al paciente.', w: w || 'Antes de tocar nada, mira qué tiene.', at: 'explora', ok: 'act:explore' });
-const VTS = (lo, hi, extra) => ({ t: () => `Ajusta el Vt a ${lo}–${hi} mL/kg de peso ideal (≈ ${round10(lo * S.ibw)}–${round10(hi * S.ibw)} mL) y pulsa «Confirmar».`, w: extra || 'El volumen se calcula con el peso ideal (talla y sexo), no con el real.', at: 'vt', ok: TU.vt(lo, hi) });
+const VTS = (lo, hi, extra) => ({ vts: true, t: () => `Ajusta el Vt a ${lo}–${hi} mL/kg de peso ideal (≈ ${round10(lo * S.ibw)}–${round10(hi * S.ibw)} mL) y pulsa «Confirmar».`, w: extra || 'El volumen se calcula con el peso ideal (talla y sexo), no con el real.', at: 'vt', ok: TU.vt(lo, hi) });
 const CF = (k, lo, hi, t, w) => ({ t, w, at: k === 'fio2' ? 'fio2' : k === 'trigI' ? 'trigger' : k === 'trigE' ? 'ciclado' : k === 'ps' ? 'presion de soporte' : k === 'ie' || k === 'ti' ? 'inspiracion ti' : k, ok: TU.cf(k, lo, hi), keyk: k });
 const D = (tok, t, w, at) => ({ t, w, at: at || t, ok: tok });
 const TG = (k, t, w, at) => ({ t, w, at, ok: TU.tg(k) });
@@ -88,11 +88,29 @@ const TUT = {
 const TG_AT = { spo2: 'fio2 reservorio', et: 'fr', tas: 'cristaloide noradrenalina', vtkg: 'vt', pplat: 'vt', dp: 'vt', peepi: 'fr', pco2: 'presion de soporte fr', rr: 'presion de soporte', leak: 'recoloca mascarilla', auto: 'trigger', fight: 'sedacion', o2: 'botella fio2', glu: 'glucosa', qrs: 'bicarbonato calcio', fio2: 'fio2', sinus: 'cardioversion', ie: 'peep' };
 function tutSteps(k) {
   if (TUT[k]) return TUT[k];
-  const c = CASES[k], st = [R];
-  if (!c.arrest) st.push(X());
+  const c = CASES[k];
+  if (c.vbase && TUT[c.vbase] && !c.vcause) return tutVariant(c);
+  if (c.vcause) return tutCause(c);
+  const st = [R];
+  if (!c.arrest) st.push(X()); else st.push(...CPR);
   checksOf(c).forEach(([tok, lab]) => st.push({ t: lab + '.', at: lab, ok: () => checkDone(tok) }));
   Object.entries(c.targets || {}).forEach(([key, r]) => st.push(TG(key, `${TGT[key].lab} ${rangeTxt(r, TGT[key])} ${TGT[key].fmt ? '' : TGT[key].u}`.trim() + '.', null, TG_AT[key])));
   st.push(END); return st;
+}
+/* variante: el guion del caso original, adaptado (peso ideal de este paciente, sin vía, la complicación añadida) */
+function tutVariant(c) {
+  const b = CASES[c.vbase], st = TUT[c.vbase].filter(s => !s.end).map(s => s.vts ? Object.assign({}, s, { w: 'El volumen va por el peso ideal de este paciente (está en la tarjeta), no por el real.' }) : s);
+  if (c.access === false && b.access !== false) st.splice(1, 0, { t: 'No tiene vía: canaliza una vía venosa (o intraósea si es urgente) antes de los fármacos.', at: 'via venosa', ok: TU.acc });
+  if (c.vev && window.SIM_VARIANT) { const [evk, tok, lab, , why] = SIM_VARIANT.EV[c.vev]; st.push({ t: 'Vigila al paciente y el equipo: en esta variante algo va a cambiar.', ok: TU.ev(evk) }, { t: why.charAt(0).toUpperCase() + why.slice(1) + '.', at: lab, ok: () => checkDone(tok) }); }
+  st.push(END); return st;
+}
+/* variante de parada con otra causa: RCP, la pista, las acciones de esa causa y los ciclos hasta la RCE */
+function tutCause(c) {
+  const ev = c.vev && window.SIM_VARIANT ? SIM_VARIANT.EV[c.vev] : null, st = [R, ...CPR, { t: 'Lee la pista del planteamiento: ¿qué causa reversible explica esta parada?', w: c.vwhy }];
+  checksOf(c).filter(([t]) => t !== 'rosc' && (!ev || t !== ev[1])).forEach(([tok, lab]) => st.push({ t: lab + '.', at: lab, ok: () => checkDone(tok) }));
+  if (ev) st.push({ t: 'Vigila al paciente y el equipo: algo va a cambiar.', ok: TU.ev(ev[0]) }, { t: ev[4].charAt(0).toUpperCase() + ev[4].slice(1) + '.', at: ev[2], ok: () => checkDone(ev[1]) });
+  st.push({ t: 'Sigue los ciclos de 2 min (análisis, relevo y fármacos cuando toque) hasta la RCE.', at: 'comprobar pulso', ok: TU.rosc }, END);
+  return st;
 }
 let tut = { on: false, i: 0, t0: 0, done: false, steps: [] };
 function tutStart() {
@@ -139,7 +157,7 @@ function tutInit() {
     else if (b.id === 'tutEndCase') { tutStop(); $('#endBtn').click(); }
     else if (b.id === 'tutGo') tutStart();
   });
-  $('#caseCard').addEventListener('click', e => { if (e.target.closest('#tutBtn')) tutStart(); });
+  $('#caseCard').addEventListener('click', e => { if (e.target.closest('#tutBtn')) tutStart(); else if (e.target.closest('#varBtn')) newVariant(); else if (e.target.closest('#varSave')) saveVariant(); else if (e.target.closest('#varLink')) linkVariant(); });
   document.addEventListener('click', () => { lastAct = performance.now(); }, true);
 }
 let lastAct = performance.now();

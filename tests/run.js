@@ -117,5 +117,21 @@ console.log('— Todos los casos, 20 min sin tratar: sin valores imposibles');
 let bad = 0; for (const k of Object.keys(CASES)) { if (k === 'libre') continue; const L = load(k, { scale: 10 }); const R = run(L, CASES[k].duration || 20); if (R.nan.length || R.weird.some(w => !/pH (6\.|7\.0)/.test(w))) { bad++; console.log('   ', k, R.nan.slice(0, 2), R.weird.slice(0, 2)); } }
 check('Casos con NaN o valores fuera de rango fisiológico', bad, 0, 0);
 
+console.log('— Variantes (v1.0): reproducibles, sin valores imposibles y cada causa de parada pide su tratamiento');
+{ const V = global.SIM_VARIANT, keys = Object.keys(CASES).filter(k => k !== 'libre' && CASES[k].pheno);
+  check('Misma semilla, misma variante', keys.filter(k => JSON.stringify(V.make(k, 4242)) !== JSON.stringify(V.make(k, 4242))).length, 0, 0);
+  let same = 0, badV = 0; for (const k of keys) for (let s = 1; s <= 6; s++) { const v = V.make(k, s * 104729 + 17); if (v.goal === CASES[k].goal && !v.vev && !v.vcause && v.access === CASES[k].access && v.altitude === CASES[k].altitude && !/Es (más grave|algo más leve)/.test(v.hint || '')) same++;
+    CASES.v_t = v; const R = run(load('v_t', { scale: 10 }), Math.min(v.duration || 20, 20)); if (R.nan.length || R.weird.some(w => !/pH (6\.|7\.0)/.test(w))) { badV++; console.log('  ', k, s, v.vcause || '', v.vev || '', R.nan.concat(R.weird).slice(0, 2).join('; ')); } }
+  delete CASES.v_t; check(`Variantes iguales al original (de ${keys.length * 6})`, same, 0, 0); check(`Variantes con NaN o fuera de rango (de ${keys.length * 6})`, badV, 0, 0);
+  const byCause = {}; for (let s = 1; s < 3000 && Object.keys(byCause).length < 10; s++) { const v = V.make('pcrFv', s); if (!byCause[v.vcause]) byCause[v.vcause] = v; }
+  const fix = { hyperk: (L, w) => { L.sim.drug('ca', 1); L.sim.drug('ins', 1); L.sim.drug('bic', w); }, tca: (L, w) => { L.sim.drug('bic', w); L.sim.drug('bic', w); }, ptx: L => L.sim.action('decomp'), tep: L => { drug(L, 'tnk'); L.sim.compress('mech'); },
+    hypo: L => { for (let i = 0; i < 4; i++) L.sim.action('fluid'); L.sim.action('blood', 1); L.sim.action('blood', 1); }, opi: L => drug(L, 'nalox') };
+  const rce = (v, seed, good) => { CASES.v_t = v; const L = load('v_t', { scale: 10, seed }), { sim, S } = L; let lastAdr = -9, next = 2, shocks = 0; if (good) fix[v.vcause](L, L.peso * L.fW);
+    while (S.clin < 20) { for (let i = 0; i < 25; i++) sim.step(.004); if (S.cpr.comp === 'manual' && S.cpr.relevo > 2) sim.relevo(); if (!S.arrest) return true;
+      if (S.clin - lastAdr > 4) { drug(L, 'adr1'); lastAdr = S.clin; } if (S.clin >= next) { next += 2; const r = sim.check(); if (!S.arrest) return true; if (r.rhythm === 'vf' || r.rhythm === 'tvsp') { sim.shock(200, false); shocks++; } } } return false; };
+  for (const ck of Object.keys(fix)) { const v = byCause[ck]; if (!v) { check('Variante de parada por ' + ck + ' encontrada', 0, 1, 1); continue; } let g = 0, b = 0; for (let s = 1; s <= 10; s++) { if (rce(v, s, true)) g++; if (rce(v, s, false)) b++; }
+    check(`Parada por ${ck} (variante): RCE tratando la causa`, g * 10, 50, 100, ' %'); check(`Parada por ${ck} (variante): RCE sin tratarla`, b * 10, 0, 25, ' %'); }
+  delete CASES.v_t; }
+
 console.log(`\n${n - fails} de ${n} pruebas correctas`);
 process.exit(fails ? 1 : 0);
