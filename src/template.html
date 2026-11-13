@@ -365,12 +365,40 @@ body.proj .top2{position:fixed;right:12px;bottom:12px;z-index:30;padding:4px;bor
   body.printing #debrief .inrow{display:none}
   body.printing details{display:block}body.printing details>*{display:block}
 }
+
+/* ===== v0.8: orientación ===== */
+@keyframes spot{0%,100%{box-shadow:0 0 0 0 rgba(255,176,32,0)}50%{box-shadow:0 0 0 6px rgba(255,176,32,.9)}}
+.spot{animation:spot 1s ease-in-out 4;outline:3px solid #ffb020!important;outline-offset:2px;position:relative;z-index:5}
+@media (prefers-reduced-motion:reduce){.spot{animation:none}}
+.wbtn{border:1px solid var(--accent);background:transparent;color:var(--accent);border-radius:999px;padding:1px 9px;font-size:.78rem;font-weight:600;cursor:pointer;margin-left:4px;white-space:nowrap}
+.wbtn:hover{background:var(--accent);color:var(--accent-ink)}
+.coach{position:fixed;left:max(12px,env(safe-area-inset-left,0px));bottom:12px;z-index:35;width:min(360px,calc(100vw - 24px));background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.18);padding:8px 10px;display:flex;flex-direction:column;gap:6px}
+.coach .ch{display:flex;align-items:center;gap:8px}.coach .ch b{flex:1;font-family:var(--display);text-transform:uppercase;letter-spacing:.05em;font-size:.86rem}
+.coach .cn{min-width:22px;height:22px;border-radius:11px;display:inline-flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:.75rem;color:#fff;background:var(--ok);padding:0 6px}
+.coach .cn.bad{background:var(--bad)}.coach .cn.warn{background:var(--warn)}
+.coach .cb b{display:block}.coach .cb p{font-size:.86rem;margin:2px 0}.coach .cb .fix{font-weight:500}
+.coach.min .cb{display:none}.coach.min #coachToggle{transform:rotate(180deg)}
+body.exam .coach{display:none!important}
+@media (max-width:760px){.coach{bottom:calc(76px + env(safe-area-inset-bottom,0px))}}
+body.proj .coach{display:none}
+.qm{align-items:flex-start;padding-top:10vh}
+.qsheet{max-width:620px;gap:8px}
+#qIn{font-size:1.05rem;padding:10px 12px;border-radius:10px;border:2px solid var(--accent);background:var(--surface2);width:100%}
+.qres{display:flex;flex-direction:column;gap:4px;max-height:55vh;overflow:auto}
+.qr{all:unset;display:grid;grid-template-columns:1fr auto;gap:0 10px;padding:8px 10px;border-radius:8px;border:1px solid var(--line);cursor:pointer}
+.qr b{font-weight:600}.qr span{grid-column:1;font-size:.8rem;color:var(--muted)}.qr em{grid-row:1/3;grid-column:2;align-self:center;font-style:normal;font-family:var(--mono);font-size:.72rem;color:var(--muted)}
+.qr.on,.qr:hover{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,transparent)}
+.qr[aria-disabled="true"] b{opacity:.6}
+.tour{position:fixed;inset:0;z-index:70}
+.tour-hl{position:fixed;border-radius:12px;box-shadow:0 0 0 9999px rgba(5,12,16,.62);border:2px solid #ffb020;transition:all .25s ease;pointer-events:none}
+.tour-card{position:fixed;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:12px 14px;box-shadow:0 10px 30px rgba(0,0,0,.3);display:flex;flex-direction:column;gap:8px}
+.tour-card b{font-family:var(--display);text-transform:uppercase;letter-spacing:.05em}
 </style>
 
 <main>
   <header class="top">
     <div class="brand">
-      <span class="eyebrow">Simulador docente · SVA terrestre y HEMS · v0.7</span>
+      <span class="eyebrow">Simulador docente · SVA terrestre y HEMS · v0.8</span>
       <h1>Ventilación, monitor y RCP</h1>
     </div>
     <div class="toolbar">
@@ -381,6 +409,8 @@ body.proj .top2{position:fixed;right:12px;bottom:12px;z-index:30;padding:4px;bor
       <div class="field" data-tabsec="case"><label for="monSel">Monitor</label><select id="monSel"><option value="zoll">ZOLL X Series</option><option value="corpuls">corpuls3</option></select></div>
       <div class="field"><span class="flabel" id="speedLbl">Tiempo clínico</span><div class="seg" id="speedSeg" role="group" aria-labelledby="speedLbl"><button data-s="1">×1</button><button data-s="5">×5</button><button data-s="10" aria-pressed="true">×10</button><button data-s="20">×20</button></div></div>
       <button class="btn" id="soundBtn" aria-pressed="true" data-tabsec="case">Sonido</button>
+      <button class="btn" id="qBtn" title="Buscar una acción, un fármaco o un mando (tecla /)">Buscar</button>
+      <button class="btn" id="guideBtn">Guía</button>
       <button class="btn" id="pauseBtn" aria-pressed="false">Pausa</button>
       <button class="btn" id="resetBtn" data-tabsec="case">Reiniciar</button>
       <button class="btn primary" id="endBtn">Terminar caso</button>
@@ -608,6 +638,9 @@ body.proj .top2{position:fixed;right:12px;bottom:12px;z-index:30;padding:4px;bor
     </div>
   </div>
   <div class="toast" id="toast" role="status" hidden></div>
+  <aside class="coach" id="coach" aria-label="Siguiente paso" hidden><div class="ch"><span class="cn ok" id="coachN">✓</span><b>Siguiente paso</b><button class="btn sm" id="coachToggle" aria-label="Plegar o desplegar el ayudante">▾</button></div><div class="cb" id="coachBody"></div></aside>
+  <div class="modal qm" id="qModal" hidden role="dialog" aria-modal="true" aria-label="Buscar"><div class="sheet qsheet"><input id="qIn" placeholder="¿Qué quieres hacer? (calcio, PEEP, intubar, cardioversión…)" autocomplete="off" aria-label="Buscar"><div id="qRes" class="qres"></div><p class="small">↑ ↓ para elegir · Enter para hacerlo o ir · Esc para cerrar</p></div></div>
+  <div class="tour" id="tour" hidden><div class="tour-hl" id="tourHl"></div><div class="tour-card" id="tourCard" role="dialog" aria-modal="true" aria-labelledby="tourT"><b id="tourT"></b><p id="tourX"></p><div class="inrow"><button class="btn" id="tourPrev">Anterior</button><button class="btn primary" id="tourNext">Siguiente</button><button class="btn" id="tourEnd">Salir</button></div></div></div>
 </main>
 <div class="instr" id="instr" hidden></div>
 <nav class="tabbar" id="tabbar" aria-label="Secciones"><button data-tab="vent">Ventilador</button><button data-tab="mon">Monitor</button><button data-tab="act">Acciones</button><button data-tab="case">Caso</button></nav>

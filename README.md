@@ -23,6 +23,13 @@ Diseño propio: las pantallas siguen la lógica de manejo de cada equipo (modos,
 
 58 casos más el modo libre, en 11 grupos: VMI en SVA, VMI en HEMS, VMNI, vía aérea, oxigenoterapia e intoxicaciones, pediatría, trauma y obstetricia, metabólico y ambiental, arritmias, parada y modo libre. Los casos propios aparecen en «Mis casos». Cada caso arranca a la velocidad que le corresponde (×1 en parada, ×5 en arritmias, ×10 en el resto; al entrar en parada pasa a ×1) y tiene objetivos que se colorean en tiempo real, eventos programados, una solución posible y un debrief al terminar (tiempo en objetivo, parada, arritmia, vía aérea, eventos, fármacos y peores valores).
 
+## Para no perderse
+
+- **Guía**: un recorrido de 13 pasos por la pantalla que sale la primera vez y se repite con el botón «Guía».
+- **Siguiente paso**: un recuadro flotante con el problema más urgente y el botón «Dónde se hace», que lleva al mando exacto y lo hace parpadear (abre el grupo de fármacos y, en el móvil, cambia de pestaña). Se pliega con ▾ y desaparece en el modo examen.
+- **«Dónde»** junto a cada recomendación de la Lectura.
+- **Buscar** (botón o tecla /): se escribe lo que se quiere hacer («calcio», «PEEP», «intubar», «cardioversión», «vía») y con Enter se hace o se va al mando.
+
 ## Docencia
 
 - **Modo examen**: oculta la Lectura, la solución y el color de los objetivos; al terminar da una nota sobre 10 con tiempo en objetivo, acciones clave del caso, parada (fracción de compresión, primera descarga, RCE) y seguridad (desaturación, paradas provocadas, eventos sin resolver).
@@ -52,6 +59,7 @@ Además de los modos del motor, la interfaz usa modos propios de cada equipo que
 | `src/devices.js` | Definición de cada ventilador y monitor: modos, mandos, rangos, teclas, preajustes y nombres de alarma. |
 | `src/cases.js` | Casos clínicos. |
 | `src/ui.js` | Interfaz: pantallas, mandos, alarmas, acciones, fármacos, lectura y debrief. |
+| `src/guide.js` | Orientación: guía paso a paso, «Dónde», ayudante con el siguiente paso y buscador. Se inserta dentro de `ui.js` después de `teach.js`. |
 | `src/teach.js` | Docencia: examen y nota, instructor, línea de tiempo, PDF, historial, editor de casos, móvil y proyector. Se inserta dentro de `ui.js` al generar la página. |
 | `src/template.html` | Maquetación y estilos. |
 | `build.py` | Une todo en `index.html`. |
@@ -60,6 +68,10 @@ Además de los modos del motor, la interfaz usa modos propios de cada equipo que
 ## Pruebas
 
 Cada versión tiene que pasar 75 pruebas con rangos de referencia: regresión de la mecánica, tiempo de desaturación en apnea (sano preoxigenado 7–9,5 min, con aire 0,6–2 min, obeso 2,3–3,6 min) igual a ×1 que a ×20, PaCO₂ en respiración espontánea (TSV, TEP, opiáceos, EPOC con hiperoxia), SpO₂ del EPOC según FiO₂, EtCO₂ durante la RCP, tiempo de acción del relajante, tasas de RCE según se resuelva o no la causa, frecuencia mandatoria en SIMV, fracción de compresión con 30:2, vía aérea no oxigenable con bolsa y supraglótico, drenaje torácico en altitud, deterioro de la TV con pulso y sobreestimulación; y en la v0.7, hiperpotasemia con y sin calcio, hipoglucemia y su recurrencia, QRS de los tricíclicos con bicarbonato, FV en hipotermia, hemorragia con y sin hemostasia (y el coste del volumen liberal), convulsiones de la eclampsia con magnesio, crup, bronquiolitis con alto flujo, constantes de un lactante sano, nueva parada tras la RCE, parada traumática y compensación respiratoria según Winter.
+
+## Cambios en la v0.8
+
+- Guía paso a paso al entrar por primera vez, botón «Dónde» en la Lectura, ayudante flotante con el siguiente paso y buscador de acciones, fármacos y mandos (tecla /).
 
 ## Cambios en la v0.7
 

@@ -896,7 +896,8 @@ function readings() {
   else if (S.o2.supply) { const cons = S.o2.cons + (S.dev.pneumatic && !off && (tube || mask) ? .3 : 0), aut = cons > .05 ? (S.o2.bar - 20) * S.o2.vol / cons : 999; if (aut < 30) out.push(['warn', 'Botella baja', `Autonomía ≈ ${fmt(aut)} min.`, S.dev.pneumatic ? 'Air Mix si la SpO₂ lo permite y prepara el cambio de botella.' : 'Baja la FiO₂ si la SpO₂ lo permite o prepara el cambio de botella.']); }
   if (!out.length) out.push(['ok', 'Sin problemas detectados', 'Parámetros dentro de rangos razonables.', 'Sigue vigilando EtCO₂, SpO₂ y TA.']);
   lastReads = out.slice(0, 6);
-  $('#readList').innerHTML = out.slice(0, 6).map(([l, t, dd, f]) => `<div class="ri ${l}"><b>${t}</b><p>${dd}</p><p class="fix">→ ${f}</p></div>`).join('');
+  $('#readList').innerHTML = out.slice(0, 6).map(([l, t, dd, f]) => `<div class="ri ${l}"><b>${t}</b><p>${dd}</p><p class="fix">→ ${f}${l !== 'ok' && whereOf(f + ' ' + t).length ? ` <button class="wbtn" data-where="${encodeURIComponent(f + ' ' + t)}">Dónde</button>` : ''}</p></div>`).join('');
+  coachUpdate();
 }
 function renderTruth() { $('#truth').innerHTML = truthRows().map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join(''); }
 function truthRows() {
@@ -1269,6 +1270,7 @@ function frame(now) {
 }
 
 /*TEACH*/
+/*GUIDE*/
 
 /* ---------- arranque ---------- */
 $('#caseSel').innerHTML = GROUPS.map(g => `<optgroup label="${g}">` + Object.entries(CASES).filter(([, c]) => c.lvl === g).map(([k, c]) => `<option value="${k}">${c.title}</option>`).join('') + '</optgroup>').join('');
@@ -1285,5 +1287,5 @@ $('#speedSeg').addEventListener('click', e => { const b = e.target.closest('butt
 $('#truthBox').addEventListener('toggle', () => { if ($('#truthBox').open) renderTruth(); });
 window.__sim = () => ({ sim, S, M, track, pend, lim, exam, LINK });
 if (INSTR) startInstructor();
-else { teachInit(); const k0 = loadSharedFromHash(); if (k0) $('#caseSel').value = k0; loadCase(k0 || 'tce'); requestAnimationFrame(frame); }
+else { teachInit(); guideInit(); const k0 = loadSharedFromHash(); if (k0) $('#caseSel').value = k0; loadCase(k0 || 'tce'); requestAnimationFrame(frame); }
 })();
