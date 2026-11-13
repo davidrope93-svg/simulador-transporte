@@ -21,7 +21,16 @@ Diseño propio: las pantallas siguen la lógica de manejo de cada equipo (modos,
 
 ## Casos
 
-45 casos más el modo libre, en 8 grupos: VMI en SVA, VMI en HEMS, VMNI, vía aérea, oxigenoterapia e intoxicaciones, arritmias, parada y modo libre. Cada caso arranca a la velocidad que le corresponde (×1 en parada, ×5 en arritmias, ×10 en el resto; al entrar en parada pasa a ×1) y tiene objetivos que se colorean en tiempo real, eventos programados, una solución posible y un debrief al terminar (tiempo en objetivo, parada, arritmia, vía aérea, eventos, fármacos y peores valores).
+58 casos más el modo libre, en 11 grupos: VMI en SVA, VMI en HEMS, VMNI, vía aérea, oxigenoterapia e intoxicaciones, pediatría, trauma y obstetricia, metabólico y ambiental, arritmias, parada y modo libre. Los casos propios aparecen en «Mis casos». Cada caso arranca a la velocidad que le corresponde (×1 en parada, ×5 en arritmias, ×10 en el resto; al entrar en parada pasa a ×1) y tiene objetivos que se colorean en tiempo real, eventos programados, una solución posible y un debrief al terminar (tiempo en objetivo, parada, arritmia, vía aérea, eventos, fármacos y peores valores).
+
+## Docencia
+
+- **Modo examen**: oculta la Lectura, la solución y el color de los objetivos; al terminar da una nota sobre 10 con tiempo en objetivo, acciones clave del caso, parada (fracción de compresión, primera descarga, RCE) y seguridad (desaturación, paradas provocadas, eventos sin resolver).
+- **Vista del instructor**: botón «Vista del instructor» (se abre en otra ventana del mismo equipo y se conecta sola) o «Enlazar instructor» con un código de 5 caracteres para otro dispositivo (WebRTC con PeerJS; la librería se carga solo al usarlo). El instructor carga casos, provoca eventos, pausa, cambia la velocidad, pasa a examen, manda mensajes al alumno y ve los valores reales, la Lectura y la evolución.
+- **Debrief** con línea de tiempo (SpO₂, EtCO₂, TAS y FC con fármacos, acciones, eventos y descargas marcados), exportable a PDF.
+- **Historial** de intentos por alumno, guardado en el dispositivo y exportable a CSV.
+- **Editor de casos** sin tocar código: paciente, fisiología, ajustes iniciales, eventos, objetivos, acciones clave y textos; guarda en el dispositivo, exporta e importa JSON y genera un enlace que carga el caso al abrirlo.
+- **Móvil** con pestañas (Ventilador, Monitor, Acciones, Caso) y aviso de alarma en la pestaña; **vista de proyector** para tablet en horizontal o pantalla grande.
 
 ### Añadir o modificar casos
 
@@ -31,7 +40,7 @@ Todos los casos están en [`src/cases.js`](src/cases.js). La cabecera del archiv
 python3 build.py
 ```
 
-Eso produce `index.html`, que es lo que publica GitHub Pages. Si editas directamente en la web de GitHub, puedes pedirle a Claude que regenere `index.html` y lo suba.
+Eso produce `index.html`, que es lo que publica GitHub Pages. Si editas directamente en la web de GitHub, puedes pedirle a Claude que regenere `index.html` y lo suba. Para un caso suelto no hace falta: el editor de la propia página exporta el JSON, que se puede pegar en `src/cases.js`.
 
 Además de los modos del motor, la interfaz usa modos propios de cada equipo que el motor resuelve con otro: `DEM` y `MAN` (RSI del Medumat), `CPR_M` (CPR del Medumat), `CPV_RCE` (fase RCE del Monnal) y `SIMV_V`, `SIMV_P`, `SIMV_A` (SIMV de volumen, presión o volumen con presión regulada).
 
@@ -43,13 +52,23 @@ Además de los modos del motor, la interfaz usa modos propios de cada equipo que
 | `src/devices.js` | Definición de cada ventilador y monitor: modos, mandos, rangos, teclas, preajustes y nombres de alarma. |
 | `src/cases.js` | Casos clínicos. |
 | `src/ui.js` | Interfaz: pantallas, mandos, alarmas, acciones, fármacos, lectura y debrief. |
+| `src/teach.js` | Docencia: examen y nota, instructor, línea de tiempo, PDF, historial, editor de casos, móvil y proyector. Se inserta dentro de `ui.js` al generar la página. |
 | `src/template.html` | Maquetación y estilos. |
 | `build.py` | Une todo en `index.html`. |
 | `tests/run.js` | Pruebas del motor (`node tests/run.js`): fisiología de referencia, independencia de la velocidad, parada y los 45 casos. GitHub las ejecuta en cada cambio. |
 
 ## Pruebas
 
-Cada versión tiene que pasar 45 pruebas con rangos de referencia: regresión de la mecánica, tiempo de desaturación en apnea (sano preoxigenado 7–9,5 min, con aire 0,6–2 min, obeso 2,3–3,6 min) igual a ×1 que a ×20, PaCO₂ en respiración espontánea (TSV, TEP, opiáceos, EPOC con hiperoxia), SpO₂ del EPOC según FiO₂, EtCO₂ durante la RCP, tiempo de acción del relajante, tasas de RCE según se resuelva o no la causa, frecuencia mandatoria en SIMV, fracción de compresión con 30:2, vía aérea no oxigenable con bolsa y supraglótico, drenaje torácico en altitud, deterioro de la TV con pulso y sobreestimulación.
+Cada versión tiene que pasar 75 pruebas con rangos de referencia: regresión de la mecánica, tiempo de desaturación en apnea (sano preoxigenado 7–9,5 min, con aire 0,6–2 min, obeso 2,3–3,6 min) igual a ×1 que a ×20, PaCO₂ en respiración espontánea (TSV, TEP, opiáceos, EPOC con hiperoxia), SpO₂ del EPOC según FiO₂, EtCO₂ durante la RCP, tiempo de acción del relajante, tasas de RCE según se resuelva o no la causa, frecuencia mandatoria en SIMV, fracción de compresión con 30:2, vía aérea no oxigenable con bolsa y supraglótico, drenaje torácico en altitud, deterioro de la TV con pulso y sobreestimulación; y en la v0.7, hiperpotasemia con y sin calcio, hipoglucemia y su recurrencia, QRS de los tricíclicos con bicarbonato, FV en hipotermia, hemorragia con y sin hemostasia (y el coste del volumen liberal), convulsiones de la eclampsia con magnesio, crup, bronquiolitis con alto flujo, constantes de un lactante sano, nueva parada tras la RCE, parada traumática y compensación respiratoria según Winter.
+
+## Cambios en la v0.7
+
+- Docencia: modo examen con nota, vista del instructor en otra ventana o en otro dispositivo, debrief con línea de tiempo y PDF, historial por alumno, editor de casos con enlace para compartir, móvil con pestañas y vista de proyector.
+- Motor: potasio con efecto en el ECG (T picudas, QRS ancho, bradicardia y parada) y en la TA; glucemia con nivel de conciencia y convulsiones; temperatura con bradicardia, ondas J, FV al movilizar, menos consumo de O₂ y descargas ineficaces por debajo de 30 °C; hemorragia según la presión, la hemostasia, el tranexámico, la oxitocina y la coagulopatía; tricíclicos con QRS ancho, hipotensión y convulsiones; eclampsia; crup con agotamiento; bronquiolitis; escalado pediátrico de pulmón, metabolismo y constantes; nueva parada tras la RCE; acceso vascular que hay que conseguir (vía venosa que puede fallar o intraósea); GCS estimado; compensación respiratoria de la acidosis metabólica según Winter.
+- Acciones nuevas: vía venosa, intraósea, glucemia capilar, temperatura, calor activo, hemostasia según el foco (torniquete, cinturón pélvico, masaje uterino) y concentrado de hematíes.
+- Fármacos nuevos: cloruro cálcico, bicarbonato, glucosa, glucagón, insulina con glucosa, sulfato de magnesio 4 g, labetalol, urapidilo, oxitocina, ácido tranexámico, sugammadex, midazolam intranasal, adrenalina nebulizada y dexametasona; perfusiones de ketamina, rocuronio, isoprenalina, magnesio y glucosa al 10 %.
+- 13 casos nuevos: bronquiolitis, crup, anafilaxia pediátrica, FV pediátrica, fractura de pelvis, parada traumática, eclampsia, hemorragia posparto, hiperpotasemia, hipotermia, hipoglucemia, tricíclicos y RCE inestable.
+- Objetivos evaluados con el valor que se ve en pantalla; tendencia del monitor de 30 min clínicos a cualquier velocidad; accesibilidad (valor del mando giratorio, sin controles anidados, objetivos táctiles de 44 px, textos ≥ 11 px, contraste).
 
 ## Cambios en la v0.6
 
@@ -84,6 +103,8 @@ Cada versión tiene que pasar 45 pruebas con rangos de referencia: regresión de
 - Nombres de modos del Monnal y del Medumat aproximados a las versiones habituales.
 - Pasos de energía del corpuls3 (el fabricante da 2–200 J), rango de sobreestimulación (hasta 300 lpm) y secuencia del DEA aproximados; ventana de sincronización de la SIMV (40 % final del intervalo) genérica; nombres VSIMV/PSIMV del Monnal aproximados; probabilidades de éxito de descarga, cardioversión y RCE orientativas.
 - Tiempo de descarte de cambios sin confirmar: 20 s, genérico.
+- Medio interno, temperatura, hemorragia y tóxicos simplificados para docencia: magnitudes y tiempos orientativos, no farmacocinética real.
+- La vista del instructor en otro dispositivo usa el servidor público de PeerJS solo para poner en contacto los navegadores; los datos van directos entre ellos.
 
 ## Fuentes de referencia
 

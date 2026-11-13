@@ -81,6 +81,38 @@ check('Supraglótico que sella en vía difícil con sangre', sgaSeal('viaDificil
 { let k = 0; for (let s = 1; s <= 30; s++) { const L = load('tvPulso', { scale: 10, seed: s }); if (run(L, 20).arrestAt != null) k++; } check('TV con pulso sin tratar: parada en 20 min', k / 30 * 100, 15, 60, ' %'); }
 { let k = 0; for (let s = 1; s <= 20; s++) { const L = load('tvPulso', { scale: 10, seed: s }); run(L, .5); L.sim.pace(true, 200, 100, 'overdrive'); run(L, 1); L.sim.pace(false, 200, 100, 'overdrive'); run(L, 1.3); if (!L.S.arr.type && !L.S.arrest) k++; } check('Sobreestimulación (overdrive) en TV: reversión', k / 20 * 100, 35, 85, ' %'); }
 
+console.log('— Medio interno, tóxicos, hemorragia, obstetricia, pediatría y post-RCE (v0.7)');
+const at = (k, min, acts, o) => { const L = load(k, Object.assign({ scale: 10, seed: 3 }, o || {})); const R = run(L, min, acts || []); return { S: L.S, R }; };
+{ const u = at('hiperK', 10).S, t = at('hiperK', 10, [[.5, L => L.sim.drug('ca', 1)]]).S;
+  check('Hiperpotasemia sin tratar: QRS a 10 min', u.ecg.qrs * 1000, 140, 220, ' ms'); check('Hiperpotasemia con calcio: QRS a 10 min', t.ecg.qrs * 1000, 80, 115, ' ms');
+  const i = at('hiperK', 30, [[.5, L => L.sim.drug('ca', 1)], [1, L => L.sim.drug('ins', 1)], [1.5, L => L.sim.drug('salb', 1)]]).S; check('Insulina con glucosa y salbutamol: bajada de K⁺ en 30 min', 8 - i.k, .7, 2.5, ' mmol/L'); }
+{ const u = at('hipoglucemia', 10).S, t = at('hipoglucemia', 10, [[.5, L => L.sim.drug('gluc', 25)]]).S;
+  check('Hipoglucemia sin tratar: GCS a 10 min', u.gcs, 3, 8); check('Glucosa 25 g IV: glucemia a 10 min', t.glu, 90, 180, ' mg/dL'); check('Glucosa 25 g IV: GCS a 10 min', t.gcs, 14, 15);
+  const r = at('hipoglucemia', 40, [[.5, L => L.sim.drug('gluc', 25)]]).S; check('Sulfonilurea: la hipoglucemia recurre a los 40 min sin perfusión', r.glu, 20, 69, ' mg/dL'); }
+{ const u = at('triciclicos', 10).S, t = at('triciclicos', 10, [[.5, L => L.sim.drug('bic', 1.5 * 75)], [3, L => L.sim.drug('bic', 75)]]).S;
+  check('Tricíclicos sin tratar: QRS', u.ecg.qrs * 1000, 150, 200, ' ms'); check('Tricíclicos con bicarbonato 2,5 mEq/kg: QRS', t.ecg.qrs * 1000, 90, 119, ' ms'); }
+{ const h = at('hipotermia', 2).S; check('Hipotermia a 28,5 °C: FC', h.fc, 30, 55, ' lpm');
+  let r = 0; for (let s = 1; s <= 20; s++) { const L = load('hipotermia', { scale: 10, seed: s }); run(L, .5); L.sim.event('vf'); for (let i = 0; i < 3; i++) { run(L, 1 + i); L.sim.shock(200, false); } if (!L.S.arrest) r++; } check('FV a < 30 °C: RCE con 3 descargas', r / 20 * 100, 0, 20, ' %'); }
+{ const u = at('pelvis', 30).S, t = at('pelvis', 30, [[.5, L => L.sim.action('hemo')], [1, L => L.sim.drug('txa', 1)], [2, L => L.sim.action('warm')]]).S;
+  check('Fractura de pelvis sin hemostasia: TAS a 30 min', u.tas, 40, 75, ' mmHg'); check('Cinturón pélvico y tranexámico: TAS a 30 min', t.tas, 78, 100, ' mmHg');
+  const f = at('pelvis', 30, [[.5, L => L.sim.action('hemo')], [1, L => L.sim.drug('txa', 1)], ...[3, 6, 9, 12, 15, 18].map(m => [m, L => L.sim.action('fluid')])]).S; check('Volumen liberal: más sangre perdida que con hipotensión permisiva', (f.lost - t.lost) * 100, 2, 30, ' % de la volemia'); }
+{ const u = at('eclampsia', 20).S, t = at('eclampsia', 20, [[1.5, L => L.sim.drug('mg', 4)], [2, L => L.sim.perf('mg', 1 / 60)]]).S;
+  check('Eclampsia sin magnesio: convulsiones en 20 min', u.seizures, 2, 12); check('Con magnesio: convulsiones en 20 min (contando la inicial)', t.seizures, 1, 1); }
+{ const u = at('crup', 30).S, t = at('crup', 30, [[.5, L => L.sim.drug('adrN', 37.5)], [1, L => L.sim.drug('dexa', 45)]]).S;
+  check('Crup sin tratar: PaCO₂ a 30 min (agotamiento)', u.pco2, 50, 80); check('Crup con adrenalina nebulizada y dexametasona: PaCO₂', t.pco2, 28, 46); }
+{ const u = at('bronquiolitis', 15).S, t = at('bronquiolitis', 15, [[.5, L => { L.sim.setIface('nasal'); L.sim.setCfg(Object.assign({}, L.S.cfg, { mode: 'HFNC', flow: 12, fio2: 50 })); }]]).S;
+  check('Lactante de 6 kg con bronquiolitis: FR', u.pat.rr, 55, 80, ' rpm'); check('Alto flujo 2 L/kg/min: baja la FR', u.pat.rr - t.pat.rr, 5, 25, ' rpm'); check('Alto flujo: sube la SpO₂', (t.spo2 - u.spo2) * 100, 3, 12, ' puntos'); }
+{ const sim = VMI.create({ pheno: 'sano', seed: 2, scale: 10, peso: 6, sex: 'h', talla: 62, iface: 'o2', cfg: { o2dev: 'gafas' }, relCe: 0, sedE: 0, sedStopped: true }); sim.warm(10); adv(sim, 8);
+  check('Lactante sano de 6 kg: FR', sim.S.pat.rr, 25, 50, ' rpm'); check('Lactante sano: PaCO₂', sim.S.pco2, 34, 45); check('Lactante sano: FC', sim.S.fc, 120, 165, ' lpm'); check('Lactante sano: TAS', sim.S.tas, 75, 100, ' mmHg'); }
+{ let u = 0, t = 0; for (let s = 1; s <= 20; s++) { if (at('rceInestable', 30, [], { seed: s }).R.arrestAt != null) u++; if (at('rceInestable', 30, [[.5, L => L.sim.setNor(.15)], [1, L => L.sim.action('fluid')]], { seed: s }).R.arrestAt != null) t++; }
+  check('RCE inestable sin soporte: nueva parada en 30 min', u / 20 * 100, 40, 100, ' %'); check('Con noradrenalina y volumen: nueva parada', t / 20 * 100, 0, 15, ' %'); }
+{ let u = 0, t = 0; for (let s = 1; s <= 20; s++) { const ck = [2, 4, 6, 8, 10, 12, 14].map(m => [m, L => L.sim.check()]);
+    if (!at('pcrTrauma', 15, ck, { seed: s }).S.arrest) u++;
+    if (!at('pcrTrauma', 15, [[.3, L => L.sim.action('hemo')], [.5, L => L.sim.action('drain')], [2, L => L.sim.action('blood', 2)], [2.2, L => L.sim.action('fluid')], [3, L => L.sim.action('blood', 2)], ...ck], { seed: s }).S.arrest) t++; }
+  check('Parada traumática sin tratar las causas: RCE', u / 20 * 100, 0, 5, ' %'); check('Tratando neumotórax e hipovolemia: RCE', t / 20 * 100, 30, 90, ' %'); }
+{ const sim = VMI.create({ pheno: 'sano', seed: 2, scale: 10, iface: 'o2', cfg: { o2dev: 'gafas' }, relCe: 0, sedE: 0, sedStopped: true, hco3Off: -8 }); sim.warm(10); adv(sim, 15);
+  check('Acidosis metabólica: PaCO₂ frente a Winter (1,5 × HCO₃ + 8)', sim.S.pco2 - (1.5 * sim.S.hco3m + 8), -6, 6); }
+
 console.log('— Todos los casos, 20 min sin tratar: sin valores imposibles');
 let bad = 0; for (const k of Object.keys(CASES)) { if (k === 'libre') continue; const L = load(k, { scale: 10 }); const R = run(L, CASES[k].duration || 20); if (R.nan.length || R.weird.some(w => !/pH (6\.|7\.0)/.test(w))) { bad++; console.log('   ', k, R.nan.slice(0, 2), R.weird.slice(0, 2)); } }
 check('Casos con NaN o valores fuera de rango fisiológico', bad, 0, 0);

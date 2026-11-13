@@ -6,7 +6,7 @@
 /* Layout: barra de caso arriba; a la izquierda la pantalla del ventilador (siempre oscura, como el equipo) con curvas, valores y mandos; a la derecha el monitor-desfibrilador (también oscuro), la botella de O2, las acciones y la lectura; debajo lo que pasa dentro, el instructor y el registro */
 :root{
   --bg:#edf1f2; --surface:#ffffff; --surface2:#f5f8f9; --ink:#13202a; --muted:#566874; --line:#d3dce0;
-  --accent:#1c6b9e; --accent-ink:#ffffff; --ok:#2a8653; --warn:#a96f00; --bad:#bf3528;
+  --accent:#1c6b9e; --accent-ink:#ffffff; --ok:#21714a; --warn:#a96f00; --bad:#bf3528;
   --display:"Saira Semi Condensed","Arial Narrow",system-ui,sans-serif;
   --body:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
@@ -33,6 +33,7 @@ h2{font-size:1.15rem;font-weight:600;text-transform:uppercase;letter-spacing:.06
 p{margin:0}
 button,select,input{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn.noacc{opacity:.55}
 .eyebrow{font-family:var(--mono);font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .small{font-size:.82rem;color:var(--muted)}
 .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
@@ -201,7 +202,7 @@ details.lim>summary{cursor:pointer;font-family:var(--mono);font-size:.7rem;lette
 .znum{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
 .zn{background:#0b1014;border-radius:8px;padding:6px 9px;display:flex;flex-direction:column;min-width:0;border:1px solid transparent}
 .zn.al{border-color:var(--scr-bad)}
-.zn .zl{font-family:var(--mono);font-size:.64rem;letter-spacing:.06em;color:var(--z-mut);display:flex;justify-content:space-between;gap:6px}
+.zn .zl{font-family:var(--mono);font-size:max(11px,.64rem);letter-spacing:.06em;color:var(--z-mut);display:flex;justify-content:space-between;gap:6px}
 .zn .zv{font-family:var(--mono);font-weight:600;font-size:1.75rem;line-height:1.05;font-variant-numeric:tabular-nums}
 .zn .zs{font-family:var(--mono);font-size:.68rem;color:var(--z-mut);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .zn.hr .zv{color:var(--z-ecg)} .zn.sp .zv{color:var(--z-spo)} .zn.co .zv{color:var(--z-co2)} .zn.pn .zv{color:var(--z-pni);font-size:1.45rem}
@@ -219,7 +220,7 @@ details.lim>summary{cursor:pointer;font-family:var(--mono);font-size:.7rem;lette
 .zmsg{font-family:var(--mono);font-size:.74rem;color:#ffb340;min-height:1.2em}
 .zcpr{font-family:var(--mono);font-size:.72rem;color:#ffb340}
 details.dg{border-top:1px solid var(--line);padding-top:6px}
-details.dg>summary{cursor:pointer;font-family:var(--mono);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+details.dg>summary{cursor:pointer;font-family:var(--mono);font-size:max(11px,.68rem);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 details.dg .abtns{margin-top:6px}
 .btn small{color:var(--muted);font-family:var(--mono);font-size:.7rem;margin-left:4px}
 
@@ -260,37 +261,145 @@ details.box>summary{cursor:pointer;font-weight:600;font-family:var(--display);te
 .sheet{background:var(--surface);color:var(--ink);border-radius:14px;max-width:640px;width:100%;max-height:100%;overflow:auto;padding:18px 20px;display:flex;flex-direction:column;gap:12px;border:1px solid var(--line)}
 .dtable{width:100%;border-collapse:collapse;font-size:.88rem}
 .dtable td,.dtable th{padding:5px 6px;border-bottom:1px solid var(--line);text-align:left}
-.dtable td.n{font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums}
+.dtable td.n{font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .bar{height:8px;border-radius:4px;background:var(--surface2);overflow:hidden;min-width:60px}
 .bar span{display:block;height:100%}
 footer{font-size:.8rem;color:var(--muted);max-width:90ch}
+
+/* ===== v0.7: docencia, móvil, proyector, impresión y accesibilidad ===== */
+.top2{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px 12px}
+.top2 .inrow{gap:8px}
+.top2 input{background:var(--surface2);border:1px solid var(--line);border-radius:8px;padding:6px 9px;width:16ch;max-width:40vw}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-left:6px;vertical-align:middle}
+.toast{position:fixed;left:50%;top:max(14px,env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:60;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;max-width:min(92vw,560px);box-shadow:0 8px 24px rgba(0,0,0,.25);font-weight:500}
+body.exam .readc,body.exam .case details,body.exam #truthCard,body.exam #instrCard .evrow,body.exam .legend #legIE{display:none!important}
+body.exam .targets .chip{color:var(--ink)!important;border-color:var(--line)!important}
+body.exam .exam-badge{display:inline-flex}
+.exam-badge{display:none;font-family:var(--mono);font-size:.72rem;background:var(--bad);color:#fff;border-radius:999px;padding:3px 9px}
+.ctitle{font-size:1.5rem;text-transform:none;letter-spacing:.01em;font-weight:700;margin:2px 0 4px}
+.knob .ksel{all:unset;cursor:pointer;display:flex;justify-content:space-between;gap:4px;font-family:var(--mono);font-size:.72rem;color:var(--scr-mut);min-height:22px;align-items:center;border-radius:6px}
+.knob .ksel:focus-visible{outline:2px solid var(--tr-f);outline-offset:2px}
+.knob .ksel span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dbhead{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.score{display:flex;flex-direction:column;align-items:center;justify-content:center;width:96px;height:96px;border-radius:50%;border:4px solid var(--sc);flex:none}
+.score b{font-family:var(--display);font-size:2rem;line-height:1}
+.score span{font-size:.72rem;color:var(--muted)}
+.dbmeta{display:flex;flex-direction:column;gap:4px;min-width:0}
+.dbmeta input{background:var(--surface2);border:1px solid var(--line);border-radius:8px;padding:6px 9px;max-width:28ch}
+.tline{width:100%;height:auto;display:block;color:var(--ink)}
+.tl-grid{stroke:var(--line);stroke-width:1}
+.tl-box{fill:none;stroke:var(--line)}
+.tl-ref{stroke:var(--muted);stroke-dasharray:3 4;stroke-width:1;opacity:.6}
+.tl-ax{font-family:var(--mono);font-size:10px;fill:var(--muted)}
+.tl-lab{font-family:var(--mono);font-size:10px;font-weight:600}
+.tl-l{fill:none;stroke-width:1.8;stroke-linejoin:round}
+.tl-sp{stroke:#1491b8;fill:#1491b8;color:#1491b8}.tl-et{stroke:#b58700;fill:#b58700;color:#b58700}.tl-ta{stroke:#c43b2c;fill:#c43b2c;color:#c43b2c}.tl-fc{stroke:#7d8b94;fill:#7d8b94;color:#7d8b94}
+path.tl-l.tl-fc{stroke-dasharray:4 3;stroke-width:1.3}
+text.tl-lab{stroke:none}
+.tl-v{stroke-width:1.6;stroke-dasharray:5 3}.tl-arr{stroke:#c43b2c;color:#c43b2c}.tl-rce{stroke:#2a8653;color:#2a8653}.tl-iot{stroke:#1c6b9e;color:#1c6b9e}
+.tl-m{stroke:var(--surface);stroke-width:1}.tl-drug{fill:#7b4fd0}.tl-act{fill:#6b7a85}.tl-event{fill:#c43b2c}.tl-shock{fill:#e0a000}
+.tl-leg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:.76rem;color:var(--muted);margin-top:4px}
+.tl-leg .k::before{content:"";display:inline-block;width:14px;height:3px;background:currentColor;vertical-align:middle;margin-right:4px}
+.sheet.wide{max-width:900px}
+.edgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px 12px}
+.edgrid .field input,.edgrid .field select,.ed textarea,.edr input,.edr select{background:var(--surface2);border:1px solid var(--line);border-radius:8px;padding:6px 8px;min-width:0;width:100%}
+.ed textarea{width:100%;min-height:70px;font:inherit}
+.edr{display:flex;gap:6px;align-items:center;margin:4px 0}
+.edr select{flex:1 1 40%}.edr input{flex:1 1 30%}
+.btn.sm{padding:4px 9px;flex:none}
+.ed h3{font-family:var(--display);font-size:1rem;text-transform:uppercase;letter-spacing:.06em;margin-top:6px}
+.small.err{color:var(--bad)}.small.okm{color:var(--ok)}
+.codebig{font-family:var(--mono);font-size:2.6rem;letter-spacing:.2em;text-align:center;padding:10px;background:var(--surface2);border-radius:12px;border:1px solid var(--line)}
+/* instructor */
+body.instr-mode main{display:none}
+.instr{max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.ihead{display:flex;flex-wrap:wrap;gap:10px 20px;justify-content:space-between;align-items:flex-end}
+.ihead input{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 9px}
+.ibar{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.igrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:12px;align-items:start}
+.igrid .iwide{grid-column:1/-1}
+.ivit{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px;margin-top:8px}
+.iv{background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:6px 8px;display:flex;flex-direction:column}
+.iv span{font-family:var(--mono);font-size:.7rem;color:var(--muted);text-transform:uppercase}
+.iv b{font-family:var(--display);font-size:1.6rem;line-height:1.1}
+.iv small{font-size:.72rem;color:var(--muted)}
+.iv.wide{grid-column:1/-1}.iv b.rt{font-size:1.1rem}
+.score-i{font-family:var(--display);font-size:2rem;font-weight:700}
+/* móvil: pestañas */
+.tabbar{display:none}
+@media (max-width:760px){
+  body{padding-bottom:84px}
+  .tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--surface);border-top:1px solid var(--line);padding:6px max(8px,env(safe-area-inset-left,0px)) max(8px,env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-right,0px));gap:6px}
+  .tabbar button{flex:1;min-height:48px;border:1px solid var(--line);border-radius:10px;background:var(--surface2);font-weight:600;position:relative;cursor:pointer}
+  .tabbar button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .tabbar button.al::after{content:"";position:absolute;top:6px;right:8px;width:9px;height:9px;border-radius:50%;background:var(--bad)}
+  body:not([data-tab="vent"]) [data-tabsec="vent"],body:not([data-tab="mon"]) [data-tabsec="mon"],body:not([data-tab="act"]) [data-tabsec="act"],body:not([data-tab="case"]) [data-tabsec="case"]{display:none!important}
+  .grid,.grid2{display:flex;flex-direction:column;gap:14px}
+  .brand .eyebrow{display:none}
+  h1{font-size:1.35rem}
+  body{padding-top:10px}
+  .toolbar{gap:8px}
+  .toolbar .field:first-child{flex:1 1 100%}
+}
+/* proyector o tablet en horizontal */
+body.proj{font-size:16.5px}
+body.proj main{max-width:none}
+body.proj .grid{grid-template-columns:minmax(0,1.35fr) minmax(0,1fr)}
+body.proj footer,body.proj .grid2,body.proj .brand .eyebrow,body.proj .top2>.inrow:first-child,body.proj .top2 .btn:not(#projBtn),body.proj .case details{display:none}
+body.proj h1{font-size:1.4rem}
+body.proj .top2{position:fixed;right:12px;bottom:12px;z-index:30;padding:4px;border-radius:10px}
+@media (min-width:900px) and (orientation:landscape) and (max-height:820px){.case{padding-block:8px}}
+/* accesibilidad: objetivos táctiles y textos */
+@media (pointer:coarse){.btn,.seg button,select,.vbtn,.sbtn,.zbtn{min-height:44px}.knob button{width:44px;height:44px}.knob .ksel{min-height:32px}}
+.flabel,.field>label{font-size:.72rem}
+.knob .kl,.legend,.chip,.sbyrow .ml,.modes .ml,.tile .tl,.tile .tu,.dlab,.zn .zs,.zh,.btn small,.small{font-size:max(11px,.72rem)}
+.dwrap{position:relative;width:96px;height:96px}
+.knob{cursor:default}
+.knob .ksel{min-height:26px}
+/* impresión del debrief (PDF) */
+@media print{
+  body{background:#fff;color:#000;padding:0}
+  body.printing main>*:not(#debrief),body.printing #tabbar,body.printing #toast{display:none!important}
+  body.printing #debrief{position:static;background:none;padding:0;display:block}
+  body.printing .sheet{max-width:none;max-height:none;overflow:visible;border:0;box-shadow:none;padding:0}
+  body.printing #debrief .inrow{display:none}
+  body.printing details{display:block}body.printing details>*{display:block}
+}
 </style>
 
 <main>
   <header class="top">
     <div class="brand">
-      <span class="eyebrow">Simulador docente · SVA terrestre y HEMS · v0.6</span>
+      <span class="eyebrow">Simulador docente · SVA terrestre y HEMS · v0.7</span>
       <h1>Ventilación, monitor y RCP</h1>
     </div>
     <div class="toolbar">
       <div class="field"><label for="caseSel">Caso</label><select id="caseSel"></select></div>
       <div class="field" id="phenoField" hidden><label for="phenoSel">Paciente</label><select id="phenoSel"></select></div>
       <div class="field" id="ifaceField" hidden><label for="ifaceSel">Interfaz</label><select id="ifaceSel"><option value="tube">Tubo endotraqueal</option><option value="mask">Mascarilla (VMNI)</option><option value="nasal">Alto flujo</option><option value="o2">Oxigenoterapia</option></select></div>
-      <div class="field"><label for="ventSel">Ventilador</label><select id="ventSel"><option value="monnal">Monnal T60</option><option value="medumat">Medumat Standard²</option><option value="t1">Hamilton T1</option></select></div>
-      <div class="field"><label for="monSel">Monitor</label><select id="monSel"><option value="zoll">ZOLL X Series</option><option value="corpuls">corpuls3</option></select></div>
+      <div class="field" data-tabsec="case"><label for="ventSel">Ventilador</label><select id="ventSel"><option value="monnal">Monnal T60</option><option value="medumat">Medumat Standard²</option><option value="t1">Hamilton T1</option></select></div>
+      <div class="field" data-tabsec="case"><label for="monSel">Monitor</label><select id="monSel"><option value="zoll">ZOLL X Series</option><option value="corpuls">corpuls3</option></select></div>
       <div class="field"><span class="flabel" id="speedLbl">Tiempo clínico</span><div class="seg" id="speedSeg" role="group" aria-labelledby="speedLbl"><button data-s="1">×1</button><button data-s="5">×5</button><button data-s="10" aria-pressed="true">×10</button><button data-s="20">×20</button></div></div>
-      <button class="btn" id="soundBtn" aria-pressed="true">Sonido</button>
+      <button class="btn" id="soundBtn" aria-pressed="true" data-tabsec="case">Sonido</button>
       <button class="btn" id="pauseBtn" aria-pressed="false">Pausa</button>
-      <button class="btn" id="resetBtn">Reiniciar</button>
+      <button class="btn" id="resetBtn" data-tabsec="case">Reiniciar</button>
       <button class="btn primary" id="endBtn">Terminar caso</button>
       <span class="clock" id="clock">00:00:00</span>
     </div>
   </header>
 
-  <section class="case" id="caseCard" aria-live="polite"></section>
+  <div class="top2" data-tabsec="case">
+    <div class="inrow"><div class="seg" id="modeSeg" role="group" aria-label="Modo"><button data-x="0" aria-pressed="true">Práctica</button><button data-x="1" aria-pressed="false">Examen</button></div>
+      <span class="exam-badge">Examen: sin Lectura ni solución</span>
+      <label class="small" for="stuName">Alumno</label><input id="stuName" placeholder="Nombre" autocomplete="off" maxlength="60"></div>
+    <div class="inrow"><button class="btn" id="instrOpen">Vista del instructor</button><button class="btn" id="instrLink">Enlazar instructor<span class="dot" id="instrDot" hidden></span></button>
+      <button class="btn" id="edBtn">Mis casos</button><button class="btn" id="histBtn">Historial</button><button class="btn" id="projBtn" aria-pressed="false">Proyector</button></div>
+  </div>
+
+  <section class="case" id="caseCard" aria-live="polite" data-tabsec="case"></section>
 
   <div class="grid">
-    <section class="vent" id="vent" aria-label="Ventilador">
+    <section class="vent" id="vent" aria-label="Ventilador" data-tabsec="vent">
       <div class="vplate"><b id="devName">Ventilador</b><span id="devSub"></span></div>
       <div class="vframe">
         <div class="vscreen">
@@ -323,7 +432,7 @@ footer{font-size:.8rem;color:var(--muted);max-width:90ch}
     </section>
 
     <aside class="side">
-      <section class="zoll" id="zoll" aria-label="Monitor-desfibrilador">
+      <section class="zoll" id="zoll" aria-label="Monitor-desfibrilador" data-tabsec="mon">
         <div class="zbar"><b id="monName">Monitor</b><span class="zal" id="zal" role="status">Sin alarmas</span></div>
         <canvas id="zcv" aria-label="ECG, pletismografía y capnografía" role="img"></canvas>
         <div class="zcpr" id="zCpr" hidden></div>
@@ -347,13 +456,13 @@ footer{font-size:.8rem;color:var(--muted);max-width:90ch}
         <canvas id="spark" aria-label="Tendencia de SpO2 y EtCO2" role="img"></canvas>
       </section>
 
-      <section class="card" aria-labelledby="o2H">
+      <section class="card" aria-labelledby="o2H" data-tabsec="act">
         <div class="o2row"><h2 id="o2H">Botella de O₂</h2><span class="chip" id="o2Pill">suministro</span></div>
         <div class="gauge" id="o2Gauge"><span style="width:100%"></span></div>
         <p class="small num" id="o2Txt">–</p>
       </section>
 
-      <section class="card" aria-labelledby="actH">
+      <section class="card" aria-labelledby="actH" data-tabsec="act">
         <h2 id="actH">Acciones</h2>
         <div class="agroup"><span class="flabel">Vía aérea y soporte</span>
           <div class="abtns">
@@ -383,6 +492,16 @@ footer{font-size:.8rem;color:var(--muted);max-width:90ch}
           </div>
           <div class="range"><label class="small" for="o2dev">Oxigenoterapia</label><select id="o2dev"><option value="gafas">Gafas nasales 2 L/min</option><option value="venturi28">Venturi 28 %</option><option value="venturi35">Venturi 35 %</option><option value="venturi50">Venturi 50 %</option><option value="reserv" selected>Mascarilla con reservorio 15 L/min</option></select></div>
         </div>
+        <div class="agroup"><span class="flabel">Circulación y exploración</span>
+          <div class="abtns">
+            <button class="btn" data-act="iv">Canalizar vía venosa</button>
+            <button class="btn" data-act="io">Vía intraósea</button>
+            <button class="btn" data-act="glu">Glucemia capilar</button>
+            <button class="btn" data-act="temp">Temperatura</button>
+            <button class="btn" data-act="warm" aria-pressed="false">Manta y calor activo</button>
+            <button class="btn" data-act="hemo" hidden>Hemostasia</button>
+          </div>
+        </div>
         <div class="findings" id="findings" hidden></div>
         <div class="agroup"><span class="flabel">Parada</span>
           <div class="abtns">
@@ -399,23 +518,23 @@ footer{font-size:.8rem;color:var(--muted);max-width:90ch}
 
     </aside>
 
-    <section class="card readc" aria-labelledby="readH">
+    <section class="card readc" aria-labelledby="readH" data-tabsec="case">
       <h2 id="readH">Lectura</h2>
       <div class="read" id="readList"></div>
     </section>
   </div>
 
-  <div class="grid2">
-    <section class="card">
+  <div class="grid2" data-tabsec="case">
+    <section class="card" id="truthCard">
       <details class="box" id="truthBox"><summary>Lo que pasa dentro</summary>
         <p class="small" style="margin:6px 0 8px">El equipo no ve estos valores; están para entender por qué cambia la pantalla.</p>
         <label class="small inrow" style="margin-bottom:8px"><input type="checkbox" id="showPmus"> Mostrar el esfuerzo del paciente y los esfuerzos ineficaces en la pantalla del ventilador</label>
         <dl class="truth" id="truth"></dl>
       </details>
     </section>
-    <section class="card">
+    <section class="card" id="instrCard">
       <h2>Instructor y entorno</h2>
-      <div class="inrow">
+      <div class="inrow evrow">
         <label class="small" for="evSel">Provocar evento</label>
         <select id="evSel"></select>
         <button class="btn" id="evBtn">Provocar</button>
@@ -433,10 +552,65 @@ footer{font-size:.8rem;color:var(--muted);max-width:90ch}
       <span class="eyebrow">Debrief</span>
       <h3 id="dbH" style="font-size:1.4rem"></h3>
       <div id="dbBody"></div>
-      <div class="inrow"><button class="btn primary" id="dbRepeat">Repetir caso</button><button class="btn" id="dbClose">Seguir simulando</button></div>
+      <div class="inrow"><button class="btn primary" id="dbRepeat">Repetir caso</button><button class="btn" id="dbClose">Seguir simulando</button><button class="btn" id="dbPdf">Exportar PDF</button></div>
     </div>
   </div>
+
+  <div class="modal" id="histModal" hidden role="dialog" aria-modal="true" aria-labelledby="hiH">
+    <div class="sheet">
+      <span class="eyebrow">Guardado solo en este dispositivo</span>
+      <h3 id="hiH" style="font-size:1.4rem">Historial de intentos</h3>
+      <div class="inrow"><label class="small" for="hiName">Alumno</label><select id="hiName"></select><span class="small" id="hiSum"></span></div>
+      <div id="hiBody"></div>
+      <div class="inrow"><button class="btn" id="hiCsv">Exportar CSV</button><button class="btn" id="hiClear">Borrar historial</button><button class="btn primary" id="hiClose">Cerrar</button></div>
+    </div>
+  </div>
+
+  <div class="modal" id="linkModal" hidden role="dialog" aria-modal="true" aria-labelledby="lkH">
+    <div class="sheet">
+      <span class="eyebrow">Instructor en otro dispositivo</span>
+      <h3 id="lkH" style="font-size:1.4rem">Código de enlace</h3>
+      <div class="codebig" id="linkCode">·····</div>
+      <p class="small" id="linkSt">—</p>
+      <p class="small">La conexión es directa entre los dos navegadores (WebRTC); un servidor público solo pone en contacto los equipos. Si la red lo bloquea, usa dos ventanas del mismo equipo: se conectan solas.</p>
+      <div class="inrow"><button class="btn primary" id="linkClose">Cerrar</button></div>
+    </div>
+  </div>
+
+  <div class="modal" id="edModal" hidden role="dialog" aria-modal="true" aria-labelledby="edH">
+    <div class="sheet wide ed">
+      <span class="eyebrow">Casos propios · se guardan en este dispositivo</span>
+      <h3 id="edH" style="font-size:1.4rem">Editor de casos</h3>
+      <div class="inrow"><label class="small" for="edFrom">Partir de</label><select id="edFrom"></select><label class="btn" for="edImport" style="cursor:pointer">Importar JSON</label><input type="file" id="edImport" accept="application/json,.json" hidden></div>
+      <div class="edgrid">
+        <div class="field" style="grid-column:1/-1"><label for="edTitle">Título</label><input id="edTitle" maxlength="120"></div>
+        <div class="field"><label for="edPheno">Paciente</label><select id="edPheno"></select></div>
+        <div class="field"><label for="edSex">Sexo</label><select id="edSex"><option value="h">Varón</option><option value="m">Mujer</option></select></div>
+        <div class="field"><label for="edTalla">Talla (cm)</label><input id="edTalla" inputmode="numeric"></div>
+        <div class="field"><label for="edPeso">Peso (kg)</label><input id="edPeso" inputmode="decimal"></div>
+        <div class="field"><label for="edIface">Al empezar</label><select id="edIface"><option value="tube">Intubado</option><option value="mask">VMNI</option><option value="nasal">Alto flujo</option><option value="o2">Oxigenoterapia</option></select></div>
+        <div class="field"><label for="edDev">Ventilador</label><select id="edDev"><option value="">El elegido</option><option value="monnal">Monnal T60</option><option value="medumat">Medumat Standard²</option><option value="t1">Hamilton T1</option></select></div>
+        <div class="field"><label for="edSpeed">Velocidad</label><select id="edSpeed"><option value="">Según el grupo</option><option value="1">×1</option><option value="5">×5</option><option value="10">×10</option><option value="20">×20</option></select></div>
+        <div class="field"><label for="edDur">Duración (min)</label><input id="edDur" inputmode="numeric" placeholder="sin límite"></div>
+        <label class="small inrow"><input type="checkbox" id="edPed"> Pediátrico (dosis por peso)</label>
+        <label class="small inrow"><input type="checkbox" id="edAwake"> Despierto, sin sedación ni relajante</label>
+      </div>
+      <div class="field"><label for="edGoal">Planteamiento (lo que se cuenta al empezar)</label><textarea id="edGoal" maxlength="1500"></textarea></div>
+      <div class="field"><label for="edHint">Solución posible</label><textarea id="edHint" maxlength="2000"></textarea></div>
+      <h3>Fisiología</h3><div id="edPar"></div><button class="btn sm" data-add="par">Añadir parámetro</button>
+      <h3>Ventilador u oxigenoterapia al empezar</h3><div id="edCfg"></div><button class="btn sm" data-add="cfg">Añadir ajuste</button>
+      <h3>Eventos programados</h3><div id="edEv"></div><button class="btn sm" data-add="ev">Añadir evento</button>
+      <h3>Objetivos</h3><div id="edTg"></div><button class="btn sm" data-add="tg">Añadir objetivo</button>
+      <h3>Acciones clave para la nota</h3><div id="edCh"></div><button class="btn sm" data-add="ch">Añadir acción</button>
+      <details id="edJsonBox"><summary>JSON avanzado</summary><div class="inrow" style="margin:6px 0"><button class="btn sm" id="edShowJson">Ver el JSON del formulario</button><button class="btn sm" id="edApplyJson">Aplicar el JSON</button></div><textarea id="edJson" style="min-height:160px;font-family:var(--mono);font-size:.8rem"></textarea></details>
+      <p class="small" id="edErr" role="status"></p>
+      <div class="inrow"><button class="btn primary" id="edSaveLoad">Guardar y cargar</button><button class="btn" id="edSave">Guardar</button><button class="btn" id="edTry">Probar sin guardar</button><button class="btn" id="edExport">Exportar JSON</button><button class="btn" id="edLink">Copiar enlace</button><button class="btn" id="edDel">Borrar</button><button class="btn" id="edClose">Cerrar</button></div>
+    </div>
+  </div>
+  <div class="toast" id="toast" role="status" hidden></div>
 </main>
+<div class="instr" id="instr" hidden></div>
+<nav class="tabbar" id="tabbar" aria-label="Secciones"><button data-tab="vent">Ventilador</button><button data-tab="mon">Monitor</button><button data-tab="act">Acciones</button><button data-tab="case">Caso</button></nav>
 <script>
 /*MODEL*/
 </script>

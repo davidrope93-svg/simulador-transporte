@@ -6,11 +6,12 @@ const fmt = (x, d = 0) => (x == null || !isFinite(x)) ? '–' : x.toFixed(d).rep
 const { SPEC, PKEYS, KEYS, DEVS, KEYLAB, MONS } = window.SIM_DEV;
 const CASES = window.SIM_CASES, GROUPS = window.SIM_GROUPS;
 const N = 750, SR = .02, GAP = 12, ZN = 750, ZSR = .008, ZGAP = 20;
-const MODEL_KEYS = ['pco2', 'deficit', 'bs', 'opioid', 'rhythm', 'arrPen', 'tep', 'anaf', 'cohb', 'cn', 'icp', 'icpGrow', 'weak', 'dav', 'edAir', 'edAirRate', 'asp', 'arrest', 'arrestCause', 'comp', 'bav', 'tasAdj', 'fcAdj', 'sevFloor', 'bottleL', 'bottleBar', 'leak10', 'relCe', 'sedE', 'sedStopped', 'sev', 'ptx', 'ptxTension', 'shockMul', 'bmv', 'sgaFail'];
+const MODEL_KEYS = ['pco2', 'deficit', 'bs', 'opioid', 'rhythm', 'arrPen', 'tep', 'anaf', 'cohb', 'cn', 'icp', 'icpGrow', 'weak', 'dav', 'edAir', 'edAirRate', 'asp', 'arrest', 'arrestCause', 'comp', 'bav', 'tasAdj', 'fcAdj', 'sevFloor', 'bottleL', 'bottleBar', 'leak10', 'relCe', 'sedE', 'sedStopped', 'sev', 'ptx', 'ptxTension', 'shockMul', 'bmv', 'sgaFail', 'peso', 'k', 'kRate', 'glu', 'gluT', 'temp', 'tempRate', 'bleed', 'bleedSrc', 'tca', 'ecl', 'croup', 'postRosc', 'access', 'arrestCause2', 'hco3Off'];
 const O2LAB = { gafas: 'gafas nasales 2 L/min', venturi28: 'Venturi 28 %', venturi35: 'Venturi 35 %', venturi50: 'Venturi 50 %', reserv: 'mascarilla con reservorio 15 L/min' };
 const IFLAB = { tube: 'tubo endotraqueal', mask: 'mascarilla oronasal', nasal: 'cánula nasal de alto flujo', o2: 'paciente sin conectar' };
 const IFSHORT = { tube: 'intubado', mask: 'VMNI', nasal: 'alto flujo', o2: 'oxigenoterapia' };
 const RLAB = { sinus: 'sinusal', tsinus: 'taquicardia sinusal', brady: 'bradicardia', sbrady: 'bradicardia sinusal', bav: 'BAV completo', paced: 'ritmo de marcapasos', aesp: 'AESP', vf: 'FV', tvsp: 'TVSP', asys: 'asistolia', tsv: 'TSV', fa: 'FA rápida', flutter: 'flutter auricular', tvp: 'TV con pulso' };
+const rhyLab = r => { const e = S.ecg || {}; return (RLAB[r] || r) + (S.arrest || ['vf', 'tvsp', 'asys'].includes(r) ? '' : (e.qrs > .115 ? ` · QRS ${fmt(e.qrs * 1000)} ms` : '') + (e.t > 1.8 ? ' · T picudas' : '') + (e.j > .25 ? ' · ondas J' : '')); };
 const FALLBACK = { CPV: ['CPR_M', 'VCV', 'APV', 'PCV'], CPR_M: ['CPV', 'VCV', 'APV'], CPV_RCE: ['PCV', 'APV'], SIMV_V: ['SIMV_A', 'SIMV_P', 'VCV'], SIMV_A: ['SIMV_V', 'SIMV_P', 'APV'], SIMV_P: ['SIMV_A', 'SIMV_V', 'PCV'], ASV: ['APV', 'VCV'], APV: ['VCV'], PST: ['PSV'], CPAP: ['PSV'], VCV: ['APV'], PCV: ['APV'], PSV: ['CPAP'], HFNC: [], DEM: ['CPAP', 'PSV'], MAN: ['VCV', 'APV'] };
 
 /* ---------- fármacos (dosis de referencia para adulto; el efecto se escala al peso del caso) ---------- */
@@ -25,7 +26,7 @@ const DRUGSET = [
     { id: 'nalox', lab: 'Naloxona', k: 'nalox', dose: .4, u: 'mg' }, { id: 'sedB', lab: 'Bolo de la bomba de sedación', k: 'sed', amt: 2, note: 'midazolam + fentanilo' },
     { id: 'sedperf', lab: 'Reanudar la bomba de sedación', act: 'sedperf' }] },
   { g: 'Hemodinámica y parada', items: [
-    { id: 'fluid', lab: 'Cristaloide', act: 'fluid', note: '500 mL' }, { id: 'adr1', lab: 'Adrenalina', k: 'adr', dose: 1, u: 'mg', amt: 100 },
+    { id: 'fluid', lab: 'Cristaloide', act: 'fluid', note: '500 mL' }, { id: 'blood', lab: 'Concentrado de hematíes', act: 'blood', note: '1 unidad, si se dispone' }, { id: 'adr1', lab: 'Adrenalina', k: 'adr', dose: 1, u: 'mg', amt: 100 },
     { id: 'adrP', lab: 'Adrenalina en bolo', k: 'adr', dose: 20, u: 'mcg', amt: 4 }, { id: 'amio300', lab: 'Amiodarona', k: 'amio', dose: 300, u: 'mg' },
     { id: 'amio150', lab: 'Amiodarona', k: 'amio', dose: 150, u: 'mg' },
     { id: 'lido100', lab: 'Lidocaína', k: 'lido', dose: 100, u: 'mg' }, { id: 'lido50', lab: 'Lidocaína', k: 'lido', dose: 50, u: 'mg' }, { id: 'tnk', lab: 'Tenecteplasa', k: 'tnk', amt: 1, tnk: true, u: 'mg' }] },
@@ -34,11 +35,21 @@ const DRUGSET = [
     { id: 'aden18', lab: 'Adenosina', k: 'aden', dose: 18, u: 'mg', amt: 18, route: ' IV rápida' }, { id: 'atr', lab: 'Atropina', k: 'atr', dose: .5, u: 'mg' },
     { id: 'vagal', lab: 'Maniobras vagales', act: 'vagal', note: 'Valsalva modificada' }] },
   { g: 'Respiratorio y anafilaxia', items: [
-    { id: 'salb', lab: 'Salbutamol + ipratropio', k: 'salb', amt: 1, note: 'nebulizado o en línea', route: '' }, { id: 'mgso4', lab: 'Sulfato de magnesio', k: 'mg', dose: 2, u: 'g' },
-    { id: 'cort', lab: 'Metilprednisolona', k: 'cort', mgkg: 1, u: 'mg' }, { id: 'adrIM', lab: 'Adrenalina IM', k: 'adrIM', dose: .5, u: 'mg', amt: .5, route: ' en el muslo' },
-    { id: 'dexclor', lab: 'Dexclorfeniramina', k: 'dexclor', dose: 5, u: 'mg' }] },
+    { id: 'salb', lab: 'Salbutamol + ipratropio', k: 'salb', amt: 1, note: 'nebulizado o en línea', route: '', noIV: true }, { id: 'mgso4', lab: 'Sulfato de magnesio', k: 'mg', dose: 2, u: 'g' },
+    { id: 'cort', lab: 'Metilprednisolona', k: 'cort', mgkg: 1, u: 'mg' }, { id: 'adrIM', lab: 'Adrenalina IM', k: 'adrIM', dose: .5, u: 'mg', amt: .5, route: ' en el muslo', noIV: true },
+    { id: 'dexclor', lab: 'Dexclorfeniramina', k: 'dexclor', dose: 5, u: 'mg' }, { id: 'adrNeb', lab: 'Adrenalina nebulizada', k: 'adrN', dose: 5, u: 'mg', route: ' nebulizada', noIV: true },
+    { id: 'dexa', lab: 'Dexametasona', k: 'dexa', dose: 8, u: 'mg', route: ' oral o IM', noIV: true }] },
+  { g: 'Metabólico, tóxicos y obstetricia', items: [
+    { id: 'ca', lab: 'Cloruro cálcico 10 %', k: 'ca', dose: 10, u: 'mL', amt: 1 }, { id: 'bic', lab: 'Bicarbonato 1 M', k: 'bic', mgkg: 1, u: 'mEq' },
+    { id: 'gluc', lab: 'Glucosa', k: 'gluc', dose: 25, u: 'g', note: 'G50 % 50 mL' }, { id: 'gluc10', lab: 'Glucosa', k: 'gluc', dose: 10, u: 'g', note: 'G10 % 100 mL' },
+    { id: 'glucg', lab: 'Glucagón', k: 'glucg', dose: 1, u: 'mg', amt: 1, route: ' IM', noIV: true },
+    { id: 'ins', lab: 'Insulina rápida', k: 'ins', dose: 10, u: 'UI', amt: 1, note: 'con 25 g de glucosa' },
+    { id: 'mg4', lab: 'Sulfato de magnesio', k: 'mg', dose: 4, u: 'g', note: 'en 15–20 min' }, { id: 'labet', lab: 'Labetalol', k: 'labet', dose: 20, u: 'mg' },
+    { id: 'urap', lab: 'Urapidilo', k: 'urap', dose: 25, u: 'mg' }, { id: 'oxito', lab: 'Oxitocina', k: 'oxito', dose: 10, u: 'UI', amt: 10, route: ' IV lenta o IM', noIV: true },
+    { id: 'txa', lab: 'Ácido tranexámico', k: 'txa', dose: 1, u: 'g' }, { id: 'sugam', lab: 'Sugammadex', k: 'sugam', mgkg: 16, u: 'mg', note: 'reversión inmediata' },
+    { id: 'sugam4', lab: 'Sugammadex', k: 'sugam', mgkg: 4, u: 'mg' }, { id: 'midIN', lab: 'Midazolam intranasal o bucal', k: 'mid', dose: 10, u: 'mg', route: ' IN', noIV: true, bio: .6 }] },
   { g: 'EAP, HTIC e intoxicaciones', items: [
-    { id: 'ntgsl', lab: 'NTG sublingual', k: 'ntg', dose: 400, u: 'mcg', amt: 250, route: '' }, { id: 'ntgiv', lab: 'NTG en bolo', k: 'ntg', dose: 1, u: 'mg', amt: 900 },
+    { id: 'ntgsl', lab: 'NTG sublingual', k: 'ntg', dose: 400, u: 'mcg', amt: 250, route: '', noIV: true }, { id: 'ntgiv', lab: 'NTG en bolo', k: 'ntg', dose: 1, u: 'mg', amt: 900 },
     { id: 'furo', lab: 'Furosemida', k: 'furo', dose: 40, u: 'mg' }, { id: 'shs', lab: 'Salino hipertónico 7,5 %', k: 'shs', amt: 1, note: '250 mL' },
     { id: 'manit', lab: 'Manitol 20 %', k: 'manit', amt: 1, note: '0,5 g/kg' }, { id: 'hidroxo', lab: 'Hidroxocobalamina', k: 'hidroxo', dose: 5, u: 'g' }] }
 ];
@@ -49,19 +60,26 @@ const PERFS = [
   { id: 'ntg', lab: 'Nitroglicerina', u: 'mcg/min', d: 0, opts: [0, 20, 50, 100, 150, 200], set: r => sim.setNtg(r) },
   { id: 'prop', lab: 'Propofol', u: 'mg/h', d: 0, opts: [0, 50, 100, 150, 200, 300], set: r => sim.perf('prop', r / 60 * fW) },
   { id: 'mid', lab: 'Midazolam', u: 'mg/h', d: 0, opts: [0, 2, 5, 10], set: r => sim.perf('mid', r / 60 * fW) },
-  { id: 'fent', lab: 'Fentanilo', u: 'mcg/h', d: 0, opts: [0, 50, 100, 150, 200], set: r => sim.perf('fent', r / 60 * fW) }
+  { id: 'fent', lab: 'Fentanilo', u: 'mcg/h', d: 0, opts: [0, 50, 100, 150, 200], set: r => sim.perf('fent', r / 60 * fW) },
+  { id: 'ketP', lab: 'Ketamina', u: 'mg/kg/h', d: 1, opts: [0, .5, 1, 1.5, 2], set: r => sim.perf('ket', r * 75 / 60), extra: r => r ? ` · ${fmt(r * peso)} mg/h` : '' },
+  { id: 'rocP', lab: 'Rocuronio', u: 'mg/kg/h', d: 1, opts: [0, .3, .6], set: r => sim.perf('rel', r * 15 / 60), extra: r => r ? ` · ${fmt(r * peso)} mg/h` : '' },
+  { id: 'iso', lab: 'Isoprenalina', u: 'mcg/min', d: 0, opts: [0, 1, 2, 4, 10], set: r => sim.perfSteady('iso', r) },
+  { id: 'mgP', lab: 'Sulfato de magnesio', u: 'g/h', d: 0, opts: [0, 1, 2], set: r => sim.perf('mg', r / 60 * fW) },
+  { id: 'g10', lab: 'Glucosa 10 %', u: 'mL/h', d: 0, opts: [0, 50, 100, 150, 250], set: r => sim.setGluPerf(r * .1 / 60 * fW) }
 ];
 const roundDose = x => x >= 50 ? Math.round(x / 5) * 5 : x >= 10 ? Math.round(x) : x >= 1 ? Math.round(x * 10) / 10 : Math.round(x * 100) / 100;
 const PED = { adr1: { k: .01, max: 1, t: '10 mcg/kg' }, adrP: { k: 1, max: 20, t: '1 mcg/kg' }, amio300: { k: 5, max: 300, t: '5 mg/kg' }, amio150: { k: 5, max: 150, t: '5 mg/kg' },
   lido100: { k: 1, max: 100, t: '1 mg/kg' }, lido50: { k: .5, max: 50, t: '0,5 mg/kg' }, atr: { k: .02, min: .1, max: .5, t: '20 mcg/kg' }, aden6: { k: .1, max: 6, t: '0,1 mg/kg' },
   aden12: { k: .2, max: 12, t: '0,2 mg/kg' }, aden18: { k: .3, max: 18, t: '0,3 mg/kg' }, adrIM: { k: .01, max: .5, t: '10 mcg/kg' }, nalox: { k: .01, max: .4, t: '10 mcg/kg' },
   mid: { k: .05, max: 2, t: '0,05 mg/kg' }, morf: { k: .05, max: 3, t: '0,05 mg/kg' }, mg: { k: .04, max: 2, t: '40 mg/kg' }, dexclor: { k: .15, max: 5, t: '0,15 mg/kg' },
-  furo: { k: 1, max: 40, t: '1 mg/kg' }, hidroxo: { k: .07, max: 5, t: '70 mg/kg' } };
+  furo: { k: 1, max: 40, t: '1 mg/kg' }, hidroxo: { k: .07, max: 5, t: '70 mg/kg' }, ca: { k: .2, max: 10, t: '0,2 mL/kg' }, gluc: { k: .2, max: 25, t: '0,2 g/kg (2 mL/kg de G10 %)' },
+  gluc10: { k: .2, max: 10, t: '0,2 g/kg' }, glucg: { k: .03, min: .5, max: 1, t: '0,5 mg si < 25 kg' }, txa: { k: 15, max: 1000, t: '15 mg/kg', u: 'mg' }, adrNeb: { k: .5, max: 5, t: '0,5 mg/kg' },
+  dexa: { k: .6, max: 16, t: '0,6 mg/kg' }, midIN: { k: .3, max: 10, t: '0,3 mg/kg' }, mg4: { k: .05, max: 2, t: '50 mg/kg' } };
 const isPed = () => !!(CASES[caseKey] && CASES[caseKey].ped);
 const pedOf = it => isPed() && PED[it.id];
 const dd = x => x == null ? 0 : x < 1 ? (Math.round(x * 100) % 10 ? 2 : 1) : x % 1 ? 1 : 0;
 const tnkDose = p => p < 60 ? 30 : p < 70 ? 35 : p < 80 ? 40 : p < 90 ? 45 : 50;
-const doseOf = it => { const pd = pedOf(it); if (pd) return roundDose(clamp(pd.k * peso, pd.min || 0, pd.max)); return it.tnk ? tnkDose(peso) : it.mgkg != null ? roundDose(it.mgkg * peso) : it.dose; };
+const doseOf = it => { const pd = pedOf(it); if (pd) { const x = roundDose(clamp(pd.k * peso, pd.min || 0, pd.max)); return pd.u === 'mg' && it.u === 'g' ? x / 1000 : x; } return it.tnk ? tnkDose(peso) : it.mgkg != null ? roundDose(it.mgkg * peso) : it.dose; };
 
 const TGT = {
   spo2: { lab: 'SpO₂', u: '%', get: () => S.spo2 * 100, d: 0 }, et: { lab: 'EtCO₂', u: 'mmHg', get: () => M.et, d: 0 },
@@ -73,11 +91,14 @@ const TGT = {
   auto: { lab: 'Autodisparos', u: '', get: () => M.nB >= 4 ? M.auto / M.nB : null, d: 2, fmt: true },
   leak: { lab: 'Fuga', u: 'L/min', get: () => M.leak, d: 0 }, o2: { lab: 'O₂ disponible', u: '', get: () => S.o2.supply ? 1 : 0, d: 0, fmt: true },
   fight: { lab: 'Sin lucha', u: '', get: () => S.fight || 0, d: 2, fmt: true },
-  sinus: { lab: 'Ritmo sinusal', u: '', get: () => S.arr.type || S.arrest ? 0 : 1, d: 0, fmt: true }
+  sinus: { lab: 'Ritmo sinusal', u: '', get: () => S.arr.type || S.arrest ? 0 : 1, d: 0, fmt: true },
+  glu: { lab: 'Glucemia', u: 'mg/dL', get: () => S.glu, d: 0 }, qrs: { lab: 'QRS', u: 'ms', get: () => S.arrest ? null : S.ecg.qrs * 1000, d: 0 },
+  fio2: { lab: 'FiO₂', u: '%', get: () => (S.iface === 'tube' || S.iface === 'mask') && !ventOffNow() ? S.cfg.fio2 : null, d: 0 }
 };
-const EVLAB = { extub: 'Extubación o retirada de mascarilla', disc: 'Desconexión', sel: 'Intubación selectiva', obst: 'Tapón o acodamiento', bronco: 'Broncoespasmo', ptx: 'Neumotórax a tensión', leak: 'Fuga', o2: 'Fallo de O₂', wake: 'Se despierta', anx: 'Ansiedad', cough: 'Tos', vf: 'Fibrilación ventricular', aspir: 'Broncoaspiración', tep: 'TEP', anaf: 'Anafilaxia', tsv: 'TSV', fa: 'FA rápida', tvp: 'TV con pulso' };
-const EVFIX = { extub: () => !S.air.extub && !(S.iface === 'mask' && S.mask.leak10 > 100), disc: () => !S.air.disc, sel: () => !S.air.sel, obst: () => !S.air.obst, bronco: () => S.bs < 1.2, ptx: () => !S.ptxActive, leak: () => S.air.leak === 0 && !(S.iface === 'mask' && S.mask.leak10 > 40), o2: () => S.o2.supply, wake: () => (S.fight || 0) < .1, anx: () => S.clin >= S.anxUntil, cough: () => true, vf: () => !S.arrest, aspir: () => false, tep: () => S.tep < .3, anaf: () => S.anaf < .2, tsv: () => !S.arr.type, fa: () => !S.arr.type, tvp: () => !S.arr.type };
-const ACTLAB = { sga: 'Dispositivo supraglótico (i-gel): insertando (≈ 30 s)', drain: 'Toracostomía / drenaje torácico', reconnect: 'Tubuladura reconectada', reintub: 'Reintubación en curso (1,5 min)', pull: 'Tubo retirado 2 cm', suction: 'Aspirado y revisado el tubo', cuff: 'Balón inflado', opencirc: 'Desconexión 15 s para vaciar', decomp: 'Descompresión con aguja', bottle: 'Botella cambiada', fluid: 'Cristaloide 500 mL', mask: 'Mascarilla recolocada', sedperf: 'Bomba de sedación reanudada', vagal: 'Maniobra de Valsalva modificada', recruit: 'Maniobra de reclutamiento (CPAP 40 cmH₂O 30 s)', clamp: 'Tubo pinzado para desconectar', vl: 'Videolaringoscopio y bougie preparados', cric: 'Cricotiroidotomía quirúrgica (≈ 1,5 min)' };
+const EVLAB = { seiz: 'Convulsión', move: 'Movilización brusca', rebleed: 'Resangrado', extub: 'Extubación o retirada de mascarilla', disc: 'Desconexión', sel: 'Intubación selectiva', obst: 'Tapón o acodamiento', bronco: 'Broncoespasmo', ptx: 'Neumotórax a tensión', leak: 'Fuga', o2: 'Fallo de O₂', wake: 'Se despierta', anx: 'Ansiedad', cough: 'Tos', vf: 'Fibrilación ventricular', aspir: 'Broncoaspiración', tep: 'TEP', anaf: 'Anafilaxia', tsv: 'TSV', fa: 'FA rápida', tvp: 'TV con pulso' };
+const EVFIX = { seiz: () => S.clin >= S.seizUntil, move: () => true, rebleed: () => S.hemo || !S.bleed, extub: () => !S.air.extub && !(S.iface === 'mask' && S.mask.leak10 > 100), disc: () => !S.air.disc, sel: () => !S.air.sel, obst: () => !S.air.obst, bronco: () => S.bs < 1.2, ptx: () => !S.ptxActive, leak: () => S.air.leak === 0 && !(S.iface === 'mask' && S.mask.leak10 > 40), o2: () => S.o2.supply, wake: () => (S.fight || 0) < .1, anx: () => S.clin >= S.anxUntil, cough: () => true, vf: () => !S.arrest, aspir: () => false, tep: () => S.tep < .3, anaf: () => S.anaf < .2, tsv: () => !S.arr.type, fa: () => !S.arr.type, tvp: () => !S.arr.type };
+const HEMOLAB = { ext: 'Torniquete', pelv: 'Cinturón pélvico', uter: 'Masaje uterino bimanual', int: 'Compresión y empaquetado' };
+const ACTLAB = { iv: 'Canalizando vía venosa periférica (≈ 1,5 min)', io: 'Vía intraósea en tibia proximal (≈ 45 s)', blood: 'Concentrado de hematíes (1 U)', sga: 'Dispositivo supraglótico (i-gel): insertando (≈ 30 s)', drain: 'Toracostomía / drenaje torácico', reconnect: 'Tubuladura reconectada', reintub: 'Reintubación en curso (1,5 min)', pull: 'Tubo retirado 2 cm', suction: 'Aspirado y revisado el tubo', cuff: 'Balón inflado', opencirc: 'Desconexión 15 s para vaciar', decomp: 'Descompresión con aguja', bottle: 'Botella cambiada', fluid: 'Cristaloide 500 mL', mask: 'Mascarilla recolocada', sedperf: 'Bomba de sedación reanudada', vagal: 'Maniobra de Valsalva modificada', recruit: 'Maniobra de reclutamiento (CPAP 40 cmH₂O 30 s)', clamp: 'Tubo pinzado para desconectar', vl: 'Videolaringoscopio y bougie preparados', cric: 'Cricotiroidotomía quirúrgica (≈ 1,5 min)' };
 
 /* ---------- estado ---------- */
 let sim, S, M = {}, pend, caseKey = 'tce', scale = 10, paused = false, track, sched, buf, zb, w = 0, filled = false, zw = 0, zfilled = false, sacc = 0, zacc = 0, uacc = 0, lastFrame = performance.now(), ended = false;
@@ -189,14 +210,14 @@ function loadCase(k) {
   sim.warm(12); sim.setRatio(ratioUI);
   S = sim.S; pend = Object.assign({}, S.cfg); activeK = null; pendAt = 0;
   invCfg = invBase; if (!c.cfg || !c.cfg.vt) invCfg.vt = round10(7 * S.ibw);
-  peso = c.peso || Math.round(S.ibw * 1.15); fW = clamp(75 / peso, .7, 1.4);
+  peso = c.peso || Math.round(S.ibw * 1.15); fW = c.ped ? 75 / peso : clamp(75 / peso, .7, 1.4);
   // datos del paciente en el ventilador: si ya estaba conectado, los metió quien lo conectó; si no, los de fábrica (Monnal: mujer de 165 cm)
   devPat = iface !== 'o2' ? { sex: c.sex || S.P.sex, talla: c.talla || S.P.talla } : dev === 'monnal' ? { sex: 'm', talla: 165 } : { sex: 'h', talla: 170 };
-  track = { t: {}, worst: { spo2: 100, tas: 300, ppk: 0 }, events: [], acts: 0, drugs: [], intubAt: null, peri: null, induct: null, relax: null, attempts: 0, cric: false,
+  track = { t: {}, worst: { spo2: 100, tas: 300, ppk: 0 }, events: [], acts: 0, drugs: [], intubAt: null, peri: null, induct: null, relax: null, attempts: 0, cric: false, seizures: 0, gluAt: null, gluVal: null, tempAt: null, accessAt: S.access ? 0 : null, fluidMl: 0, bloodU: 0,
     arrestAt: S.arrest ? 0 : null, firstShock: null, lastShock: null, shocks: 0, adr: [], amio: 0, lido: 0, roscAt: null, nalox: null, convAt: null, hadArr: false, standbyApnea: 0 };
   for (const key in (c.targets || {})) track.t[key] = { inT: 0, tot: 0 };
   sched = (c.events || []).map(e => Object.assign({ fired: false }, e));
-  S.onSlow = onSlow; S.onIntubated = onIntubated; S.onIntubFail = onIntubFail; ended = false; prevArrest = S.arrest;
+  S.onSlow = onSlow; S.onIntubated = onIntubated; S.onIntubFail = onIntubFail; S.onAccess = onAccess; S.onSeizure = () => { track.seizures++; logIt('Convulsión tónico-clónica generalizada'); }; ended = false; prevArrest = S.arrest;
   buf = { p: new Float32Array(N), f: new Float32Array(N), v: new Float32Array(N), c: new Float32Array(N), m: new Float32Array(N), ev: new Int8Array(N), ie: new Int8Array(N) };
   zb = { e: new Float32Array(ZN), p: new Float32Array(ZN), c: new Float32Array(ZN), mk: new Int8Array(ZN) };
   w = 0; filled = false; zw = 0; zfilled = false; frameKey = '';
@@ -209,6 +230,7 @@ function loadCase(k) {
   logIt('Caso: ' + c.title + ' · ' + DEVS[dev].short + ' · ' + MONS[$('#monSel').value].short);
   renderCase(); renderVent(); updateUI();
   if (!S.arrest) measurePni(true);
+  teachOnLoad();
 }
 function setAltUI(v, silent) { $('#alt').value = v; $('#altV').textContent = (+v).toLocaleString('es-ES') + ' m'; if (sim && !silent) sim.setAltitude(+v); }
 
@@ -222,6 +244,11 @@ function onIntubated() {
   if (S.air.sga) track.sga = true;
   logIt(`${S.air.sga ? 'Dispositivo supraglótico colocado (sella hasta ≈ 25 cmH₂O)' : track.cric ? 'Cánula de cricotiroidotomía' : 'Tubo'} comprobado con capnografía. Ventilador en espera con ${modeLabel(uMode(S.cfg), null, 'tube')} preparado: revisa los ajustes y pulsa «Iniciar ventilación».`);
   renderVent(); renderCase();
+}
+function onAccess(kind, ok) {
+  if (ok) { track.accessAt = S.clin; logIt(kind === 'io' ? 'Vía intraósea colocada y comprobada' : 'Vía venosa periférica canalizada'); }
+  else { logIt(kind === 'io' ? 'Vía intraósea fallida' : 'Intento de vía venosa fallido'); showFind([kind === 'io' ? 'La aguja intraósea no ha quedado bien: inténtalo en otro hueso.' : 'No consigues canalizar la vía. Si es urgente, intraósea.']); }
+  updateButtons();
 }
 function onIntubFail(isr) {
   if (isr.sga) { track.sgaFails = (track.sgaFails || 0) + 1; showFind(['El dispositivo supraglótico no sella: no hay ventilación eficaz. Retíralo y pasa al siguiente paso; si no oxigenas, cricotiroidotomía.']); logIt('Supraglótico sin sellado: no ventila'); return; }
@@ -246,9 +273,10 @@ function onSlow(dtc) {
   if (track.peri && S.clin <= track.peri.end) { track.peri.spo2 = Math.min(track.peri.spo2, S.spo2 * 100); track.peri.tas = Math.min(track.peri.tas, S.tas); }
   if (S.standby && S.iface === 'tube' && !S.bag && S.relTot > .5) track.standbyApnea += dtc;
   if (S.cfg.mode === 'APV' || S.cfg.mode === 'ASV') { if (!apvHist.length || S.clin - apvHist[apvHist.length - 1][0] > .25) apvHist.push([S.clin, S.apv.p]); apvHist = apvHist.filter(x => x[0] > S.clin - 6); } else apvHist = [];
+  teachOnSlow();
   if (!M || M.fr == null) return;
   for (const key in track.t) {
-    const tg = TGT[key], rng = c.targets[key], v = tg.get();
+    const tg = TGT[key], rng = c.targets[key], v0 = tg.get(), v = v0 == null || tg.fmt ? v0 : +(+v0).toFixed(tg.d); // el valor que se ve en pantalla
     if (v == null || !isFinite(v)) continue;
     track.t[key].tot += dtc; if (v >= rng[0] && v <= rng[1]) track.t[key].inT += dtc;
   }
@@ -268,7 +296,7 @@ function rangeTxt(r, t) { if (t.fmt) return r[0] === 1 && r[1] === 1 ? '' : r[1]
 function renderCase() {
   const c = CASES[caseKey];
   const tg = Object.entries(c.targets || {}).map(([k, r]) => `<span class="chip" id="tg_${k}">${TGT[k].lab} ${rangeTxt(r, TGT[k])}</span>`).join('');
-  $('#caseCard').innerHTML = `<div><span class="eyebrow">${c.lvl} · ${VMI.PHENO[S.pk].label} · ${IFSHORT[S.iface]} · ${(c.sex || S.P.sex) === 'm' ? 'mujer' : 'varón'} de ${c.talla || S.P.talla} cm · peso ideal ${fmt(S.ibw)} kg · peso ${fmt(peso)} kg</span><h3>${c.title}</h3><p>${c.goal}</p></div><div class="targets">${tg}</div>` +
+  $('#caseCard').innerHTML = `<div><span class="eyebrow">${c.lvl} · ${VMI.PHENO[S.pk].label} · ${IFSHORT[S.iface]} · ${(c.sex || S.P.sex) === 'm' ? 'mujer' : 'varón'} de ${c.talla || S.P.talla} cm · peso ideal ${fmt(S.ibw)} kg · peso ${fmt(peso)} kg</span><h2 class="ctitle">${c.title}</h2><p>${c.goal}</p></div><div class="targets">${tg}</div>` +
     (c.hint ? `<details><summary>Ver una solución posible</summary><p>${c.hint}</p></details>` : '');
 }
 
@@ -298,7 +326,7 @@ function renderModes() {
 function renderKnobs() {
   const ks = keysFor(uMode(pend));
   $('#knobs').innerHTML = ks.map(k => { const s = spec(k), lb = labOf(k, pend);
-    return `<div class="knob${isPend(k) ? ' pend' : ''}${activeK === k ? ' act' : ''}" id="k_${k}" data-sel="${k}" role="button" tabindex="0" aria-label="${lb}"><span class="kl"><span>${lb}</span><span>${s.u}${s.note ? ' · ' + s.note : ''}</span></span>
+    return `<div class="knob${isPend(k) ? ' pend' : ''}${activeK === k ? ' act' : ''}" id="k_${k}" data-sel="${k}"><button class="ksel kl" data-sel="${k}" aria-label="Seleccionar ${lb}"><span>${lb}</span><span>${s.u}${s.note ? ' · ' + s.note : ''}</span></button>
       <span class="krow"><button data-k="${k}" data-d="-1" aria-label="Bajar ${lb}" ${locked ? 'disabled' : ''}>−</button><span class="kv" id="kv_${k}">${showV(k, pend[k])}</span><button data-k="${k}" data-d="1" aria-label="Subir ${lb}" ${locked ? 'disabled' : ''}>+</button></span></div>`; }).join('');
   renderConfirm();
 }
@@ -353,12 +381,12 @@ function renderDials() {
   const B = dialBindings();
   $('#dials').innerHTML = B.map(b => `<div class="dial" data-dial="${b.id}" data-k="${b.k || ''}">
       <div class="dlab">${b.lab}</div>
-      <div class="dring" tabindex="0" role="slider" aria-label="${b.lab}: ${b.k ? labOf(b.k, pend) : 'sin asignar'}"><div class="dmark"></div><button class="dpress" aria-label="Pulsar para confirmar">OK</button></div>
+      <div class="dwrap"><div class="dring" tabindex="0" role="slider" aria-label="${b.lab}: ${b.k ? labOf(b.k, pend) : 'sin asignar'}"${b.k ? ` aria-valuenow="${+pend[b.k] || 0}" aria-valuemin="${spec(b.k).min}" aria-valuemax="${spec(b.k).max}" aria-valuetext="${showV(b.k, pend[b.k])}"` : ' aria-valuenow="0" aria-valuetext="sin asignar"'}><div class="dmark"></div></div><button class="dpress" aria-label="Pulsar para confirmar">OK</button></div>
       <div class="dval" id="dv_${b.id}">${b.k ? labOf(b.k, pend) + ' ' + showV(b.k, pend[b.k]) : (devOf().knob === 'three' ? '—' : 'toca un control')}</div>
     </div>`).join('');
   $$('.dial').forEach(setupDial);
 }
-function updateDialLabels() { dialBindings().forEach(b => { const e = $('#dv_' + b.id); if (e && b.k) e.textContent = labOf(b.k, pend) + ' ' + showV(b.k, pend[b.k]); }); }
+function updateDialLabels() { dialBindings().forEach(b => { const e = $('#dv_' + b.id); if (e && b.k) { e.textContent = labOf(b.k, pend) + ' ' + showV(b.k, pend[b.k]); const r = e.parentElement.querySelector('.dring'); if (r) { r.setAttribute('aria-valuenow', +pend[b.k] || 0); r.setAttribute('aria-valuetext', showV(b.k, pend[b.k])); } } }); }
 function setupDial(el) {
   const ring = el.querySelector('.dring'), mark = el.querySelector('.dmark'), btn = el.querySelector('.dpress');
   let rot = 0, acc = 0, last = null;
@@ -652,7 +680,7 @@ function paceRateOpts(sel) {
   $('#zRate').innerHTML = Array.from({ length: (max - mo.paceRates[0]) / 5 + 1 }, (_, i) => mo.paceRates[0] + i * 5).map(r => `<option ${r === sel ? 'selected' : ''}>${r}</option>`).join('');
 }
 function setPace() { sim.pace($('#zPace').checked, +$('#zRate').value, +$('#zmA').value, $('#zPaceMode').value); }
-$('#zPace').addEventListener('change', e => { setPace(); logIt(e.target.checked ? `Marcapasos ${{ demand: 'a demanda', fixed: 'fijo', overdrive: 'en sobreestimulación (overdrive)' }[$('#zPaceMode').value]}: ${$('#zRate').value} lpm, ${$('#zmA').value} mA` : 'Marcapasos apagado'); });
+$('#zPace').addEventListener('change', e => { setPace(); if (e.target.checked) markUse('act:pace'); logIt(e.target.checked ? `Marcapasos ${{ demand: 'a demanda', fixed: 'fijo', overdrive: 'en sobreestimulación (overdrive)' }[$('#zPaceMode').value]}: ${$('#zRate').value} lpm, ${$('#zmA').value} mA` : 'Marcapasos apagado'); });
 ['#zRate', '#zmA', '#zPaceMode'].forEach(id => $(id).addEventListener('change', () => { if (id === '#zPaceMode') paceRateOpts(+$('#zRate').value); setPace(); if ($('#zPace').checked) logIt('Marcapasos: ' + { demand: 'demanda', fixed: 'fijo', overdrive: 'overdrive' }[$('#zPaceMode').value] + ' ' + $('#zRate').value + ' lpm ' + $('#zmA').value + ' mA'); }));
 $('#zJ').addEventListener('change', () => { if (defib.st !== 'idle') { defib.st = 'idle'; logIt('Desfibrilador descargado internamente al cambiar la energía'); } });
 $('#zMode').addEventListener('change', e => { defib.st = 'idle'; aed = { st: 'idle', until: 0 }; syncOn = false; logIt(e.target.value === 'aed' ? 'Modo DEA' : 'Modo manual'); updateDefib(); });
@@ -669,13 +697,13 @@ $('#zShock').addEventListener('click', () => {
   const J = isAed ? aedEnergy() : +$('#zJ').value, wasArrest = S.arrest, rhy = S.rhythm, sync = syncOn && !isAed;
   if (sync && (rhy === 'vf' || rhy === 'asys')) { monMsg('SINC: no detecta onda R, no descarga'); logIt('Descarga sincronizada sin onda R: el equipo no descarga'); return; }
   const r = sim.shock(J, sync);
-  defib.st = 'idle'; track.shocks++; track.lastShock = S.clin; aed = { st: 'idle', until: 0 };
+  defib.st = 'idle'; track.shocks++; track.lastShock = S.clin; track.shockT.push(S.clin); markUse('shock'); aed = { st: 'idle', until: 0 };
   if (track.firstShock == null && wasArrest && track.arrestAt != null) track.firstShock = S.clin - track.arrestAt;
   const res = r.result === 'noShockable' ? (wasArrest ? ` en ritmo no desfibrilable (${RLAB[rhy]})` : ': el paciente tiene pulso, descarga sin indicación') : r.result === 'vf' ? ': la descarga no sincronizada ha desencadenado una FV' : '';
   logIt(`Descarga ${J} J${sync ? ' sincronizada' : ''}${res}`); if (isAed) monMsg('Descarga administrada. Reanude la RCP.');
   updateDefib();
 });
-$('#zPads').addEventListener('click', () => { sim.setPads(!S.cpr.ap); logIt(S.cpr.ap ? 'Parches en posición anteroposterior (cambio de vector)' : 'Parches en posición anterolateral'); track.drugs.push([S.clin, S.cpr.ap ? 'Parches anteroposteriores' : 'Parches anterolaterales']); updateDefib(); });
+$('#zPads').addEventListener('click', () => { sim.setPads(!S.cpr.ap); if (S.cpr.ap) markUse('act:pads'); logIt(S.cpr.ap ? 'Parches en posición anteroposterior (cambio de vector)' : 'Parches en posición anterolateral'); track.drugs.push([S.clin, S.cpr.ap ? 'Parches anteroposteriores' : 'Parches anterolaterales']); updateDefib(); });
 $('#zSil').addEventListener('click', () => { monSilUntil = S.clin < monSilUntil ? -1 : S.clin + 2; updateDefib(); });
 $('#zMarkBtn').addEventListener('click', () => { logIt('Marcador: ' + $('#zMark').value); track.drugs.push([S.clin, 'Marcador: ' + $('#zMark').value]); });
 function aedEnergy() { const e = MONS[$('#monSel').value].aed; return e[Math.min(track.shocks, e.length - 1)]; }
@@ -698,7 +726,7 @@ function updateMonitor() {
   const hr = pausing ? 0 : r === 'vf' || r === 'asys' ? null : r === 'tvsp' ? 190 : S.arrest ? 34 : S.fc;
   $('#zHr').textContent = r === 'asys' || pausing ? '0' : fmt(hr);
   const an = analysis && S.t < analysis.until ? 'Análisis: ' + analysis.txt : null;
-  $('#zRhy').textContent = an || (S.arrest ? (S.cpr.comp !== 'off' ? 'RCP: analiza en la pausa' : 'derivación II') : pausing ? 'pausa' : S.pace.on ? (S.pace.capture ? 'estimulado' : 'marcapasos sin captura') : RLAB[r] || 'sinusal');
+  $('#zRhy').textContent = an || (S.arrest ? (S.cpr.comp !== 'off' ? 'RCP: analiza en la pausa' : 'derivación II') : pausing ? 'pausa' : S.pace.on ? (S.pace.capture ? 'estimulado' : 'marcapasos sin captura') : rhyLab(r) || 'sinusal');
   const spOk = perf > .12 && !S.arrest;
   $('#zSp').textContent = spOk ? fmt(sp) : '–'; $('#zPi').textContent = spOk ? 'IP ' + fmt(perf * 4, 1) : 'sin señal';
   $('#zSpT').textContent = spOk ? 'SpCO ' + fmt(Math.max(0, M.spco)) + ' %' : '';
@@ -738,7 +766,7 @@ function updateMonitor() {
   $('#o2Txt').textContent = `${fmt(o.bar)} bar · botella de ${o.vol} L · consumo ${fmt(cons, 1)} L/min (${what}) · ` + (o.supply ? (aut != null ? `autonomía ≈ ${fmt(aut)} min (reserva 20 bar)` : 'autonomía amplia') : S.dev.pneumatic && (S.iface === 'tube' || S.iface === 'mask') ? 'vacía: el equipo neumático se para' : 'vacía: sin O₂');
   const pill = $('#o2Pill'); pill.textContent = o.supply ? 'suministro OK' : 'sin O₂'; pill.className = 'chip ' + (o.supply ? 'ok' : 'off');
   const c = CASES[caseKey];
-  for (const k in (c.targets || {})) { const e2 = $('#tg_' + k); if (!e2) continue; const v = TGT[k].get(), rg = c.targets[k]; e2.className = 'chip ' + (v == null || !isFinite(v) ? '' : (v >= rg[0] && v <= rg[1]) ? 'ok' : 'off'); }
+  for (const k in (c.targets || {})) { const e2 = $('#tg_' + k); if (!e2) continue; const v0 = TGT[k].get(), rg = c.targets[k], v = v0 == null || TGT[k].fmt ? v0 : +(+v0).toFixed(TGT[k].d); e2.className = 'chip ' + (v == null || !isFinite(v) ? '' : (v >= rg[0] && v <= rg[1]) ? 'ok' : 'off'); }
   const s = Math.round(S.clin * 60); $('#clock').textContent = [Math.floor(s / 3600), Math.floor(s / 60) % 60, s % 60].map(x => String(x).padStart(2, '0')).join(':');
   drawSpark();
   return a;
@@ -755,15 +783,18 @@ function readings() {
     if (cp.comp === 'manual' && cp.relevo > 2) out.push(['warn', 'Compresor cansado', `${fmt(cp.relevo, 1)} min sin relevo: la calidad cae.`, 'Relevo cada 2 min, aprovechando el análisis, o compresor mecánico.']);
     const lastAdr = track.adr.length ? S.clin - track.adr[track.adr.length - 1] : null;
     const adrTxt = isPed() ? `Adrenalina 10 mcg/kg (${fmt(Math.min(1, .01 * peso), 2)} mg)` : 'Adrenalina 1 mg';
-    if (!shock && (lastAdr == null || lastAdr > 5)) out.push(['warn', 'Adrenalina', lastAdr == null ? 'Aún no se ha dado.' : `Última dosis hace ${fmt(lastAdr)} min.`, `${adrTxt} cada 3–5 min; en ritmo no desfibrilable, cuanto antes.`]);
+    if (S.temp < 30) out.push(['bad', 'Parada en hipotermia < 30 °C', `Temperatura ≈ ${track.tempAt != null ? fmt(S.temp, 1) + ' °C' : 'sin medir'}.`, 'Hasta 3 descargas y no más hasta superar 30 °C; sin adrenalina; compresor mecánico y traslado con RCP a un centro con ECMO.']);
+    if (!S.access && !S.accessPend) out.push(['bad', 'Parada sin acceso vascular', 'No puedes dar adrenalina ni volumen.', 'Vía intraósea ya: es más rápida y segura que buscar una vena en la parada.']);
+    if (!shock && S.temp >= 30 && (lastAdr == null || lastAdr > 5)) out.push(['warn', 'Adrenalina', lastAdr == null ? 'Aún no se ha dado.' : `Última dosis hace ${fmt(lastAdr)} min.`, `${adrTxt} cada 3–5 min; en ritmo no desfibrilable, cuanto antes.`]);
     if (shock && track.shocks >= 3 && (!track.amio && !track.lido || !S.cpr.ap)) out.push(['warn', 'FV refractaria', `${track.shocks} descargas sin éxito.`, `${!track.amio && !track.lido ? `${adrTxt} y ${isPed() ? 'amiodarona 5 mg/kg' : 'amiodarona 300 mg (o lidocaína 100 mg)'} tras la tercera descarga. ` : ''}${!S.cpr.ap ? 'Cambia los parches a anteroposterior en el próximo análisis (ERC 2025).' : ''}`]);
     const cprMode = d.modes.tube.find(x => x[0] === 'CPV' || x[0] === 'CPR_M'), inCpr = ['CPV', 'CPR_M'].includes(uMode(c)), hasCpv = !!cprMode;
     if (vent && tube && cp.comp !== 'off' && !inCpr && (hasCpv || !['VCV', 'APV'].includes(c.mode) || c.fr > 12 || c.trigI < 5 || c.peep > 5 || c.pmax < 55)) out.push(['warn', 'Ventilador no ajustado para la RCP', 'Las compresiones disparan ciclos o cortan por presión máxima.', hasCpv ? `Pasa a ${cprMode[1]}: 10 c/min, FiO₂ 100 %.` : `ERC 2025: ${modeLabel(d.modes.tube.some(x => x[0] === 'VCV') ? 'VCV' : 'APV', null, 'tube')} con 6–8 mL/kg, FR 10, PEEP 0–5, FiO₂ 100 %, trigger al máximo y alarma de presión alta en 60–70; o bolsa a 10/min.`]);
     if (cp.comp !== 'off' && tube && cp.ratio > 0) out.push(['warn', 'Pausas con vía aérea avanzada', `Compresiones ${cp.ratio}:2 con ${S.air.sga ? 'supraglótico' : 'tubo'}.`, 'Con vía aérea avanzada, compresiones continuas y 10 ventilaciones por minuto.']);
     else if (cp.comp !== 'off' && !tube && cp.ratio === 0 && S.bag) out.push(['warn', 'Sin vía aérea avanzada', 'Ventilar con bolsa durante compresiones continuas es poco eficaz.', `${isPed() ? '15:2' : '30:2'} con dos insuflaciones en cada pausa.`]);
     if (M.et != null && M.et < 10 && cp.comp !== 'off' && S.t > 10) out.push(['warn', 'EtCO₂ < 10 mmHg en RCP', 'Gasto cardiaco muy bajo o tubo mal colocado.', 'Mejora las compresiones y comprueba el tubo.']);
-    const cause = { hypox: 'Hipoxia: oxigena y ventila con O₂ al 100 %; vía aérea.', ptx: 'Neumotórax a tensión: descomprime.', hypo: 'Hipovolemia: volumen.', opi: 'Opiáceos: naloxona y ventilación.', tep: 'TEP: fibrinólisis y RCP prolongada con compresor.', anaf: 'Anafilaxia: adrenalina y volumen a chorro.', co: 'CO e hipoxia: O₂ al 100 %.', vt: 'TV: desfibrila.' }[cp.cause];
-    if (cause) out.push(['warn', 'Causa reversible probable', '4H y 4T.', cause]);
+    const cause = { hypox: 'Hipoxia: oxigena y ventila con O₂ al 100 %; vía aérea.', ptx: 'Neumotórax a tensión: descomprime.', hypo: 'Hipovolemia: volumen.', opi: 'Opiáceos: naloxona y ventilación.', tep: 'TEP: fibrinólisis y RCP prolongada con compresor.', anaf: 'Anafilaxia: adrenalina y volumen a chorro.', co: 'CO e hipoxia: O₂ al 100 %.', vt: 'TV: desfibrila.', hyperk: 'Hiperpotasemia: cloruro cálcico 10 % 10 mL, insulina con glucosa y bicarbonato durante la RCP.', tca: 'Tricíclicos: bicarbonato 1–2 mEq/kg en bolo, repetible.', hypoT: 'Hipotermia: calentar en ECMO; RCP mecánica prolongada.', hypoglu: 'Hipoglucemia: glucosa IV/IO.' };
+    const cz = [cp.cause, cp.cause2].filter(x => cause[x]).map(x => cause[x]).join(' ');
+    if (cz) out.push(['warn', cp.cause2 ? 'Parada traumática: trata las causas' : 'Causa reversible probable', cp.cause2 ? 'Hipovolemia, oxigenación, neumotórax a tensión y taponamiento antes que la adrenalina.' : '4H y 4T.', cz]);
     if (cp.sinceCheck >= 2) out.push(['warn', 'Toca analizar', `${fmt(cp.sinceCheck, 1)} min desde el último análisis.`, 'Pausa breve (< 10 s) con «Comprobar pulso y ritmo» o con el DEA, relevo y descarga si procede.']);
     else out.push(['ok', 'Ciclo de RCP', `Próximo análisis en ${fmt(Math.max(0, 2 - cp.sinceCheck), 1)} min.`, 'Compresiones de calidad y mínimas pausas.']);
   }
@@ -788,6 +819,24 @@ function readings() {
   if (!S.arrest && S.bav && !S.pace.capture && S.fc < 45) out.push(['bad', 'BAV completo con bajo gasto', `FC ${fmt(S.fc)} lpm, escape de QRS ancho.`, 'Con QRS ancho la atropina no está indicada (ERC 2025): marcapasos transcutáneo o adrenalina 2–10 mcg/min.']);
   if (!S.arrest && S.tep > .3) out.push(['warn', 'Patrón de TEP', `EtCO₂ ${fmt(M.et)} frente a PaCO₂ ≈ ${fmt(S.pco2)} mmHg: espacio muerto.`, 'Noradrenalina para TAS ≥ 90, volumen prudente, PEEP baja y fibrinólisis si es de alto riesgo.']);
   if (!S.arrest && S.anaf > .2) out.push([S.tas < 90 ? 'bad' : 'warn', 'Anafilaxia activa', `TAS ${fmt(S.tas)}, broncoespasmo y angioedema.`, 'Adrenalina IM 0,5 mg (repite a los 5 min), volumen; perfusión de adrenalina si es refractaria.']);
+  const seizing = S.clin < S.seizUntil;
+  if (!S.arrest && seizing) out.push(['bad', 'Convulsión', 'Crisis tónico-clónica activa.', S.ecl ? 'Sulfato de magnesio 4 g IV (si no lo lleva) y midazolam si no cede; O₂ y lateral izquierdo.' : `Midazolam ${S.access ? 'IV 2–5 mg' : 'intranasal o bucal 10 mg (0,3 mg/kg)'}; O₂ y vía aérea. Glucemia.`]);
+  if (!S.arrest && !S.access && !S.accessPend && (S.tas < 90 || S.gcs <= 12 || S.bleed > 0 || seizing)) out.push(['warn', 'Sin acceso vascular', 'Lo vas a necesitar para fármacos y volumen.', 'Vía venosa periférica; si fallan dos intentos o es urgente, intraósea.']);
+  if (!S.arrest && S.gcs <= 13 && S.relTot < .5 && (track.gluAt == null || S.clin - track.gluAt > 20)) out.push(['warn', 'Bajo nivel de conciencia', `GCS ≈ ${S.gcs}.`, 'Glucemia capilar: la hipoglucemia es la causa más fácil de corregir.']);
+  if (!S.arrest && track.gluVal != null && track.gluVal < 70 && S.clin - track.gluAt < 15) out.push(['bad', 'Hipoglucemia', `Glucemia ${fmt(track.gluVal)} mg/dL.`, S.access ? `Glucosa ${isPed() ? '0,2 g/kg' : '10–25 g'} IV y repite la glucemia a los 10–15 min; si recurre, perfusión de glucosa al 10 %.` : 'Glucagón 1 mg IM mientras canalizas; con vía, glucosa IV.']);
+  if (!S.arrest && (S.ecg.t > 1.8 || S.ecg.qrs > .12) && S.tca < .2 && S.E.ca < .3) out.push(['bad', 'T picudas y QRS ancho', `QRS ${fmt(S.ecg.qrs * 1000)} ms con bradicardia: sospecha de hiperpotasemia.`, 'Cloruro cálcico 10 % 10 mL ya (estabiliza la membrana); después insulina con glucosa y salbutamol; bicarbonato si hay acidosis.']);
+  else if (!S.arrest && S.k > 6.5 && S.E.ins < .3 && S.E.ca >= .3) out.push(['warn', 'Potasio aún alto', 'El calcio protege unos 30–60 min, pero no baja el potasio.', 'Insulina 10 UI con 25 g de glucosa y salbutamol nebulizado; diálisis.']);
+  if (!S.arrest && S.tca > .2 && S.ecg.qrs > .12) out.push(['bad', 'QRS ancho en intoxicación', `QRS ${fmt(S.ecg.qrs * 1000)} ms.`, 'Bicarbonato 1 M 1–2 mEq/kg en bolo, repetible hasta QRS < 120 ms y pH 7,45–7,55. Evita la amiodarona.']);
+  if (!S.arrest && S.temp < 35 && track.tempAt == null) out.push(['warn', 'Paciente frío', 'Al tacto está muy frío.', 'Mide la temperatura y aísla del frío.']);
+  else if (!S.arrest && S.temp < 32) out.push(['bad', 'Hipotermia grave', `${fmt(S.temp, 1)} °C: riesgo de FV al movilizar.`, `${S.warm ? '' : 'Quita la ropa mojada, aísla y calor activo. '}Manejo cuidadoso y horizontal; traslado a un centro con ECMO.`]);
+  if (!S.arrest && S.bleed > 0 && !S.hemo && S.bleedSrc) out.push(['bad', 'Sangrado activo', S.bleedSrc === 'ext' ? 'Hemorragia externa en el muslo.' : S.bleedSrc === 'pelv' ? 'Pelvis inestable: sangrado retroperitoneal.' : S.bleedSrc === 'uter' ? 'Atonía uterina.' : 'Sangrado interno.', HEMOLAB[S.bleedSrc] + (S.bleedSrc === 'uter' ? ' y oxitocina 10 UI.' : ' ya.')]);
+  if (!S.arrest && S.bleed > 0 && S.E.txa < .3) out.push(['warn', 'Ácido tranexámico', 'Hemorragia en la primera hora.', 'Ácido tranexámico 1 g IV (15 mg/kg en niños) en 10 min.']);
+  if (!S.arrest && S.bleed > 0 && pniS != null && pniS > 110 && track.fluidMl >= 1000) out.push(['warn', 'Hipotensión permisiva', `PNI ${fmt(pniS)} mmHg tras ${fmt(track.fluidMl)} mL.`, 'Sin TCE, TAS 80–90 basta hasta la hemostasia: más volumen sube la TA, diluye y aumenta el sangrado.']);
+  if (!S.arrest && S.ecl && S.E.mg < .5) out.push(['bad', 'Eclampsia sin magnesio', 'Riesgo alto de nuevas convulsiones.', 'Sulfato de magnesio 4 g IV en 15–20 min y perfusión de 1 g/h.']);
+  if (!S.arrest && S.ecl && pniS != null && pniS >= 160) out.push(['warn', 'TA grave en la gestante', `PNI ${fmt(pniS)} mmHg.`, 'Labetalol 20 mg IV (repetible a los 10 min) o urapidilo, hasta 140–150.']);
+  if (!S.arrest && S.croupEff > .4 && S.E.adrN < .3) out.push(['bad', 'Obstrucción de la vía aérea alta', 'Estridor en reposo y tiraje.', `Adrenalina nebulizada ${isPed() ? fmt(Math.min(5, .5 * peso), 1) + ' mg (0,5 mg/kg)' : '5 mg'} y dexametasona; no lo agites.`]);
+  if (!S.arrest && S.postRosc && pniS != null && pniS < 100) out.push(['bad', 'TA baja tras la RCE', `PNI ${fmt(pniS)} mmHg: riesgo de nueva parada.`, 'Cristaloide y noradrenalina para TAS ≥ 100 (PAM ≥ 65).']);
+  if (!S.arrest && isPed() && !tube && M.effN >= 2 && M.effRR > (peso < 10 ? 60 : peso < 20 ? 40 : 30)) out.push(['warn', 'Taquipnea con trabajo respiratorio', `FR ${fmt(M.effRR)} rpm para ${fmt(peso)} kg.`, ifc === 'nasal' ? 'Alto flujo a 2 L/kg/min; si no mejora en 1 h, CPAP o intubación.' : `Alto flujo a 2 L/kg/min (${fmt(Math.min(60, 2 * peso))} L/min) o VMNI.`]);
   if (!S.arrest && S.cohb > .1) out.push(['warn', 'Carboxihemoglobina', `SpCO ${fmt(M.spco)} %: la SpO₂ de ${fmt(S.spo2 * 100)} % sobrestima el O₂ real.`, S.fiEff < .8 ? 'O₂ al 100 %: reservorio bien ajustado, VMNI con FiO₂ 100 % o intubación.' : 'Mantén O₂ al 100 % y valora cámara hiperbárica.']);
   if (!S.arrest && S.cn > .2) out.push(['bad', 'Posible cianuro', 'Shock y lactato muy alto en un incendio cerrado.', 'Hidroxocobalamina 5 g IV.']);
   if (!S.arrest && S.edAir > .45 && !tube) out.push(['bad', 'Vía aérea que se cierra', 'Estridor y voz ronca: el edema progresa.', 'Intuba ya, con videolaringoscopio; prepara la cricotiroidotomía.']);
@@ -846,12 +895,15 @@ function readings() {
   if (!S.o2.supply && !off) out.push(['bad', 'Sin O₂', ifc === 'o2' || ifc === 'nasal' ? 'El paciente respira aire ambiente.' : 'El equipo de turbina sigue ventilando con aire (FiO₂ 0,21).', 'Cambia la botella.']);
   else if (S.o2.supply) { const cons = S.o2.cons + (S.dev.pneumatic && !off && (tube || mask) ? .3 : 0), aut = cons > .05 ? (S.o2.bar - 20) * S.o2.vol / cons : 999; if (aut < 30) out.push(['warn', 'Botella baja', `Autonomía ≈ ${fmt(aut)} min.`, S.dev.pneumatic ? 'Air Mix si la SpO₂ lo permite y prepara el cambio de botella.' : 'Baja la FiO₂ si la SpO₂ lo permite o prepara el cambio de botella.']); }
   if (!out.length) out.push(['ok', 'Sin problemas detectados', 'Parámetros dentro de rangos razonables.', 'Sigue vigilando EtCO₂, SpO₂ y TA.']);
+  lastReads = out.slice(0, 6);
   $('#readList').innerHTML = out.slice(0, 6).map(([l, t, dd, f]) => `<div class="ri ${l}"><b>${t}</b><p>${dd}</p><p class="fix">→ ${f}</p></div>`).join('');
 }
-function renderTruth() {
+function renderTruth() { $('#truth').innerHTML = truthRows().map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join(''); }
+function truthRows() {
   const m = S.mech, r = real(), a = S.air, mask = S.iface === 'mask';
   const air = S.isr ? 'laringoscopia (apnea)' : S.iface === 'o2' ? 'vía aérea natural · ' + O2LAB[S.cfg.o2dev] : S.iface === 'nasal' ? 'vía aérea natural · alto flujo' : mask ? 'mascarilla oronasal' : a.extub ? 'extubado' : a.disc ? 'desconectado' : a.sel ? 'selectiva derecha' : a.obst ? 'tubo parcialmente obstruido' : a.leak ? 'fuga por el balón' : 'tubo en posición';
-  const rows = [['Vía aérea', air + (S.bag ? ' · ambú' : '') + (S.standby ? ' · ventilador en espera' : '')], ['Ritmo', RLAB[S.rhythm] + (S.arrest ? ' · sin pulso' : '')], ['pH / PaCO₂', fmt(S.ph, 2) + ' / ' + fmt(S.pco2) + ' mmHg'], ['PAO₂ / FiO₂ real', fmt(S.pao2) + ' mmHg / ' + fmt(S.fiEff * 100) + ' %'],
+  const rows = [['Vía aérea', air + (S.bag ? ' · ambú' : '') + (S.standby ? ' · ventilador en espera' : '')], ['Ritmo', rhyLab(S.rhythm) + (S.arrest ? ' · sin pulso' : '')], ['K⁺ / glucemia / temperatura', fmt(S.k, 1) + ' mmol/L / ' + fmt(S.glu) + ' mg/dL / ' + fmt(S.temp, 1) + ' °C'], ['GCS estimado', S.relTot > .6 ? 'no valorable (relajado)' : fmt(S.gcs)],
+    ['Sangrado', S.bleed ? fmt((S.bleedNow || 0) * 1000, 1) + ' ‰ de volemia/min' + (S.hemo ? ' · hemostasia puesta' : '') : 'no'], ['Tricíclicos / crup', fmt((S.mx ? S.mx.tcaE : 0) * 100) + ' / ' + fmt((S.croupEff || 0) * 100) + ' %'], ['Acceso vascular', S.access === 'io' ? 'intraósea' : S.access ? 'venoso' : S.accessPend ? 'en curso' : 'no'], ['pH / PaCO₂', fmt(S.ph, 2) + ' / ' + fmt(S.pco2) + ' mmHg'], ['PAO₂ / FiO₂ real', fmt(S.pao2) + ' mmHg / ' + fmt(S.fiEff * 100) + ' %'],
     ['SaO₂ real (con COHb)', fmt(S.oxEff * 100) + ' %'], ['TA real', fmt(S.tas) + ' mmHg'], ['Vt real en el pulmón', fmt(M.vtReal) + ' mL'], ['FR del paciente', M.effN >= 2 ? fmt(M.effRR) + ' rpm' : 'no respira'],
     ['Esfuerzos ineficaces / autodisparos (30 s)', (M.effN ? M.ies + ' de ' + M.effN : '–') + ' / ' + M.auto + ' de ' + M.nB], ['Meseta real', mask || S.iface === 'o2' || S.iface === 'nasal' ? '–' : fmt(r.pplat, 1) + ' cmH₂O'],
     ['Auto-PEEP real', fmt(M.effN >= 2 ? (S.peepiDyn || 0) : r.peepi, 1) + ' cmH₂O'], ['Distensibilidad', fmt(m.C * 1000) + ' mL/cmH₂O'], ['Resistencia insp / esp', fmt(m.Ri) + ' / ' + fmt(m.Re) + ' cmH₂O/L/s'], ['Shunt', fmt(m.shunt * 100) + ' %'],
@@ -860,7 +912,7 @@ function renderTruth() {
     ['TEP / anafilaxia / broncoaspiración', fmt(S.tep * 100) + ' / ' + fmt(S.anaf * 100) + ' / ' + fmt(S.asp * 100) + ' %'], ['COHb / cianuro', fmt(S.cohb * 100) + ' % / ' + fmt(S.cn * 100) + ' %'],
     ['PIC estimada', S.icp ? fmt(S.icp.v) + ' mmHg' : '–'], ['Edema de vía aérea', fmt(Math.max(S.edAir, .8 * S.anaf) * 100) + ' %'], ['Desreclutamiento', fmt(S.derec * 100) + ' %'],
     ['Umbral de captura del marcapasos', fmt(S.pace.thr) + ' mA'], ['Presión barométrica', fmt(S.pbar) + ' mmHg']];
-  $('#truth').innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+  return rows;
 }
 function logIt(t) { const s = Math.round((S ? S.clin : 0) * 60); const hh = String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); const e = document.createElement('span'); e.textContent = hh + ' · ' + t; $('#log').prepend(e); }
 
@@ -868,17 +920,23 @@ function logIt(t) { const s = Math.round((S ? S.clin : 0) * 60); const hh = Stri
 function renderDrugs() {
   const btn = it => { const ds = it.act ? null : doseOf(it), pd = pedOf(it);
     const sub = it.note && ds == null ? it.note : ds != null && it.u ? `${fmt(ds, dd(ds))} ${it.u}${pd ? ' · ' + pd.t : it.mgkg ? ' · ' + fmt(it.mgkg, it.mgkg % 1 ? 1 : 0) + ' ' + it.u + '/kg' : it.tnk ? ' por peso' : ''}` : it.note || '';
-    return `<button class="btn" data-drug="${it.id}">${it.lab}${sub ? ` <small>${sub}</small>` : ''}</button>`; };
+    const sub2 = it.act === 'fluid' && isPed() ? `${fmt(10 * peso)} mL · 10 mL/kg` : it.act === 'blood' && isPed() ? `${fmt(10 * peso)} mL · 10 mL/kg` : sub;
+    return `<button class="btn" data-drug="${it.id}"${it.noIV ? ' data-noiv="1"' : ''}>${it.lab}${sub2 ? ` <small>${sub2}</small>` : ''}</button>`; };
   const perf = p => `<div class="range"><label class="small" for="pf_${p.id}">${p.lab}</label><select id="pf_${p.id}" data-perf="${p.id}">${p.opts.map(o => `<option value="${o}">${o ? fmt(o, p.d) + ' ' + p.u + (p.extra ? p.extra(o) : '') : 'parada'}</option>`).join('')}</select></div>`;
-  $('#drugPanel').innerHTML = `<span class="flabel">Fármacos · ${isPed() ? 'dosis pediátricas por peso' : 'dosis'} para ${fmt(peso)} kg</span>` +
+  $('#drugPanel').innerHTML = `<span class="flabel">Fármacos · ${isPed() ? 'dosis pediátricas por peso' : 'dosis'} para ${fmt(peso)} kg<span id="accessTag"></span></span>` +
     DRUGSET.map(g => `<details class="dg"${g.open ? ' open' : ''}><summary>${g.g}</summary><div class="abtns">${g.items.map(btn).join('')}</div></details>`).join('') +
     `<details class="dg"><summary>Perfusiones</summary><div class="agroup" style="margin-top:6px">${PERFS.map(perf).join('')}</div></details>`;
 }
 function giveDrug(id) {
   const it = DRUGITEMS[id];
+  if (!S.access && !it.noIV && (it.k || it.act === 'fluid' || it.act === 'blood')) { showFind(['Sin acceso vascular: canaliza una vía venosa o, si es urgente, intraósea.']); logIt('Sin acceso vascular: no puedes administrar ' + it.lab.toLowerCase()); return; }
+  if (it.act) markUse('act:' + it.act);
+  if (it.act === 'fluid') { const ml = isPed() ? 10 * peso : 500; sim.action('fluid', ml / peso); track.fluidMl += ml; const t = `Cristaloide ${fmt(ml)} mL${isPed() ? ' (10 mL/kg)' : ''}`; logIt(t); track.drugs.push([S.clin, t]); return; }
+  if (it.act === 'blood') { sim.action('blood', isPed() ? peso * 10 / 300 : 1); track.bloodU++; const t = isPed() ? `Concentrado de hematíes ${fmt(peso * 10)} mL (10 mL/kg)` : 'Concentrado de hematíes, 1 unidad'; logIt(t); track.drugs.push([S.clin, t]); return; }
   if (it.act) { sim.action(it.act); const t = ACTLAB[it.act] || it.lab; logIt(t); track.drugs.push([S.clin, t]); return; }
+  markUse('drug:' + it.k); markUse('drug:' + it.id);
   const ds = doseOf(it), pd = pedOf(it);
-  const amt = pd ? (it.amt != null ? it.amt * ds / it.dose : ds) * 75 / peso : it.amt != null ? it.amt : ds * fW;
+  const amt = (pd ? (it.amt != null ? it.amt * ds / it.dose : ds) * 75 / peso : it.amt != null ? it.amt : ds * fW) * (it.bio || 1);
   sim.drug(it.k, amt);
   const route = it.route != null ? it.route : ' IV';
   const txt = it.lab + (ds != null && it.u ? ' ' + fmt(ds, dd(ds)) + ' ' + it.u : '') + (it.note ? ' (' + it.note + ')' : '') + route;
@@ -893,7 +951,7 @@ function giveDrug(id) {
 $('#drugPanel').addEventListener('change', e => {
   const s = e.target.closest('[data-perf]'); if (!s) return;
   const p = PERFS.find(x => x.id === s.dataset.perf), r = +s.value;
-  p.set(r); track.acts++;
+  p.set(r); track.acts++; if (r) markUse('perf:' + p.id);
   const txt = r ? `Perfusión de ${p.lab.toLowerCase()} ${fmt(r, p.d)} ${p.u}` : `Perfusión de ${p.lab.toLowerCase()} parada`;
   logIt(txt); track.drugs.push([S.clin, txt]);
 });
@@ -911,10 +969,10 @@ document.querySelector('.side').addEventListener('click', e => {
   const b = e.target.closest('[data-act],[data-drug]'); if (!b || b.disabled) return;
   track.acts++;
   if (b.dataset.drug) { giveDrug(b.dataset.drug); updateUI(); return; }
-  const k = b.dataset.act;
+  const k = b.dataset.act; markUse('act:' + k); if (!['explore', 'gas', 'glu', 'temp'].includes(k)) track.actsLog.push([S.clin, ACTLAB[k] || b.textContent.trim()]);
   switch (k) {
     case 'explore': showFind(sim.explore()); logIt('Exploración'); break;
-    case 'gas': { const g = sim.gas(); const txt = `Gasometría venosa: pH ${fmt(g.ph, 2)} · pCO₂ ${fmt(g.pco2)} mmHg · HCO₃⁻ ${fmt(g.hco3)} · lactato ${fmt(g.lact, 1)} mmol/L · COHb ${fmt(g.cohb, 1)} %`; showFind([txt]); logIt(txt); break; }
+    case 'gas': { if (!S.access) { showFind(['Sin acceso vascular no hay muestra: canaliza una vía.']); break; } const g = sim.gas(); const txt = `Gasometría venosa: pH ${fmt(g.ph, 2)} · pCO₂ ${fmt(g.pco2)} mmHg · HCO₃⁻ ${fmt(g.hco3)} · lactato ${fmt(g.lact, 1)} mmol/L · K⁺ ${fmt(g.k, 1)} · glucosa ${fmt(g.glu)} mg/dL · Hb ${fmt(g.hb, 1)} g/dL · COHb ${fmt(g.cohb, 1)} %`; track.gluAt = S.clin; track.gluVal = g.glu; showFind([txt]); logIt(txt); break; }
     case 'toO2': sim.setStandby(false); sim.setIface('o2'); sim.setCfg(Object.assign({}, S.cfg, { o2dev: $('#o2dev').value })); logIt('Retiras el soporte: ' + O2LAB[S.cfg.o2dev]); pend = Object.assign({}, S.cfg); renderVent(); break;
     case 'toMask': {
       const st = devOf().start.find(x => x.iface === 'mask' && x.id !== 'rsi');
@@ -924,7 +982,7 @@ document.querySelector('.side').addEventListener('click', e => {
       if (devOf().spec.fio2 && devOf().spec.fio2.bin) pend.fio2 = 100;
       sbyHint = null; pendAt = performance.now();
       logIt('Mascarilla de VMNI colocada y conectada: el ventilador está en espera'); renderVent(); break; }
-    case 'toNasal': sim.setIface('nasal'); sim.setStandby(true); pend = cleanCfg({ mode: 'HFNC', flow: S.cfg.flow || 50, fio2: Math.max(S.cfg.fio2 || 60, 60) }); sbyHint = null; pendAt = performance.now(); logIt('Cánula de alto flujo colocada: el equipo está en espera'); renderVent(); break;
+    case 'toNasal': sim.setIface('nasal'); sim.setStandby(true); pend = cleanCfg({ mode: 'HFNC', flow: isPed() ? Math.min(60, Math.round(2 * peso)) : S.cfg.flow || 50, fio2: Math.max(S.cfg.fio2 || 60, 60) }); sbyHint = null; pendAt = performance.now(); logIt('Cánula de alto flujo colocada: el equipo está en espera'); renderVent(); break;
     case 'intubate': {
       const r = sim.intubate();
       if (!r.ok) { showFind([r.msg]); logIt('Intubación: ' + r.msg); }
@@ -934,6 +992,11 @@ document.querySelector('.side').addEventListener('click', e => {
       if (S.iface === 'tube' || S.isr) break;
       if (S.relTot < .5 && S.sedTot < .9 && !S.arrest) { showFind(['Conserva reflejos de vía aérea: el supraglótico necesita inconsciencia profunda o relajación.']); break; }
       sim.action('sga'); if (!track.peri) track.peri = { start: S.clin, end: S.clin + 10, spo2: S.spo2 * 100, tas: S.tas, startSpo2: S.spo2 * 100 }; logIt(ACTLAB.sga); break;
+    case 'iv': case 'io': if (S.access === true || S.access === 'io' || S.accessPend) break; sim.action(k); logIt(ACTLAB[k]); break;
+    case 'glu': { const g = sim.glucemia(); track.gluAt = S.clin; track.gluVal = g; const t = 'Glucemia capilar: ' + (g < 20 ? 'LO (< 20)' : g > 600 ? 'HI (> 600)' : fmt(g) + ' mg/dL'); showFind([t]); logIt(t); break; }
+    case 'temp': { const v = sim.temperatura(); track.tempAt = S.clin; const t = (S.iface === 'tube' ? 'Temperatura esofágica: ' : 'Temperatura timpánica: ') + fmt(v, 1) + ' °C'; showFind([t]); logIt(t); break; }
+    case 'warm': sim.action('warm'); logIt(S.warm ? 'Ropa mojada fuera, manta térmica y calor activo' : 'Retiras el calor activo'); break;
+    case 'hemo': if (!S.bleedSrc || S.hemo) { showFind([S.hemo ? 'La hemostasia ya está puesta.' : 'No hay un foco de sangrado accesible.']); break; } sim.action('hemo'); logIt(HEMOLAB[S.bleedSrc] + (S.bleedSrc === 'uter' ? ' mantenido' : ' colocado')); break;
     case 'drain': sim.action('drain'); logIt(S.drained ? 'Toracostomía y drenaje torácico: el neumotórax ya no puede volver a tensarse' : ACTLAB.drain); break;
     case 'cric': if ((S.iface !== 'tube' || S.air.sga) && !S.isr) { sim.action('cric'); track.cric = true; if (!track.peri) track.peri = { start: S.clin, end: S.clin + 10, spo2: S.spo2 * 100, tas: S.tas, startSpo2: S.spo2 * 100 }; logIt(ACTLAB.cric); } break;
     case 'bag': sim.action('bag'); logIt(S.bag ? 'Ventilas con ambú y reservorio (10/min)' : 'Dejas el ambú'); break;
@@ -962,6 +1025,12 @@ function updateButtons() {
   ['compManual', 'compMech', 'compOff', 'relevo'].forEach(k => { $(`[data-act="${k}"]`).disabled = !S.arrest; });
   if (S.air.sga) ['intubate', 'cric'].forEach(k => { const x = $(`[data-act="${k}"]`); if (x) x.disabled = !!S.isr; });
   $('[data-act="recruit"]').disabled = S.iface !== 'tube' || ventOffNow();
+  const hasAcc = S.access === true || S.access === 'io';
+  ['iv', 'io'].forEach(k => { const x = $(`[data-act="${k}"]`); if (x) x.disabled = hasAcc || !!S.accessPend; });
+  const hb = $('[data-act="hemo"]'); if (hb) { hb.hidden = !S.bleedSrc; hb.textContent = HEMOLAB[S.bleedSrc] || 'Hemostasia'; hb.disabled = !!S.hemo; }
+  const wb = $('[data-act="warm"]'); if (wb) { wb.setAttribute('aria-pressed', S.warm ? 'true' : 'false'); wb.textContent = S.warm ? 'Calor activo puesto' : 'Manta y calor activo'; }
+  const at = $('#accessTag'); if (at) at.textContent = hasAcc ? (S.access === 'io' ? ' · vía intraósea' : '') : S.accessPend ? ' · canalizando vía…' : ' · sin acceso vascular';
+  $$('#drugPanel [data-drug]').forEach(b => { const it = DRUGITEMS[b.dataset.drug]; b.classList.toggle('noacc', !hasAcc && !it.noIV && !!(it.k || it.act === 'fluid' || it.act === 'blood')); });
 }
 
 /* ---------- debrief ---------- */
@@ -985,12 +1054,22 @@ function showDebrief(reason) {
     `<tr><td>SpO₂ al empezar / mínima peri-intubación</td><td class="n">${fmt(track.peri.startSpo2)} / ${fmt(track.peri.spo2)} %</td></tr><tr><td>TAS mínima peri-intubación</td><td class="n">${fmt(track.peri.tas)} mmHg</td></tr>` +
     `<tr><td>Intubado sin ventilar (equipo en espera)</td><td class="n">${fmt(track.standbyApnea * 60)} s</td></tr></table>`;
   const arr = track.hadArr ? H('Arritmia') + `<table class="dtable"><tr><td>Ritmo sinusal recuperado</td><td class="n">${track.convAt != null ? 'a los ' + fmt(track.convAt, 1) + ' min' : 'no'}</td></tr><tr><td>Descargas</td><td class="n">${track.shocks}</td></tr></table>` : '';
+  const c7 = CASES[caseKey], extra = [];
+  if (track.accessAt != null && (c7.access === false)) extra.push(['Acceso vascular', 'a los ' + mmss(track.accessAt) + ' min']); else if (c7.access === false) extra.push(['Acceso vascular', 'no se consiguió']);
+  if (c7.glu != null || track.gluAt != null) extra.push(['Glucemia medida', track.gluAt != null ? 'sí, ' + fmt(track.gluVal) + ' mg/dL' : 'no'], ['Glucemia al final', fmt(S.glu) + ' mg/dL']);
+  if (c7.temp != null) extra.push(['Temperatura medida', track.tempAt != null ? 'sí' : 'no'], ['Temperatura al final', fmt(S.temp, 1) + ' °C'], ['Calor activo', S.warm ? 'sí' : 'no']);
+  if (c7.k != null) extra.push(['K⁺ al final', fmt(S.k, 1) + ' mmol/L'], ['QRS al final', fmt(S.ecg.qrs * 1000) + ' ms']);
+  if (c7.tca) extra.push(['QRS al final', fmt(S.ecg.qrs * 1000) + ' ms'], ['pH al final', fmt(S.ph, 2)]);
+  if (c7.bleed) extra.push(['Hemostasia', S.hemo ? HEMOLAB[S.bleedSrc].toLowerCase() : 'no'], ['Ácido tranexámico', S.E.txa > .2 ? 'sí' : 'no'], ['Cristaloide / sangre', fmt(track.fluidMl) + ' mL / ' + track.bloodU + ' U'], ['Pérdida de volemia al final', fmt(S.deficit * 100) + ' %']);
+  if (track.seizures || c7.ecl) extra.push(['Convulsiones', track.seizures]);
+  const metaT = extra.length ? H('Circulación y medio interno') + `<table class="dtable">${extra.map(([a, b]) => `<tr><td>${a}</td><td class="n">${b}</td></tr>`).join('')}</table>` : '';
   const drugs = track.drugs.length ? H('Fármacos y marcadores') + `<table class="dtable">${track.drugs.map(([t, x]) => `<tr><td>min ${fmt(t, 1)}</td><td>${x}</td></tr>`).join('')}</table>` : '';
   $('#dbH').textContent = c.title + (reason ? ' · ' + reason : '');
   $('#dbBody').innerHTML = `<p class="small">Tiempo clínico simulado: ${fmt(S.clin, 1)} min · ${DEVS[S.dev.vent].short} · ajustes y acciones: ${track.acts}</p>` +
-    (rows ? H('Tiempo en objetivo') + `<table class="dtable">${rows}</table>` : '') + cpr + arr + isr + (evs ? H('Eventos') + `<table class="dtable">${evs}</table>` : '') +
+    (rows ? H('Tiempo en objetivo') + `<table class="dtable">${rows}</table>` : '') + cpr + arr + isr + metaT + (evs ? H('Eventos') + `<table class="dtable">${evs}</table>` : '') +
     H('Peores valores') + `<table class="dtable"><tr><td>SpO₂ mínima (fuera de la parada)</td><td class="n">${W.n ? fmt(W.spo2) + ' %' : '—'}</td></tr><tr><td>TAS mínima (fuera de la parada)</td><td class="n">${W.n ? fmt(W.tas) + ' mmHg' : '—'}</td></tr><tr><td>Presión pico máxima</td><td class="n">${W.ppk ? fmt(W.ppk) + ' ' + devOf().u : '—'}</td></tr><tr><td>pH al final</td><td class="n">${fmt(S.ph, 2)}</td></tr></table>` +
     drugs + (c.hint ? H('Solución posible') + `<p>${c.hint}</p>` : '');
+  teachDebrief(reason);
   $('#debrief').hidden = false; paused = true; setPauseBtn(); $('#dbRepeat').focus();
 }
 $('#endBtn').addEventListener('click', () => showDebrief(''));
@@ -1061,7 +1140,8 @@ function refreshZC() { const zs = getComputedStyle($('#zoll')); ZC = { e: zs.get
 refreshZC();
 const G = (x, m, s) => Math.exp(-((x - m) * (x - m)) / (2 * s * s));
 const EK = {
-  sinus: t => .12 * G(t, .07, .025) - .1 * G(t, .155, .008) + 1.0 * G(t, .17, .01) - .28 * G(t, .19, .011) + .3 * G(t, .42, .05),
+  sinus: t => { const e = S.ecg || { qrs: .08, t: 1, p: 1, j: 0 }, w = e.qrs / .08, d = .012 * (w - 1);
+    return .12 * e.p * G(t, .07, .025) - .1 * G(t, .155, .008 * w) + G(t, .17, .01 * w) - .28 * G(t, .19 + d, .011 * w) + .25 * e.j * G(t, .2 + d, .014) + .3 * e.t * G(t, .42 + d, .05 / (1 + .25 * (e.t - 1))); },
   narrow: t => -.08 * G(t, .015, .008) + 1.0 * G(t, .03, .01) - .28 * G(t, .05, .011) + .25 * G(t, .24, .045),
   wide: t => .8 * G(t, .06, .03) - .45 * G(t, .13, .035) - .25 * G(t, .38, .07),
   aesp: t => .5 * G(t, .08, .05) - .25 * G(t, .18, .06) + .2 * G(t, .5, .08),
@@ -1101,7 +1181,7 @@ function zSample(dt) {
   if (markAt >= 0 && bt >= markAt) { zb.mk[zw] = 1; markAt = -1; }
   const comp = arrest && S.cpr.comp !== 'off', cph = (zT * 110 / 60) % 1;
   if (comp) e += (S.cpr.comp === 'mech' ? .55 : .5) * Math.max(0, Math.sin(TAU * cph)) - .12;
-  const agit = arrest ? 0 : Math.max(S.fight || 0, S.iface === 'mask' ? clamp(S.awake * (S.drive - .6), 0, 1) : 0, S.clin < S.anxUntil ? .8 : 0);
+  const agit = arrest ? 0 : S.clin < S.seizUntil ? 2.5 : Math.max(S.fight || 0, S.iface === 'mask' ? clamp(S.awake * (S.drive - .6), 0, 1) : 0, S.clin < S.anxUntil ? .8 : 0);
   zb.e[zw] = e + (Math.random() - .5) * (.03 + .2 * agit) + .05 * Math.sin(S.t * TAU * .25) * agit;
   if (arrest) zb.p[zw] = comp ? .3 * (M.cprQ || .8) * Math.max(0, Math.sin(TAU * cph)) : 0;
   else if (btype === 'none') zb.p[zw] = zb.p[(zw - 1 + ZN) % ZN] * .97;
@@ -1182,10 +1262,13 @@ function frame(now) {
     if (aed.st === 'charging' && defib.st === 'ready') { aed.st = 'ready'; monMsg('Aléjense del paciente. Pulse Descarga.'); }
     if (resume && S.t >= resume.at) { if (S.arrest) sim.compress(resume.type); resume = null; }
     if (soundOn && actx && S.arrest && S.cpr.comp !== 'off' && !S.cpr.paused && uMode(S.cfg) === 'CPR_M' && now - lastTick > 545) { lastTick = now; const o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = 1500; g.gain.setValueAtTime(.04, actx.currentTime); g.gain.linearRampToValueAtTime(0, actx.currentTime + .04); o.connect(g).connect(actx.destination); o.start(); o.stop(actx.currentTime + .05); }
-    uacc += dt; if (uacc >= .5) { uacc = 0; updateUI(); }
+    uacc += dt; if (uacc >= .5) { uacc = 0; updateUI(); tabAlerts(); }
+    sendState(false);
   }
   draw(); drawZoll(); requestAnimationFrame(frame);
 }
+
+/*TEACH*/
 
 /* ---------- arranque ---------- */
 $('#caseSel').innerHTML = GROUPS.map(g => `<optgroup label="${g}">` + Object.entries(CASES).filter(([, c]) => c.lvl === g).map(([k, c]) => `<option value="${k}">${c.title}</option>`).join('') + '</optgroup>').join('');
@@ -1200,7 +1283,7 @@ $('#resetBtn').addEventListener('click', () => loadCase(caseKey));
 $('#pauseBtn').addEventListener('click', () => { paused = !paused; setPauseBtn(); });
 $('#speedSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; setSpeed(+b.dataset.s); });
 $('#truthBox').addEventListener('toggle', () => { if ($('#truthBox').open) renderTruth(); });
-window.__sim = () => ({ sim, S, M, track, pend, lim });
-loadCase('tce');
-requestAnimationFrame(frame);
+window.__sim = () => ({ sim, S, M, track, pend, lim, exam, LINK });
+if (INSTR) startInstructor();
+else { teachInit(); const k0 = loadSharedFromHash(); if (k0) $('#caseSel').value = k0; loadCase(k0 || 'tce'); requestAnimationFrame(frame); }
 })();
