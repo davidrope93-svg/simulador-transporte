@@ -14,7 +14,7 @@ const WHERE = [
   [/perfusion de adrenalina|adrenalina 2.10 mcg|mcg\/min/, $p('adrI')], [/bolo de 10.20 mcg/, $d('adrP')], [/adrenalina/, $d('adr1')], [/noradrenalina/, $p('nor')],
   [/amiodarona/, $d('amio300', 'amio150')], [/lidocaina/, $d('lido100')], [/adenosina/, $d('aden6', 'aden12', 'aden18')], [/atropina/, $d('atr')], [/vagales|valsalva/, $d('vagal')], [/naloxona/, $d('nalox')],
   [/nitroglicerina|nitratos/, $d('ntgiv', 'ntgsl')], [/salbutamol/, $d('salb')], [/furosemida/, $d('furo')], [/salino hipertonico/, $d('shs')], [/manitol/, $d('manit')], [/hidroxocobalamina/, $d('hidroxo')], [/fibrinolisis|tenecteplasa/, $d('tnk')],
-  [/ketamina/, $d('ket')], [/etomidato/, $d('eto')], [/rocuronio|relajante/, $d('roc')], [/inductor|sedoanalgesia|sedacion|midazolam|fentanilo/, $d('fentS', 'mid')], [/corticoide|metilprednisolona/, $d('cort')], [/antihistaminico/, $d('dexclor')],
+  [/ketamina/, $d('ket')], [/etomidato/, $d('eto')], [/rocuronio|relajante/, $d('roc')], [/bolo de la bomba/, $d('sedB')], [/reanuda/, $d('sedperf')], [/retirar? (el )?tubo|retira 2 cm/, $a('pull')], [/inductor|sedoanalgesia|sedacion|midazolam|fentanilo/, $d('fentS', 'mid')], [/corticoide|metilprednisolona/, $d('cort')], [/antihistaminico/, $d('dexclor')],
   [/sangre/, $d('blood')], [/cristaloide|volumen|bolos? pequenos/, $d('fluid')],
   [/ambu|bolsa/, $a('bag')], [/videolaringoscopio/, $a('vl')], [/gafas a 15|oxigenacion apneica/, $a('apox')], [/supraglotico/, $a('sga')], [/cricotiroidotomia/, $a('cric')], [/intuba/, $a('intubate')],
   [/toracostomia|drenaje/, $a('drain')], [/descompresion|descomprime/, $a('decomp')], [/intraosea/, $a('io')], [/via venosa|via periferica|canaliza/, $a('iv')], [/glucemia/, $a('glu')], [/mide la temperatura/, $a('temp')],
@@ -23,9 +23,9 @@ const WHERE = [
   [/reconecta|pieza en y/, $a('reconnect')], [/balon/, $a('cuff')], [/aspira|secreciones/, $a('suction')], [/reclutamiento/, $a('recruit')], [/gasometria/, $a('gas')], [/explora|pupilas/, $a('explore')],
   [/recoloca|cambia la mascarilla/, $a('mask')], [/pinza/, $a('clamp')], [/desconecta 15 s/, $a('opencirc')], [/30:2|15:2/, $s('#cprRatio')],
   [/iniciar ventilacion/, $s('#sbyGo')], [/air mix/, $s('#vk_airmix')], [/tecla de o2|o2 al 100/, $s('#vk_o2boost', '#vk_o2full')], [/fio2/, $k('fio2')], [/\bpeep\b|cpap/, $k('peep')],
-  [/presion de soporte|\bps\b/, $k('ps')], [/\bvt\b/, $k('vt')], [/\bfr\b|frecuencia/, $k('fr')], [/trigger/, $k('trigI')], [/ciclado|ti max/, $k('trigE', 'timax')], [/pasa a /, $s('#modes')], [/alarma de presion/, $s('#limBox')],
+  [/presion de soporte|\bps\b/, $k('ps')], [/\bvt\b/, $k('vt')], [/\bfr\b|frecuencia/, $k('fr')], [/trigger/, $k('trigI')], [/timax|ti max/, $k('timax')], [/ciclado/, $k('trigE')], [/inspiracion ti|\bi:e\b/, $k('ti', 'ie')], [/\bflow\b|flujo a \d|flujo \d/, $k('flow')], [/pasa a /, $s('#modes')], [/alarma de presion/, $s('#limBox')],
   [/cardioversion|sinc/, $s('#zSync', '#zCharge')], [/parches/, $s('#zPads')], [/marcapasos|ma por encima/, $s('#zPace', '#zmA')], [/descarga|desfibrila|\d+ j\b|j\/kg/, $s('#zJ', '#zCharge', '#zShock')],
-  [/pni|mide la ta/, $s('#zPniBtn')], [/programa la automatica/, $s('#zAuto')]
+  [/pausa inspiratoria/, $s('#vk_inhold')], [/pausa espiratoria/, $s('#vk_exhold')], [/pni|mide la ta/, $s('#zPniBtn')], [/programa la automatica/, $s('#zAuto')]
 ];
 function whereOf(text) {
   const t = norm(text), out = [];
@@ -38,7 +38,7 @@ function spot(els, quiet) {
   const tb = $('#tabbar'), mobile = tb && getComputedStyle(tb).display !== 'none';
   els.forEach(e => { let d = e.closest('details'); while (d) { d.open = true; d = d.parentElement && d.parentElement.closest('details'); } });
   const sec = els[0].closest('[data-tabsec]'); if (mobile && sec) setTab(sec.dataset.tabsec);
-  requestAnimationFrame(() => { els[0].scrollIntoView({ behavior: 'smooth', block: 'center' }); });
+  requestAnimationFrame(() => { const c = $('#coach'), low = mobile && c && !c.hidden; if (low) { const r = els[0].getBoundingClientRect(); window.scrollTo({ top: window.scrollY + r.top - innerHeight * .22, behavior: 'smooth' }); } else els[0].scrollIntoView({ behavior: 'smooth', block: 'center' }); });
   els.forEach(e => { e.classList.remove('spot'); void e.offsetWidth; e.classList.add('spot'); setTimeout(() => e.classList.remove('spot'), 4200); });
   if (!quiet && els[0].disabled) toast('Ese mando está desactivado ahora: ' + (els[0].closest('[data-drug]') && !S.access ? 'falta un acceso vascular.' : 'no se puede usar en esta situación.'));
   return true;
@@ -50,15 +50,17 @@ let coachMin = LS.get('simvmi.coachMin', false), coachKey = '';
 function coachUpdate() {
   const box = $('#coach'); if (!box) return;
   if (exam || INSTR) { box.hidden = true; return; }
-  box.hidden = false; box.classList.toggle('min', coachMin);
+  if (tut.on) { tutTick(); return; }
+  box.hidden = false; box.classList.toggle('min', coachMin); box.querySelector('.ch b').textContent = 'Siguiente paso';
+  const lost = performance.now() - lastAct > 60000;
   const r = lastReads.find(x => x[0] === 'bad') || lastReads.find(x => x[0] === 'warn') || lastReads[0];
   const n = lastReads.filter(x => x[0] !== 'ok').length;
   $('#coachN').textContent = n ? String(n) : '✓';
   $('#coachN').className = 'cn ' + (r ? r[0] : 'ok');
   if (!r) return;
-  const key = r[1] + r[3]; if (key === coachKey) return; coachKey = key;
+  const key = r[1] + r[3] + lost; if (key === coachKey) return; coachKey = key;
   const has = whereOf(r[3] + ' ' + r[1]).length;
-  $('#coachBody').innerHTML = `<b>${r[1]}</b><p>${r[2]}</p><p class="fix">→ ${r[3]}</p><div class="inrow">${has ? `<button class="btn sm primary" data-where="${encodeURIComponent(r[3] + ' ' + r[1])}">Dónde se hace</button>` : ''}<button class="btn sm" id="coachAll">Ver toda la Lectura${n > 1 ? ' (' + n + ')' : ''}</button></div>`;
+  $('#coachBody').innerHTML = (lost ? '<p class="lost">¿Te has perdido? El tutorial te lleva paso a paso por este caso.</p>' : '') + `<b>${r[1]}</b><p>${r[2]}</p><p class="fix">→ ${r[3]}</p><div class="inrow">${has ? `<button class="btn sm primary" data-where="${encodeURIComponent(r[3] + ' ' + r[1])}">Dónde se hace</button>` : ''}<button class="btn sm" id="coachAll">Ver toda la Lectura${n > 1 ? ' (' + n + ')' : ''}</button><button class="btn sm${lost ? ' primary' : ''}" id="tutGo">Guíame en este caso</button></div>`;
 }
 
 /* ---------- buscador de acciones, fármacos y mandos ---------- */
@@ -87,7 +89,7 @@ function qItems() {
   $$('#vkeys .vbtn').forEach(b => it.push({ lab: b.textContent.trim(), where: devOf().short + ' · teclas', kw: '', el: b, run: () => b.click() }));
   if ($('#sbyGo')) it.push({ lab: 'Iniciar ventilación', where: devOf().short, kw: 'empezar arrancar standby espera', el: $('#sbyGo'), run: () => $('#sbyGo').click() });
   QMON.forEach(([sel, lab, kw]) => { const e = $(sel); if (e) it.push({ lab, where: 'Monitor', kw, el: e, run: e.tagName === 'BUTTON' ? () => e.click() : null }); });
-  [['#endBtn', 'Terminar caso', 'acabar debrief nota'], ['#pauseBtn', 'Pausa', 'parar'], ['#resetBtn', 'Reiniciar el caso', 'repetir'], ['#guideBtn', 'Guía de la pantalla', 'ayuda tutorial'], ['#histBtn', 'Historial', 'notas'], ['#edBtn', 'Mis casos', 'editor crear caso']]
+  [['#tutBtn', 'Guíame en este caso (tutorial)', 'tutorial guia paso a paso ayuda perdido'], ['#endBtn', 'Terminar caso', 'acabar debrief nota'], ['#pauseBtn', 'Pausa', 'parar'], ['#resetBtn', 'Reiniciar el caso', 'repetir'], ['#guideBtn', 'Guía de la pantalla', 'ayuda tutorial'], ['#histBtn', 'Historial', 'notas'], ['#edBtn', 'Mis casos', 'editor crear caso']]
     .forEach(([sel, lab, kw]) => { const e = $(sel); if (e) it.push({ lab, where: 'Barra superior', kw, el: e, run: () => e.click() }); });
   return it;
 }

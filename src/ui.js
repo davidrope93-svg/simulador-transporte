@@ -297,7 +297,7 @@ function renderCase() {
   const c = CASES[caseKey];
   const tg = Object.entries(c.targets || {}).map(([k, r]) => `<span class="chip" id="tg_${k}">${TGT[k].lab} ${rangeTxt(r, TGT[k])}</span>`).join('');
   $('#caseCard').innerHTML = `<div><span class="eyebrow">${c.lvl} · ${VMI.PHENO[S.pk].label} · ${IFSHORT[S.iface]} · ${(c.sex || S.P.sex) === 'm' ? 'mujer' : 'varón'} de ${c.talla || S.P.talla} cm · peso ideal ${fmt(S.ibw)} kg · peso ${fmt(peso)} kg</span><h2 class="ctitle">${c.title}</h2><p>${c.goal}</p></div><div class="targets">${tg}</div>` +
-    (c.hint ? `<details><summary>Ver una solución posible</summary><p>${c.hint}</p></details>` : '');
+    `<div class="caseact"><button class="btn sm" id="tutBtn">Guíame en este caso</button>${c.hint ? `<details><summary>Ver una solución posible</summary><p>${c.hint}</p></details>` : ''}</div>`;
 }
 
 /* ---------- ventilador: modos, mandos y mando giratorio ---------- */
@@ -425,7 +425,7 @@ let manualDown = 0;
 $('#vkeys').addEventListener('pointerdown', e => { const b = e.target.closest('[data-vk="manual"]'); if (b && !b.disabled) manualDown = performance.now(); });
 $('#vkeys').addEventListener('click', e => {
   const b = e.target.closest('[data-vk]'); if (!b || b.disabled) return;
-  const k = b.dataset.vk, d = devOf();
+  const k = b.dataset.vk, d = devOf(); markUse('key:' + k);
   switch (k) {
     case 'o2boost': sim.action('o2boost'); logIt(S.clin < S.o2boostUntil ? `${KEYLAB.o2boost(d)}: O₂ al 100 % durante 2 min` : `${KEYLAB.o2boost(d)} cancelado`); break;
     case 'inhold': sim.inspHold(); logIt('Pausa inspiratoria'); break;
@@ -1271,6 +1271,7 @@ function frame(now) {
 
 /*TEACH*/
 /*GUIDE*/
+/*TUTOR*/
 
 /* ---------- arranque ---------- */
 $('#caseSel').innerHTML = GROUPS.map(g => `<optgroup label="${g}">` + Object.entries(CASES).filter(([, c]) => c.lvl === g).map(([k, c]) => `<option value="${k}">${c.title}</option>`).join('') + '</optgroup>').join('');
@@ -1285,7 +1286,7 @@ $('#resetBtn').addEventListener('click', () => loadCase(caseKey));
 $('#pauseBtn').addEventListener('click', () => { paused = !paused; setPauseBtn(); });
 $('#speedSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; setSpeed(+b.dataset.s); });
 $('#truthBox').addEventListener('toggle', () => { if ($('#truthBox').open) renderTruth(); });
-window.__sim = () => ({ sim, S, M, track, pend, lim, exam, LINK });
+window.__sim = () => ({ sim, S, M, track, pend, lim, exam, LINK, tut, tutSteps, tutWhere });
 if (INSTR) startInstructor();
-else { teachInit(); guideInit(); const k0 = loadSharedFromHash(); if (k0) $('#caseSel').value = k0; loadCase(k0 || 'tce'); requestAnimationFrame(frame); }
+else { teachInit(); guideInit(); tutInit(); const k0 = loadSharedFromHash(); if (k0) $('#caseSel').value = k0; loadCase(k0 || 'tce'); requestAnimationFrame(frame); }
 })();

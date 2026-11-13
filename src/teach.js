@@ -7,11 +7,11 @@ let exam = false, student = LS.get('simvmi.name', ''), lastReads = [], instrSeen
 const CHECK_LAB = {};
 
 /* ---------- registro de la serie y de lo que hace el alumno ---------- */
-function teachOnLoad() { track.series = []; track.actsLog = []; track.used = new Set(); track.shockT = []; lastSer = -1; sendState(true); }
+function teachOnLoad() { track.series = []; track.actsLog = []; track.used = new Set(); track.usedAt = {}; track.shockT = []; lastSer = -1; if (tut.on) tutStop(); lastAct = performance.now(); sendState(true); }
 function teachOnSlow() {
   if (S.clin - lastSer >= .1) { lastSer = S.clin; track.series.push([+S.clin.toFixed(2), Math.round(S.spo2 * 1000) / 10, S.arrest ? null : Math.round(S.tas), M.et != null ? Math.round(M.et) : null, S.arrest ? null : Math.round(S.fc)]); if (track.series.length > 3000) track.series.shift(); }
 }
-const markUse = tok => { if (track && track.used) track.used.add(tok); };
+const markUse = tok => { if (track && track.used) { track.used.add(tok); (track.usedAt = track.usedAt || {})[tok] = S.clin; } };
 
 /* ---------- nota ---------- */
 function checksOf(c) { return (c.checks || []).map(x => Array.isArray(x) ? x : [x, x]); }
@@ -83,12 +83,12 @@ function teachDebrief(reason) {
   const col = v => v >= .8 ? 'var(--ok)' : v >= .5 ? 'var(--warn)' : 'var(--bad)';
   const head = `<div class="dbhead"><div class="score" style="--sc:${col(sc.total / 10)}"><b>${fmt(sc.total, 1)}</b><span>sobre 10</span></div>
     <div class="dbmeta"><label class="small" for="dbName">Alumno</label><input id="dbName" value="${esc(student)}" placeholder="Nombre" autocomplete="off">
-    <p class="small">${exam ? 'Modo examen' : 'Modo práctica'} · ${new Date().toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })}</p></div></div>
+    <p class="small">${exam ? 'Modo examen' : 'Modo práctica'}${track.tutorial ? ' · con tutorial' : ''} · ${new Date().toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })}</p></div></div>
     <table class="dtable">${sc.parts.map(p => `<tr><td>${p.lab}<br><span class="small">${esc(p.det)}</span></td><td style="width:34%"><div class="bar"><span style="width:${p.v * 100}%;background:${col(p.v)}"></span></div></td><td class="n">${fmt(p.v * 100)} %</td></tr>`).join('')}</table>`;
   const tl = track.series.length > 2 ? `<h2 style="margin-top:6px">Línea de tiempo</h2>${timelineSVG(track.series, dm.m, dm.lines)}` : '';
   $('#dbBody').insertAdjacentHTML('afterbegin', head + tl);
   if (exam && c.hint) { const hs = [...$('#dbBody').querySelectorAll('h2')].find(h => h.textContent === 'Solución posible'); if (hs) { const p = hs.nextElementSibling; const d = document.createElement('details'); d.innerHTML = '<summary>Ver la solución posible</summary>'; d.appendChild(p.cloneNode(true)); hs.replaceWith(d); p.remove(); } }
-  const att = { d: new Date().toISOString(), name: student || '', key: caseKey, title: c.title, exam, score: sc.total, parts: sc.parts.map(p => [p.lab, Math.round(p.v * 100)]), min: Math.round(S.clin * 10) / 10, reason: reason || '' };
+  const att = { d: new Date().toISOString(), name: student || '', key: caseKey, title: c.title, exam, tut: !!track.tutorial, score: sc.total, parts: sc.parts.map(p => [p.lab, Math.round(p.v * 100)]), min: Math.round(S.clin * 10) / 10, reason: reason || '' };
   const hist = LS.get('simvmi.hist', []); hist.push(att); while (hist.length > 500) hist.shift(); LS.set('simvmi.hist', hist);
   const idx = hist.length - 1;
   $('#dbName').addEventListener('change', e => { student = e.target.value.trim().slice(0, 60); LS.set('simvmi.name', student); $('#stuName').value = student; const h = LS.get('simvmi.hist', []); if (h[idx] && h[idx].d === att.d) { h[idx].name = student; LS.set('simvmi.hist', h); } });
@@ -97,7 +97,7 @@ function teachDebrief(reason) {
 
 /* ---------- modo examen ---------- */
 function setExam(on, silent) {
-  exam = !!on; document.body.classList.toggle('exam', exam);
+  exam = !!on; document.body.classList.toggle('exam', exam); if (exam && tut.on) tutStop('Tutorial cerrado: modo examen');
   $$('#modeSeg button').forEach(b => b.setAttribute('aria-pressed', (+b.dataset.x === 1) === exam ? 'true' : 'false'));
   if (!silent) { loadCase(caseKey); logIt(exam ? 'Modo examen: sin Lectura ni solución; nota al terminar' : 'Modo práctica'); }
   sendState(true);
@@ -227,7 +227,7 @@ function renderHist() {
   const h = LS.get('simvmi.hist', []), names = [...new Set(h.map(a => a.name || 'Sin nombre'))].sort();
   const sel = $('#hiName'), cur = sel.value; sel.innerHTML = '<option value="">Todos los alumnos</option>' + names.map(n => `<option>${esc(n)}</option>`).join(''); sel.value = names.includes(cur) ? cur : '';
   const rows = h.filter(a => !sel.value || (a.name || 'Sin nombre') === sel.value).slice().reverse();
-  $('#hiBody').innerHTML = rows.length ? `<table class="dtable"><tr><th>Fecha</th><th>Alumno</th><th>Caso</th><th>Modo</th><th class="n">Nota</th></tr>${rows.map(a => `<tr><td>${new Date(a.d).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}</td><td>${esc(a.name || 'Sin nombre')}</td><td>${esc(a.title)}</td><td>${a.exam ? 'examen' : 'práctica'}</td><td class="n">${fmt(a.score, 1)}</td></tr>`).join('')}</table>` : '<p class="small">Todavía no hay intentos guardados en este dispositivo.</p>';
+  $('#hiBody').innerHTML = rows.length ? `<table class="dtable"><tr><th>Fecha</th><th>Alumno</th><th>Caso</th><th>Modo</th><th class="n">Nota</th></tr>${rows.map(a => `<tr><td>${new Date(a.d).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}</td><td>${esc(a.name || 'Sin nombre')}</td><td>${esc(a.title)}</td><td>${a.exam ? 'examen' : a.tut ? 'tutorial' : 'práctica'}</td><td class="n">${fmt(a.score, 1)}</td></tr>`).join('')}</table>` : '<p class="small">Todavía no hay intentos guardados en este dispositivo.</p>';
   const ex = rows.filter(a => a.exam); $('#hiSum').textContent = rows.length ? `${rows.length} intento${rows.length > 1 ? 's' : ''} · media ${fmt(rows.reduce((s, a) => s + a.score, 0) / rows.length, 1)}${ex.length ? ' · media en examen ' + fmt(ex.reduce((s, a) => s + a.score, 0) / ex.length, 1) : ''}` : '';
 }
 // en el visor de claude.ai los archivos se ofrecen con la capacidad «downloads»; en GitHub Pages, con un enlace normal

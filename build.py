@@ -4,7 +4,7 @@ src = lambda f: open('src/' + f, encoding='utf-8').read()
 t = src('template.html')
 for k, f in [('MODEL', 'model.js'), ('DEVICES', 'devices.js'), ('CASES', 'cases.js')]:
     t = t.replace('/*%s*/' % k, src(f))
-t = t.replace('/*UI*/', src('ui.js').replace('/*TEACH*/', src('teach.js')).replace('/*GUIDE*/', src('guide.js')))  # docencia dentro de la interfaz
+t = t.replace('/*UI*/', src('ui.js').replace('/*TEACH*/', src('teach.js')).replace('/*GUIDE*/', src('guide.js')).replace('/*TUTOR*/', src('tutor.js')))  # docencia, orientación y tutorial dentro de la interfaz
 head, body = t.split('<style>', 1)
 style, rest = body.split('</style>', 1)
 head = head.replace('<meta name="claude:viewport-fit-sides" content="cover">\n', '')
