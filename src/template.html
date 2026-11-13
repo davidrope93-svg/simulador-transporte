@@ -269,7 +269,7 @@ footer{font-size:.8rem;color:var(--muted);max-width:90ch}
 <main>
   <header class="top">
     <div class="brand">
-      <span class="eyebrow">Simulador docente · SVA terrestre y HEMS · v0.5</span>
+      <span class="eyebrow">Simulador docente · SVA terrestre y HEMS · v0.6</span>
       <h1>Ventilación, monitor y RCP</h1>
     </div>
     <div class="toolbar">
@@ -333,13 +333,13 @@ footer{font-size:.8rem;color:var(--muted);max-width:90ch}
           <div class="zn co" id="zCoBox"><span class="zl"><span>EtCO₂ mmHg</span><span>capno</span></span><span class="zv" id="zEt">–</span><span class="zs" id="zRr">FR –</span></div>
           <div class="zn pn" id="zPnBox"><span class="zl"><span>PNI mmHg</span><span id="zPnAge"></span></span><span class="zv" id="zPn">–/–</span><span class="zs" id="zPnM">media –</span></div>
         </div>
-        <div class="zctl"><button class="zbtn" id="zPniBtn" aria-pressed="false">PNI ahora</button><label for="zAuto" class="zrow">Auto</label><select class="zsel" id="zAuto"><option value="0">no</option><option value="3">3 min</option><option value="5" selected>5 min</option><option value="10">10 min</option></select><button class="zbtn" id="zSil" aria-pressed="false">Silenciar</button></div>
+        <div class="zctl"><button class="zbtn" id="zPniBtn" aria-pressed="false">PNI ahora</button><label for="zAuto" class="zrow">Auto</label><select class="zsel" id="zAuto"></select><button class="zbtn" id="zSil" aria-pressed="false">Silenciar</button></div>
         <div class="zsec"><span class="zh">Desfibrilador</span>
           <div class="zctl"><select class="zsel" id="zMode" aria-label="Modo del desfibrilador"><option value="manual">Manual</option><option value="aed">DEA</option></select><select class="zsel" id="zJ" aria-label="Energía"></select><button class="zbtn" id="zSync" aria-pressed="false">SINC</button><button class="zbtn" id="zPads" aria-pressed="false" title="Cambio de vector en la FV refractaria">Parches AL</button><button class="zbtn" id="zAnalyze" hidden>Analizar</button><button class="zbtn charge" id="zCharge">Cargar</button><button class="zbtn shock" id="zShock" disabled>Descarga</button></div>
           <div class="zmsg" id="zMsg" aria-live="polite"></div>
         </div>
         <div class="zsec"><span class="zh">Marcapasos transcutáneo</span>
-          <div class="zctl"><label class="zrow"><input type="checkbox" id="zPace"> Encendido</label><select class="zsel" id="zPaceMode" aria-label="Modo del marcapasos"><option value="demand">Demanda</option><option value="fixed">Fijo</option></select><select class="zsel" id="zRate" aria-label="Frecuencia del marcapasos"></select><span class="zrow">lpm</span><select class="zsel" id="zmA" aria-label="Intensidad del marcapasos"></select><span class="zrow">mA</span></div>
+          <div class="zctl"><label class="zrow"><input type="checkbox" id="zPace"> Encendido</label><select class="zsel" id="zPaceMode" aria-label="Modo del marcapasos"></select><select class="zsel" id="zRate" aria-label="Frecuencia del marcapasos"></select><span class="zrow">lpm</span><select class="zsel" id="zmA" aria-label="Intensidad del marcapasos"></select><span class="zrow">mA</span></div>
         </div>
         <div class="zsec"><span class="zh">Marcadores de evento</span>
           <div class="zctl"><select class="zsel" id="zMark" aria-label="Marcador"><option>Adrenalina</option><option>Amiodarona</option><option>Intubación</option><option>Acceso IV / IO</option><option>Inicio de RCP</option><option>RCE</option><option>Sedación</option><option>Gasometría</option></select><button class="zbtn" id="zMarkBtn">Marcar</button></div>
@@ -366,6 +366,7 @@ footer{font-size:.8rem;color:var(--muted);max-width:90ch}
             <button class="btn" data-act="apox" data-if="o2 mask nasal" aria-pressed="false">Gafas 15 L/min (apneica)</button>
             <button class="btn" data-act="vl" data-if="o2 mask nasal" aria-pressed="false">Videolaringoscopio + bougie</button>
             <button class="btn" data-act="intubate" data-if="o2 mask nasal">Intubar</button>
+            <button class="btn" data-act="sga" data-if="o2 mask nasal">Dispositivo supraglótico (i-gel)</button>
             <button class="btn" data-act="cric" data-if="o2 mask nasal">Cricotiroidotomía</button>
             <button class="btn" data-act="mask" data-if="mask">Recolocar mascarilla</button>
             <button class="btn" data-act="reconnect" data-if="tube mask">Reconectar tubuladura</button>
@@ -377,6 +378,7 @@ footer{font-size:.8rem;color:var(--muted);max-width:90ch}
             <button class="btn" data-act="opencirc" data-if="tube">Desconectar 15 s</button>
             <button class="btn" data-act="recruit">Reclutamiento</button>
             <button class="btn" data-act="decomp">Descompresión con aguja</button>
+            <button class="btn" data-act="drain">Toracostomía / drenaje</button>
             <button class="btn" data-act="bottle">Cambiar botella</button>
           </div>
           <div class="range"><label class="small" for="o2dev">Oxigenoterapia</label><select id="o2dev"><option value="gafas">Gafas nasales 2 L/min</option><option value="venturi28">Venturi 28 %</option><option value="venturi35">Venturi 35 %</option><option value="venturi50">Venturi 50 %</option><option value="reserv" selected>Mascarilla con reservorio 15 L/min</option></select></div>
@@ -390,6 +392,7 @@ footer{font-size:.8rem;color:var(--muted);max-width:90ch}
             <button class="btn" data-act="relevo">Relevo del compresor</button>
             <button class="btn" data-act="check">Comprobar pulso y ritmo</button>
           </div>
+          <div class="range"><label class="small" for="cprRatio">Compresión : ventilación</label><select id="cprRatio"><option value="0">Continuas (vía aérea avanzada)</option><option value="30">30:2</option><option value="15">15:2 (pediátrica)</option></select></div>
         </div>
         <div class="agroup" id="drugPanel"></div>
       </section>

@@ -65,6 +65,22 @@ check('FV refractaria, manejo correcto', fr1, 30, 70, ' %'); check('FV refractar
 check('AESP por neumotórax sin descomprimir', rate('aespPtx', false), 0, 20, ' %'); check('AESP por neumotórax descomprimido', rate('aespPtx', true), 70, 100, ' %');
 check('Asistolia hipóxica sin ventilar', rate('asistolia', false), 0, 10, ' %'); check('PCR por TEP sin fibrinólisis', rate('pcrTep', false), 0, 20, ' %');
 
+console.log('— SIMV, RCP 30:2, vía aérea difícil, drenaje y arritmias (v0.6)');
+{ const sim = VMI.create({ pheno: 'sano', seed: 4, scale: 10, relCe: 0, sedE: .5, cfg: { mode: 'SIMV', simvMand: 'VCV', vt: 480, fr: 10, ti: 1, ps: 8, peep: 5, fio2: 40, trigI: 2, trigE: 25, rise: .15, pmax: 40 } }); sim.warm(10);
+  adv(sim, 3); const B = sim.S.breaths.filter(b => b.tb > sim.S.t - 30 && b.cycle);
+  check('SIMV con respiración espontánea: mandatorias en 30 s (FR 10)', B.filter(b => b.kind === 'mand').length, 4, 6); check('SIMV: espontáneas con PS entre las mandatorias', B.filter(b => b.kind === 'spont').length, 1, 30); }
+{ const sim = VMI.create({ pheno: 'sano', seed: 4, scale: 10, relCe: 20, cfg: { mode: 'SIMV', simvMand: 'VCV', vt: 480, fr: 10, ti: 1, ps: 8, peep: 5, fio2: 40, trigI: 2, trigE: 25, pmax: 40 } }); sim.warm(10);
+  adv(sim, 3, keepRel); check('SIMV paralizado: FR', sim.monitor().fr, 9, 11.5); }
+{ const sim = VMI.create({ pheno: 'sano', seed: 5, scale: 10, arrest: 'asys', comp: 'manual', iface: 'o2', cfg: { o2dev: 'reserv' } }); sim.warm(3); sim.setRatio(30); sim.action('bag');
+  adv(sim, 6, S => { if (S.cpr.relevo > 2) S.cpr.relevo = 0; }); const c = sim.S.cpr; check('Fracción de compresión con 30:2', c.cprTime / (c.cprTime + c.noFlow) * 100, 75, 85, ' %'); }
+const cico = bmv => { const L = load('viaDificil', { scale: 10, seed: 7 }); if (bmv != null) L.S.bmv = bmv; run(L, 8, [[.5, L => L.sim.action('bag')], [1, L => { drug(L, 'ket'); drug(L, 'roc'); }]]); return L.S.spo2 * 100; };
+check('No oxigenable: solo ambú tras relajar, SpO2 a 8 min', cico(), 0, 60, ' %'); check('Misma vía con bolsa eficaz, SpO2 a 8 min', cico(1), 88, 100, ' %');
+const sgaSeal = (k, n = 20) => { let ok = 0; for (let s = 1; s <= n; s++) { const L = load(k, { scale: 10, seed: s }); run(L, 2, [[.2, L => { drug(L, 'ket'); drug(L, 'roc'); }], [1.3, L => L.sim.action('sga')]]); if (L.S.iface === 'tube' && L.S.air.sga) ok++; } return ok / n * 100; };
+check('Supraglótico que sella en vía difícil con sangre', sgaSeal('viaDificil'), 0, 50, ' %'); check('Supraglótico que sella en ISR habitual', sgaSeal('isrSeptico'), 80, 100, ' %');
+{ const L = load('ptxAltitud', { scale: 10 }); run(L, 20, [[.5, L => L.sim.action('drain')]]); check('Neumotórax drenado antes de despegar: SpO2 a 20 min', L.S.spo2 * 100, 92, 100, ' %'); check('Neumotórax drenado: no vuelve a tensarse', L.S.ptxActive ? 1 : 0, 0, 0); }
+{ let k = 0; for (let s = 1; s <= 30; s++) { const L = load('tvPulso', { scale: 10, seed: s }); if (run(L, 20).arrestAt != null) k++; } check('TV con pulso sin tratar: parada en 20 min', k / 30 * 100, 15, 60, ' %'); }
+{ let k = 0; for (let s = 1; s <= 20; s++) { const L = load('tvPulso', { scale: 10, seed: s }); run(L, .5); L.sim.pace(true, 200, 100, 'overdrive'); run(L, 1); L.sim.pace(false, 200, 100, 'overdrive'); run(L, 1.3); if (!L.S.arr.type && !L.S.arrest) k++; } check('Sobreestimulación (overdrive) en TV: reversión', k / 20 * 100, 35, 85, ' %'); }
+
 console.log('— Todos los casos, 20 min sin tratar: sin valores imposibles');
 let bad = 0; for (const k of Object.keys(CASES)) { if (k === 'libre') continue; const L = load(k, { scale: 10 }); const R = run(L, CASES[k].duration || 20); if (R.nan.length || R.weird.some(w => !/pH (6\.|7\.0)/.test(w))) { bad++; console.log('   ', k, R.nan.slice(0, 2), R.weird.slice(0, 2)); } }
 check('Casos con NaN o valores fuera de rango fisiológico', bad, 0, 0);

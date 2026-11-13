@@ -7,14 +7,17 @@
      sex      'h' o 'm'; talla en cm; peso real en kg (para las dosis)
      iface    'tube' (intubado), 'mask' (VMNI), 'nasal' (alto flujo) u 'o2' (oxigenoterapia, ventilador en espera)
      dev      opcional: fuerza el ventilador ('monnal', 'medumat', 't1')
-     cfg      ajustes del ventilador (si iface es 'o2', los que tendrá preparados): mode VCV, PCV, APV, ASV, PSV, PST, CPAP, CPV, HFNC;
+     cfg      ajustes del ventilador (si iface es 'o2', los que tendrá preparados): mode VCV, PCV, APV, ASV, PSV, PST, CPAP, CPV, HFNC,
+              o los de interfaz con umode: SIMV_V, SIMV_P, SIMV_A, CPV_RCE (Monnal), CPR_M (Medumat), DEM y MAN (Medumat RSI);
               vt, fr, ti, tplat, pinsp, ps, rise, peep, fio2, trigI, trigE, timax, pmax, minvol, flow; o2dev: gafas, venturi28, venturi35, venturi50, reserv
      Fisiología (opcional): pco2, deficit (0–0,6 hipovolemia), bs (broncoespasmo, 1 = basal), opioid, sedE / relCe / sedStopped,
               rhythm ('tsv', 'fa', 'flutter', 'tvp', 'sbrady') y arrPen (mmHg que resta a la TAS), bav, arrest ('vf', 'aesp', 'asys') con
               comp ('manual', 'mech') y arrestCause ('hypox', 'ptx', 'tep', 'hypo'), shockMul (éxito de la descarga), tep (0–1), anaf (0–1),
               cohb (fracción), cn (cianuro 0–1), icp (mmHg) e icpGrow (mmHg/min), weak (debilidad 0–1), dav (probabilidad de intubación
               fallida), edAir y edAirRate (edema de vía aérea), asp (broncoaspiración 0–1), ptx y ptxTension, tasAdj, sevFloor,
-              bottleL, bottleBar, leak10, altitude (m)
+              bottleL, bottleBar, leak10, altitude (m), bmv (eficacia de la ventilación con bolsa y mascarilla, 1 = normal),
+              sgaFail (probabilidad de que el supraglótico no selle; 0,08 por defecto)
+     speed    velocidad inicial (1, 5, 10, 20); por defecto ×1 en Parada, ×5 en Arritmias y ×10 en el resto
      ped      true para dosis y energías pediátricas por peso (ERC soporte vital pediátrico)
      events   [{ at: minuto clínico, k: evento, txt }] o [{ at, alt: metros, txt }] para cambiar la altitud
               eventos: extub, disc, sel, obst, leak, bronco, ptx, o2, wake, anx, cough, vf, aspir, tep, anaf, tsv, fa, tvp
@@ -114,7 +117,7 @@ const CASES = {
     cfg: { mode: 'VCV', vt: 500, fr: 14, ti: 1.0, tplat: 0, peep: 5, fio2: 50, pmax: 40 },
     events: [{ at: 2, alt: 1500, txt: 'Despegue: cabina a 1.500 m' }, { at: 5, alt: 2400, txt: 'Cruzáis la cumbre: cabina a 2.400 m' }, { at: 9, k: 'ptx', txt: 'El neumotórax pasa a tensión' }],
     goal: 'Varón de 40 años, trauma torácico con neumotórax derecho pequeño sin drenar. Intubado. Helicóptero sin presurizar; la ruta cruza la cumbre.',
-    hint: 'Por Boyle el gas atrapado crece × 1,2 a 1.500 m y × 1,35 a 2.400 m: empeoran meseta y SpO₂. Lo correcto es drenar (o descomprimir) antes de despegar o volar bajo. Si pasa a tensión, descomprime ya.',
+    hint: 'Por Boyle el gas atrapado crece × 1,2 a 1.500 m y × 1,35 a 2.400 m: empeoran meseta y SpO₂. Lo correcto es poner un drenaje torácico (toracostomía) antes de despegar: así no puede volver a tensarse. Si no, volar bajo. Si pasa a tensión en vuelo, descomprime ya y drena en cuanto se pueda.',
     targets: { spo2: [92, 100], tas: [90, 250] } },
   extubVuelo: { lvl: 'VMI · HEMS', title: 'Extubación accidental en el helicóptero', pheno: 'sano', sex: 'm', talla: 160, peso: 60, dev: 't1', altitude: 1200,
     cfg: { mode: 'APV', vt: 380, fr: 14, ti: 1.0, rise: .1, peep: 5, fio2: 40, trigI: 2, pmax: 40, pinsp: 12 },
@@ -177,10 +180,10 @@ const CASES = {
     goal: 'Varón de 52 años, 172 cm, 150 kg. Neumonía, SpO₂ 90 % con reservorio y agotado. Hay que intubar.',
     hint: 'Aun preoxigenado, desatura en 2–3 min de apnea. Preoxigena con VMNI (PEEP 8–10, FiO₂ 100 %) 3–5 min, pon gafas a 15 L/min durante la laringoscopia (oxigenación apneica) y usa videolaringoscopio de primeras. Dosis de inductor por peso ideal o ajustado; rocuronio por peso real. Tras intubar: Vt por peso ideal (≈ 480), PEEP 10–12.',
     targets: { spo2: [88, 100] } }, O2),
-  viaDificil: Object.assign({ lvl: 'Vía aérea', title: 'No intubable, no oxigenable', pheno: 'trauma', sex: 'h', talla: 180, peso: 90, dav: .8, edAir: .3, deficit: .1,
+  viaDificil: Object.assign({ lvl: 'Vía aérea', title: 'No intubable, no oxigenable', pheno: 'trauma', sex: 'h', talla: 180, peso: 90, dav: .8, edAir: .3, deficit: .1, asp: .5, bmv: .25, sgaFail: .7,
     cfg: Object.assign(inv({ vt: 520, fr: 14, peep: 5 }), { o2dev: 'reserv' }),
     goal: 'Varón de 35 años, traumatismo facial grave con sangre en la vía aérea, GCS 7 y SpO₂ 91 % con reservorio. Hay que asegurar la vía aérea.',
-    hint: 'Plan A: ISR con videolaringoscopio y bougie (máx. 3 intentos). Entre intentos oxigena con ambú o VMNI. Si no consigues intubar ni oxigenar (CICO): cricotiroidotomía sin esperar a la parada.',
+    hint: 'Vortex: tres intentos como máximo con cada técnica. Plan A: ISR con videolaringoscopio y bougie. Plan B: dispositivo supraglótico (i-gel). Plan C: bolsa y mascarilla con cánula y dos manos (aquí casi no ventila por la sangre y la fractura facial). Si ninguna oxigena (CICO): cricotiroidotomía sin esperar a la parada.',
     targets: { spo2: [88, 100] } }, O2),
   quemado: Object.assign({ lvl: 'Vía aérea', title: 'Incendio: inhalación de humo y vía aérea que se cierra', pheno: 'sano', sex: 'h', talla: 176, peso: 80, cohb: .28, cn: .35, edAir: .3, edAirRate: .04,
     cfg: Object.assign(inv({ vt: 500, fr: 16, peep: 5 }), { o2dev: 'gafas' }),

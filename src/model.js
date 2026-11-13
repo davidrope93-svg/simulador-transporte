@@ -41,7 +41,7 @@ const SED_RATE = 3 * Math.LN2 / 15; // perfusión que mantiene la sedación de b
 
 const pesoIdeal = (sex, talla) => (sex === 'm' ? 45.5 : 50) + 0.91 * (talla - 152.4);
 const defaultCfg = () => ({ mode: 'VCV', vt: 450, fr: 14, ti: 1.0, tplat: 0, pinsp: 15, ps: 10, rise: .15, peep: 5, fio2: 50, trigI: 2, trigE: 25, timax: 1.5, pmax: 40, apneaT: 20, minvol: 100, flow: 40, o2dev: 'reserv' });
-const PRESS = { PCV: 1, PSV: 1, CPAP: 1, APV: 1, ASV: 1, PST: 1, CPV: 1 };
+const PRESS = { PCV: 1, PSV: 1, CPAP: 1, APV: 1, ASV: 1, PST: 1, CPV: 1, SIMV: 1 };
 const TIMED = { VCV: 1, PCV: 1, APV: 1, CPV: 1 };
 /* Oxigenoterapia convencional: FiO2 aproximada y caudal de O2 en L/min */
 const O2DEV = { gafas: { fi: .28, q: 2, k: 6 }, venturi28: { fi: .28, q: 4 }, venturi35: { fi: .35, q: 9 }, venturi50: { fi: .5, q: 15 }, reserv: { fi: .75, q: 15, k: 6 } };
@@ -59,14 +59,14 @@ function create(opts) {
     ibw: pesoIdeal(o.sex || P.sex, o.talla || P.talla),
     V: 0, Paw: 0, Qlung: 0, Qvent: 0, palv: 0, pmus: 0, pmeanAlv: 6, pawMean: 5, vmeas: 0,
     pat: { next: 1, ts: -10, tin: 1, pmax: 0, rr: 14, open: false, id: 0, trig: 0, mid: 'exp', end: -10 },
-    vent: { phase: 'exp', tb: -10, tc: 0, delivered: 0, peakQ: 0, trigHold: 0, rec: null, holdUntil: 0, lastTrig: 0, backup: false },
+    vent: { phase: 'exp', tb: -10, tc: 0, delivered: 0, peakQ: 0, trigHold: 0, rec: null, holdUntil: 0, lastTrig: 0, backup: false, kind: 'mand', nextMand: -99, mandDone: false },
     req: { inhold: false, exhold: false, manual: false },
     breaths: [], infl: [], efforts: [], ies: [], vin: 0, vinFi: 0, inInfl: false, vexh: 0, co2: 0, etMax: 0, etLast: 0,
     air: { extub: false, disc: false, leak: 0, obst: false, sel: false, reintubT: -1 },
     mask: { leak10: o.leak10 != null ? o.leak10 : 15, est: 0, nz: 0 },
     apv: { p: 12 }, asv: { f: 14, vt: 450, ti: 1 },
     isr: null, bag: false,
-    ptx: o.ptx || 0, ptxActive: !!o.ptxTension, shockMul: o.shockMul || 1, bs: o.bs || 1, bs0: o.bs || 1, deficit: o.deficit || 0, fluidPend: 0, sev: P.edema ? (o.sev != null ? o.sev : 1) : 0,
+    ptx: o.ptx || 0, ptxActive: !!o.ptxTension, bmv: o.bmv != null ? o.bmv : 1, sgaFail: o.sgaFail || .08, odT: 0, shockMul: o.shockMul || 1, bs: o.bs || 1, bs0: o.bs || 1, deficit: o.deficit || 0, fluidPend: 0, sev: P.edema ? (o.sev != null ? o.sev : 1) : 0,
     drug: {}, E: {}, sedTot: 0, relTot: 0, opi: 0, drvMul: 1, anxUntil: -1,
     altitude: o.altitude || 0, pbar: 760,
     o2: { vol: o.bottleL || 5, bar: o.bottleBar || 200, supply: true, cons: 0 }, supAcc: 0, vmiEma: 6,
@@ -76,7 +76,7 @@ function create(opts) {
     tep: o.tep || 0, anaf: o.anaf || 0, cohb: o.cohb || 0, cn: o.cn || 0, weak: o.weak || 0, weak0: o.weak || 0, asp: o.asp || 0, aspT: o.asp || 0, derec: 0, clampUntil: -1,
     icp: o.icp ? { base: o.icp, grow: o.icpGrow || 0, v: o.icp } : null, edAir: o.edAir || 0, edAirRate: o.edAirRate || 0,
     dav: o.dav || .05, davMul: 1, attempts: 0, apox: false, o2boostUntil: -1, depotAdr: 0, adenPending: null, pauseUntil: -1, slowUntil: -1, bump: null, fiEff: .21,
-    cpr: { comp: 'off', relevo: 0, noFlow: 0, cprTime: 0, shocks: 0, cause: null, vfAmp: 1, sinceCheck: 0, roscAt: -99, charged: false, ap: false },
+    cpr: { comp: 'off', ratio: 0, paused: false, relevo: 0, noFlow: 0, cprTime: 0, shocks: 0, cause: null, vfAmp: 1, sinceCheck: 0, roscAt: -99, charged: false, ap: false },
     pace: { on: false, mode: 'demand', rate: 70, mA: 0, thr: 55 + Math.round(rnd() * 25), capture: false },
     mech: null, trend: [], log: [], mon: {}, timers: []
   };
@@ -171,15 +171,24 @@ function create(opts) {
 
   /* ---------- ciclo respiratorio del ventilador ---------- */
   function startBreath(type) {
-    const v = S.vent, pt = S.pat, m = mode();
+    const v = S.vent, pt = S.pat, m0 = mode();
     if (v.rec && v.rec.vte == null) v.rec.vte = Math.max(0, -v.rec.vexp);
+    // SIMV: mandatorio si toca por tiempo o si el esfuerzo cae en la ventana de sincronización; si no, espontáneo con PS
+    // SIMV: mandatorias programadas cada 60/FR s. Un esfuerzo en la ventana de sincronización (último 40 % del intervalo) recibe la
+    // mandatoria adelantada sin mover el calendario; fuera de la ventana, o ya dada la de ese intervalo, recibe soporte de presión.
+    if (m0 === 'SIMV') {
+      const P = 60 / Math.max(1, S.cfg.fr), inWin = S.t >= v.nextMand - .4 * P;
+      v.kind = type === 'time' || type === 'man' || (inWin && !v.mandDone) ? 'mand' : 'spont';
+      if (v.kind === 'mand') { if (type === 'time') { v.nextMand = S.t + P; v.mandDone = false; } else if (type !== 'man') v.mandDone = true; }
+    } else v.kind = 'mand';
+    const m = m0 === 'SIMV' ? (v.kind === 'spont' ? 'PSV' : S.cfg.simvMand || 'VCV') : m0;
     // modos adaptativos: ajusta la presión para alcanzar el Vt objetivo (máx. 2 cmH2O por ciclo)
-    if ((m === 'APV' || m === 'ASV') && v.rec && v.rec.lvl != null && v.rec.vti > .02 && !isOpen()) {
-      const target = m === 'APV' ? S.cfg.vt : S.asv.vt, meas = v.rec.vti * 1000, cEst = meas / Math.max(1, v.rec.lvl);
+    if ((m0 === 'APV' || m0 === 'ASV' || (m0 === 'SIMV' && S.cfg.simvMand === 'APV')) && v.rec && v.rec.lvl != null && v.rec.vti > .02 && !isOpen()) {
+      const target = m0 === 'ASV' ? S.asv.vt : S.cfg.vt, meas = v.rec.vti * 1000, cEst = meas / Math.max(1, v.rec.lvl);
       S.apv.p = clamp(S.apv.p + clamp((target - meas) / Math.max(5, cEst) * .7, -2, 2), 5, S.cfg.pmax - 10);
     }
     S.peepTotReal = S.palv;
-    const rec = { tb: S.t, p0: S.palv, type, ppk: S.Paw, vti: 0, vexp: 0, vte: null, v0: S.V, vmax: S.V, pplat: null, cycle: null, peepMeas: S.Paw, mode: m, backup: v.backup, effId: pt.open ? pt.id : null, effEnd: pt.open ? pt.end : null, dbl: false, late: false, prem: false, lvl: (m === 'APV' || m === 'ASV') ? S.apv.p : null };
+    const rec = { tb: S.t, p0: S.palv, type, ppk: S.Paw, vti: 0, vexp: 0, vte: null, v0: S.V, vmax: S.V, pplat: null, cycle: null, peepMeas: S.Paw, mode: m, kind: v.kind, backup: v.backup, effId: pt.open ? pt.id : null, effEnd: pt.open ? pt.end : null, dbl: false, late: false, prem: false, lvl: (m === 'APV' || m === 'ASV') ? S.apv.p : null };
     if (type === 'pat') { if (pt.trig >= 1) rec.dbl = true; pt.trig++; }
     v.rec = rec; S.breaths.push(rec); if (S.breaths.length > 90) S.breaths.shift();
     v.phase = 'insp'; v.tb = S.t; v.delivered = 0; v.peakQ = 0; v.trigHold = 0; S.vmeas = 0;
@@ -197,7 +206,9 @@ function create(opts) {
   }
 
   function step(dt) {
-    const cfg = S.cfg, v = S.vent, m = S.mech, a = S.air, pt = S.pat, mask = isMask(), md = cfg.mode;
+    const cfg = S.cfg, v = S.vent, m = S.mech, a = S.air, pt = S.pat, mask = isMask(), md0 = cfg.mode;
+    const md = md0 === 'SIMV' ? (v.kind === 'spont' ? 'PSV' : cfg.simvMand || 'VCV') : md0;
+    const leakE = Math.max(a.leak, a.sga ? (S.Paw > 25 ? .4 : .04) : 0); // el supraglótico sella hasta unos 25 cmH2O
     S.t += dt;
     if (S.t >= pt.next) startEffort();
     const x = (S.t - pt.ts) / pt.tin;
@@ -213,14 +224,19 @@ function create(opts) {
     if (pushK > .5 && v.phase === 'insp' && x >= 1 && x < 1.8) pmus -= pushK * Math.sin(Math.PI * (x - 1) / .8);
     // compresiones torácicas
     let pComp = 0;
-    if (S.arrest && S.cpr.comp !== 'off') { const ph = (S.t * 110 / 60) % 1; pComp = ph < .5 ? (S.cpr.comp === 'mech' ? 16 : 15 * cprQuality()) * Math.sin(Math.PI * ph / .5) : 0; }
+    S.cpr.paused = false;
+    if (S.arrest && S.cpr.comp !== 'off' && S.cpr.ratio > 0) { const cyc = S.cpr.ratio * 60 / 110 + 4; if (S.t % cyc > S.cpr.ratio * 60 / 110) S.cpr.paused = true; }
+    if (S.arrest && S.cpr.comp !== 'off' && !S.cpr.paused) { const ph = (S.t * 110 / 60) % 1; pComp = ph < .5 ? (S.cpr.comp === 'mech' ? 16 : 15 * cprQuality()) * Math.sin(Math.PI * ph / .5) : 0; }
     S.pComp = pComp;
     const palv = S.V / m.C - pmus + pComp;
     const open = isOpen(), off = ventOff();
     let Paw, Ql = 0, Qv = 0, Qleak = 0;
     const leakDef = () => mask ? Math.max(0, S.mask.leak10 * Math.sqrt(Math.max(cfg.peep + 5, 1) / 10) - 55) * .08 : 0;
     // presión en la boca cuando la vía está abierta al aire: atmósfera o bolsa autoinflable
-    const bagP = S.bag && open && !S.isr ? ((S.t % 6) < 1 ? 18 * (a.extub || S.iface === 'o2' ? .8 : 1) : 0) : 0;
+    const viaMask = S.iface === 'o2' || S.iface === 'mask' || S.iface === 'nasal' || a.extub;
+    let bagOn = (S.t % 6) < 1;
+    if (S.arrest && S.cpr.comp !== 'off' && S.cpr.ratio > 0) { const cl = S.cpr.ratio * 60 / 110, tp = S.t % (cl + 4) - cl; bagOn = S.cpr.paused && ((tp > .3 && tp < 1.3) || (tp > 2.3 && tp < 3.3)); }
+    const bagP = S.bag && open && !S.isr ? (bagOn ? 18 * (viaMask ? .8 * S.bmv : 1) : 0) : 0;
 
     if (S.iface === 'nasal' && !S.standby) { // alto flujo: presión espiratoria baja y continua, sin ciclos del equipo
       const pAw = hfPaw(), down = Math.max(pAw, m.Pcrit);
@@ -234,7 +250,7 @@ function create(opts) {
       if (vcLike) {
         const tf = Math.max(.2, cfg.ti - cfg.tplat), flow = cfg.vt / 1000 / tf;
         Qv = v.delivered < cfg.vt / 1000 ? flow : 0;
-        const lf = mask ? clamp(S.mask.leak10 / 120, 0, .6) : a.leak;
+        const lf = mask ? clamp(S.mask.leak10 / 120, 0, .6) : leakE;
         if (open) { Paw = .8 + 1.5 * Qv; }
         else if (Qv > 0) { Ql = Qv * (1 - lf); Paw = palv + m.Ri * Ql; }
         else { Ql = 0; Paw = palv; }
@@ -249,7 +265,7 @@ function create(opts) {
         else {
           Paw = md === 'CPAP' ? target - .6 * Math.max(0, S.Qlung) : target;
           Ql = (Paw - palv) / m.Ri; if (Ql < 0) Ql = (Paw - palv) / m.Re;
-          Qv = mask ? Ql : (Ql > 0 ? Ql / (1 - a.leak) : Ql);
+          Qv = mask ? Ql : (Ql > 0 ? Ql / (1 - leakE) : Ql);
           if (md === 'CPV') Paw = Math.max(Paw, palv - 2); // durante la RCP la presión sigue a las compresiones sin cortar
         }
       }
@@ -266,7 +282,7 @@ function create(opts) {
       else if (palv < pAw) Ql = (pAw - palv) / m.Ri;
       else Ql = -(palv - pAw) * .15 / m.Re;
       Paw = pAw + (Ql > 0 ? (mask ? -.4 * Ql : 0) : Math.min(1.5, -Ql * .6));
-      Qv = open ? 0 : (mask ? Ql : (Ql < 0 ? Ql * (1 - .5 * a.leak) : Ql));
+      Qv = open ? 0 : (mask ? Ql : (Ql < 0 ? Ql * (1 - .5 * leakE) : Ql));
     }
     if (open && S.iface !== 'nasal') { // pulmón abierto a la atmósfera o a la bolsa
       const pA = bagP;
@@ -307,7 +323,8 @@ function create(opts) {
           if (Qm * 60 > cfg.trigI) { v.trigHold += dt; if (v.trigHold >= .03) trig = pt.open ? 'pat' : (S.pat.pmax > 1 || mask || S.awake > .2 ? 'auto' : 'pat'); } else v.trigHold = 0;
         }
         if (!trig && md !== 'MAN') {
-          if (TIMED[md]) { if (S.t - v.tb >= 60 / cfg.fr) trig = 'time'; }
+          if (md0 === 'SIMV') { const P = 60 / cfg.fr; if (S.t >= v.nextMand) { if (!v.mandDone) trig = 'time'; else { v.nextMand += P; if (v.nextMand < S.t) v.nextMand = S.t + P; v.mandDone = false; } } }
+          else if (TIMED[md]) { if (S.t - v.tb >= 60 / cfg.fr) trig = 'time'; }
           else if (md === 'ASV') { if (S.t - v.tb >= 60 / S.asv.f) trig = 'time'; }
           else if (md === 'PST') { if (S.t - v.tb >= 60 / cfg.fr) trig = 'time'; }
           else if (S.t - v.lastTrig >= cfg.apneaT && S.t - v.tb >= 60 / cfg.fr) { trig = 'time'; v.backup = true; }
@@ -331,13 +348,13 @@ function create(opts) {
     if (S.iface === 'o2') fiNow = S.o2.supply ? o2Fi(cfg.o2dev, S.veEma) : .21;
     if (S.iface === 'nasal' && Ql * 60 > (cfg.flow || 0)) fiNow = ((cfg.flow || 0) * fiNow + (Ql * 60 - (cfg.flow || 0)) * .21) / (Ql * 60);
     if (open && S.iface !== 'o2') fiNow = S.bag ? (S.o2.supply ? .9 : .21) : (S.isr && S.isr.apox ? .9 : .21);
-    if (Ql > 0) { S.vin += Ql * dt; S.vinFi += Ql * dt * fiNow; S.inInfl = true; }
+    if (Ql > 0) { if (!S.inInfl) S.inflSrc = !open && (S.iface === 'tube' || S.iface === 'mask') ? 'vent' : bagP > 0 ? 'bag' : 'pat'; S.vin += Ql * dt; S.vinFi += Ql * dt * fiNow; S.inInfl = true; }
     else if (S.inInfl && Ql < -0.005) {
       S.inInfl = false;
       if (S.vin > .03) {
         const vt = S.vin * 1000, vdA = alvDS(), vdAn = P.vdAnat + (mask ? 30 : 0) - (S.iface === 'nasal' ? 40 * Math.min(1, (cfg.flow || 0) / 40) : 0);
         const vd = vdAn + vdA * Math.max(0, vt - vdAn);
-        S.infl.push({ t: S.t, va: Math.max(0, vt - vd) / 1000, fi: S.vinFi / S.vin, vt });
+        S.infl.push({ t: S.t, va: Math.max(0, vt - vd) / 1000, fi: S.vinFi / S.vin, vt, src: S.inflSrc });
       }
       S.vin = 0; S.vinFi = 0;
     }
@@ -392,6 +409,7 @@ function create(opts) {
     // ventilación alveolar a partir de las últimas respiraciones, sin ventana fija de reloj: así no depende de la velocidad elegida
     const ventDelivers = !isOpen() && (S.iface === 'tube' || S.iface === 'mask'), selfBreath = S.pat.pmax > 1 && !S.arrest;
     if (!ventDelivers && !S.bag && !selfBreath) S.infl = []; // apnea conocida: la ventilación cae a cero en el acto
+    else if (!ventDelivers || !S.bag || !selfBreath) S.infl = S.infl.filter(e => (e.src !== 'vent' || ventDelivers) && (e.src !== 'bag' || S.bag) && (e.src !== 'pat' || selfBreath)); // fuera las respiraciones de una fuente que ya no ventila
     S.infl = S.infl.filter(e => e.t > t - 40);
     const L = S.infl.slice(-4);
     let VA = 0, VE = 0, fiAvg = isOpen() && !S.bag ? .21 : S.cfg.fio2 / 100;
@@ -447,7 +465,13 @@ function create(opts) {
     if ((S.arr.type === 'fa' || S.arr.type === 'flutter') && rnd() < .025 * S.E.amio * dtc) S.arr.type = null;
     // marcapasos transcutáneo
     S.pace.capture = S.pace.on && S.pace.mA >= S.pace.thr && !S.arrest && !(S.pace.mode === 'demand' && (S.fcIntr || 0) >= S.pace.rate);
+    if (S.pace.capture && S.pace.mode === 'overdrive' && ['tvp', 'flutter', 'tsv'].includes(S.arr.type) && S.pace.rate > (S.fcIntr || 0) + 10) S.odT += dtc;
     // circulación, parada y RCP
+    if (!S.arrest && (S.arr.type || S.bav) && !S.pace.capture) {
+      const uns = S.tas < 90;
+      S.arr.pen += dtc * (uns ? .8 : .1); if (S.bav) S.tasAdj -= dtc * (uns ? .4 : .05);
+      if (S.arr.type === 'tvp' && rnd() < dtc * (uns ? .02 : .005)) enterArrest(rnd() < .5 ? 'vf' : 'vt');
+    }
     if (!S.arrest) {
       S.hypoxT = S.oxEff < .55 ? S.hypoxT + dtc : Math.max(0, S.hypoxT - dtc);
       S.lowT = S.tas < 50 ? S.lowT + dtc : Math.max(0, S.lowT - 2 * dtc);
@@ -460,7 +484,8 @@ function create(opts) {
       else S.rhythm = S.pace.capture ? 'paced' : S.bav ? 'bav' : S.arr.type ? S.arr.type : S.hypoxT > 1.5 ? 'brady' : S.fc > 100 ? 'tsinus' : 'sinus';
     } else {
       const c = S.cpr, comp = c.comp !== 'off';
-      if (comp) { c.cprTime += dtc; if (c.comp === 'manual') c.relevo += dtc / 2; } else c.noFlow += dtc;
+      const pf = comp && c.ratio > 0 ? 4 / (c.ratio * 60 / 110 + 4) : 0;
+      if (comp) { c.cprTime += dtc * (1 - pf); c.noFlow += dtc * pf; if (c.comp === 'manual') c.relevo += dtc / 2; } else c.noFlow += dtc;
       c.sinceCheck += dtc;
       const co = comp ? cprQuality() * .25 : 0;
       S.tas = comp ? 30 + 70 * co + 25 * S.E.adr : 0; S.fc = S.rhythm === 'vf' ? 0 : S.rhythm === 'tvsp' ? 190 : S.rhythm === 'asys' ? 0 : 34;
@@ -480,7 +505,7 @@ function create(opts) {
     // acciones diferidas
     if (S.air.reintubT > 0 && S.clin >= S.air.reintubT) { S.air.extub = false; S.air.reintubT = -1; S.log.push([S.clin, 'Reintubado y comprobado']); }
     if (S.isr && S.clin >= S.isr.until && S.isr.fail) { const was = S.isr; S.isr = null; S.breaths = []; S.tReset = S.t; updateMech(0); if (S.onIntubFail) S.onIntubFail(was); }
-    if (S.isr && S.clin >= S.isr.until) { S.isr = null; S.iface = 'tube'; S.mask.est = 0; S.bag = false; S.breaths = []; S.ies = []; S.tReset = S.t; if (!PRESS[S.cfg.mode] && S.cfg.mode !== 'VCV') S.cfg.mode = 'VCV'; if (S.cfg.mode === 'HFNC') S.cfg.mode = 'VCV'; updateMech(0); if (S.onIntubated) S.onIntubated(); }
+    if (S.isr && S.clin >= S.isr.until) { S.air.sga = !!S.isr.sga; S.isr = null; S.iface = 'tube'; S.mask.est = 0; S.bag = false; S.breaths = []; S.ies = []; S.tReset = S.t; if (!PRESS[S.cfg.mode] && S.cfg.mode !== 'VCV') S.cfg.mode = 'VCV'; if (S.cfg.mode === 'HFNC') S.cfg.mode = 'VCV'; updateMech(0); if (S.onIntubated) S.onIntubated(); }
     // tendencia cada 2 s
     S.tacc = (S.tacc || 0) + dts;
     if (S.tacc >= 2) { S.tacc = 0; S.trend.push({ clin: S.clin, spo2: S.spo2, et: S.etLast, tas: S.tas, pco2: S.pco2, rr: S.pat.pmax > 1 ? S.pat.rr : 0 }); if (S.trend.length > 300) S.trend.shift(); }
@@ -548,7 +573,7 @@ function create(opts) {
   function setTimeoutSim(fn, simSeconds) { S.timers.push({ at: S.t + simSeconds, fn }); }
   const api = {
     S, step, monitor, updateMech,
-    setCfg(c) { const modeChanged = c.mode !== S.cfg.mode; S.cfg = Object.assign({}, c); if (modeChanged) { S.vent.backup = false; S.vent.lastTrig = S.t; if (c.mode === 'APV' || c.mode === 'ASV') S.apv.p = clamp(c.pinsp || 12, 5, c.pmax - 10); } updateMech(0); },
+    setCfg(c) { const modeChanged = c.mode !== S.cfg.mode || c.simvMand !== S.cfg.simvMand; S.cfg = Object.assign({}, c); if (modeChanged) { S.vent.backup = false; S.vent.lastTrig = S.t; S.vent.nextMand = -99; S.vent.mandDone = false; if (c.mode === 'APV' || c.mode === 'ASV' || (c.mode === 'SIMV' && c.simvMand === 'APV')) S.apv.p = clamp(c.pinsp || 12, 5, c.pmax - 10); } updateMech(0); },
     setStandby(on) { S.standby = !!on; S.vent.phase = 'exp'; S.vent.tc = S.t; S.vent.lastTrig = S.t; S.breaths = []; S.tReset = S.t; updateMech(0); },
     setDevice(vent) { S.dev = { vent, pneumatic: vent === 'medumat' }; },
     setIface(i) { S.iface = i; S.vent.phase = 'exp'; S.vent.tc = S.t; S.vent.backup = false; S.vent.lastTrig = S.t; S.mask.est = 0; S.breaths = []; S.ies = []; S.tReset = S.t; updateMech(0); },
@@ -562,7 +587,7 @@ function create(opts) {
       if (k === 'obst' && S.iface === 'tube') a.obst = true;
       if (k === 'leak') { if (isMask()) S.mask.leak10 = 70; else a.leak = .35; }
       if (k === 'bronco') { S.bs0 = Math.max(S.bs0, 1) + .6; S.bs = Math.max(S.bs, 1.5); }
-      if (k === 'ptx') { S.ptxActive = true; S.ptx = Math.max(S.ptx, .05); }
+      if (k === 'ptx' && !S.drained) { S.ptxActive = true; S.ptx = Math.max(S.ptx, .05); } // con drenaje puesto no se forma un neumotórax a tensión
       if (k === 'o2') { S.o2.supply = false; S.o2.failed = true; }
       if (k === 'wake') { S.drug.sed.R = 0; S.drug.sed.cp *= .1; S.drug.sed.ce *= .6; S.drug.rel.cp = Math.min(S.drug.rel.cp, .2); S.drug.rel.ce = Math.min(S.drug.rel.ce, .4); }
       if (k === 'anx') S.anxUntil = S.clin + 4;
@@ -585,6 +610,8 @@ function create(opts) {
         case 'cuff': a.leak = 0; break;
         case 'mask': S.mask.leak10 = 12; break;
         case 'decomp': if (S.ptxActive) { S.ptxActive = false; S.ptx = .12; } break;
+        case 'drain': S.ptxActive = false; S.ptx = 0; S.drained = true; break; // toracostomía o drenaje: resuelve el neumotórax, también en altitud
+        case 'sga': if ((S.iface !== 'tube') && !S.isr) { const edema = Math.max(S.edAir, .8 * S.anaf); S.isr = { until: S.clin + .5, fail: rnd() < clamp(S.sgaFail + .4 * edema, 0, .95), sga: true, apox: false, from: S.iface }; S.bag = false; } break;
         case 'bottle': S.o2.bar = 200; S.o2.supply = true; S.o2.failed = false; break;
         case 'opencirc': if (!a.disc) { a.disc = true; a.manualOpen = true; setTimeoutSim(() => { if (a.manualOpen) { a.disc = false; a.manualOpen = false; } }, 15); } break;
         case 'bag': S.bag = !S.bag; break;
@@ -597,7 +624,7 @@ function create(opts) {
         case 'apox': S.apox = !S.apox; break;
         case 'o2boost': S.o2boostUntil = S.clin < S.o2boostUntil ? -1 : S.clin + 2; break;
         case 'manual': S.req.manual = true; break;
-        case 'cric': if (S.iface !== 'tube' && !S.isr) { S.isr = { until: S.clin + 1.5, fail: false, cric: true, apox: false, from: S.iface }; S.bag = false; } break;
+        case 'cric': if ((S.iface !== 'tube' || S.air.sga) && !S.isr) { S.air.sga = false; S.isr = { until: S.clin + 1.5, fail: false, cric: true, apox: false, from: S.iface }; S.bag = false; } break;
       }
       updateMech(0);
     },
@@ -610,7 +637,7 @@ function create(opts) {
     perf(k, ratePerMin) { S.drug[k].R = ratePerMin; },
     perfSteady(k, rate) { S.drug[k].R = rate * Math.LN2 / DRUGS[k].h; }, // vasoactivos: la concentración estable iguala la velocidad
     intubate() {
-      if (S.iface === 'tube') return { ok: false, msg: 'Ya está intubado.' };
+      if (S.iface === 'tube' && !S.air.sga) return { ok: false, msg: 'Ya está intubado.' };
       if (S.isr) return { ok: false, msg: 'Ya hay una laringoscopia en curso.' };
       if (S.relTot < .9 && !(S.arrest || S.sedTot > .9)) return { ok: false, msg: S.relTot < .5 ? 'Tiene tono y reflejos: necesitas inducción y relajante antes de la laringoscopia.' : 'El relajante aún no ha hecho efecto completo: espera 45–60 s desde la dosis.' };
       const edema = Math.max(S.edAir, .8 * S.anaf);
@@ -665,7 +692,11 @@ function create(opts) {
       return res;
     },
     setPads(ap) { S.cpr.ap = !!ap; },
-    pace(on, rate, mA, mode) { S.pace.on = on; S.pace.rate = rate; S.pace.mA = mA; if (mode) S.pace.mode = mode; },
+    pace(on, rate, mA, mode) {
+      if (S.pace.on && !on && S.odT > .15) { if (['tvp', 'flutter', 'tsv'].includes(S.arr.type) && rnd() < .65) { S.arr.type = null; S.pauseUntil = S.t + 1.5; S.log.push([S.clin, 'Sobreestimulación: taquicardia revertida']); } S.odT = 0; }
+      S.pace.on = on; S.pace.rate = rate; S.pace.mA = mA; if (mode) S.pace.mode = mode; if (!on) S.odT = 0;
+    },
+    setRatio(r) { S.cpr.ratio = r; },
     setNor(r) { S.drug.nor.R = r * Math.LN2 / DRUGS.nor.h; S.norRate = r; },
     setNtg(r) { S.drug.ntg.R = r; S.ntgRate = r; },
     setAltitude(h) { S.altitude = h; updateMech(0); },
@@ -699,6 +730,8 @@ function create(opts) {
       if (S.bs > 1.25) f.push('Sibilancias espiratorias difusas con espiración muy alargada.');
       if ((S.lastPeepTot && S.lastPeepTot.v - S.cfg.peep > 10) || (S.mech.Pcrit > 7 && S.pat.rr > 24)) f.push('Tórax hiperinsuflado que no termina de bajar entre respiraciones.');
       if (a.leak > 0 && S.iface === 'tube') f.push('Gorgoteo audible en la boca en cada inspiración; balón poco inflado.');
+      if (a.sga) f.push('Dispositivo supraglótico colocado' + (S.Paw > 25 ? '; se oye fuga por la boca en las inspiraciones con presión alta.' : ', sella bien.'));
+      if (S.bmv < .6 && (S.iface === 'o2' || S.iface === 'mask') && S.bag) f.push('Cuesta sellar la mascarilla y el tórax apenas se mueve con el ambú.');
       if (S.iface === 'tube' && S.awake > .35 && S.relTot < .5) f.push('Abre los ojos, tose con el tubo y lleva las manos hacia él.');
       if (S.deficit > .35) f.push('Piel fría y pálida, relleno capilar enlentecido.');
       if (S.pace.on) f.push(S.pace.capture ? 'Pulso femoral a la frecuencia del marcapasos: hay captura mecánica.' : 'Espigas sin captura: el pulso no sigue al marcapasos.');
