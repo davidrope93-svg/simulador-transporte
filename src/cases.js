@@ -8,13 +8,14 @@
      iface    'tube' (intubado), 'mask' (VMNI), 'nasal' (alto flujo) u 'o2' (oxigenoterapia, ventilador en espera)
      dev      opcional: fuerza el ventilador ('monnal', 'medumat', 't1')
      cfg      ajustes del ventilador (si iface es 'o2', los que tendrá preparados): mode VCV, PCV, APV, ASV, PSV, PST, CPAP, CPV, HFNC;
-              vt, fr, ti, tplat, pinsp, ps, rise, peep, fio2, trigI, trigE, timax, pmax, minvol, flow; o2dev: gafas, venturi35, venturi50, reserv
+              vt, fr, ti, tplat, pinsp, ps, rise, peep, fio2, trigI, trigE, timax, pmax, minvol, flow; o2dev: gafas, venturi28, venturi35, venturi50, reserv
      Fisiología (opcional): pco2, deficit (0–0,6 hipovolemia), bs (broncoespasmo, 1 = basal), opioid, sedE / relCe / sedStopped,
               rhythm ('tsv', 'fa', 'flutter', 'tvp', 'sbrady') y arrPen (mmHg que resta a la TAS), bav, arrest ('vf', 'aesp', 'asys') con
               comp ('manual', 'mech') y arrestCause ('hypox', 'ptx', 'tep', 'hypo'), shockMul (éxito de la descarga), tep (0–1), anaf (0–1),
               cohb (fracción), cn (cianuro 0–1), icp (mmHg) e icpGrow (mmHg/min), weak (debilidad 0–1), dav (probabilidad de intubación
               fallida), edAir y edAirRate (edema de vía aérea), asp (broncoaspiración 0–1), ptx y ptxTension, tasAdj, sevFloor,
               bottleL, bottleBar, leak10, altitude (m)
+     ped      true para dosis y energías pediátricas por peso (ERC soporte vital pediátrico)
      events   [{ at: minuto clínico, k: evento, txt }] o [{ at, alt: metros, txt }] para cambiar la altitud
               eventos: extub, disc, sel, obst, leak, bronco, ptx, o2, wake, anx, cough, vf, aspir, tep, anaf, tsv, fa, tvp
      targets  { clave: [mín, máx] } con claves spo2, et, tas, vtkg, pplat, dp, peepi, pco2, rr, ie, auto, leak, o2, fight, sinus
@@ -174,7 +175,7 @@ const CASES = {
   obesoIsr: Object.assign({ lvl: 'Vía aérea', title: 'ISR en obesidad mórbida', pheno: 'obeso', sex: 'h', talla: 172, peso: 150, dav: .35, asp: .25,
     cfg: Object.assign(inv({ vt: 480, fr: 18, peep: 10 }), { o2dev: 'reserv' }),
     goal: 'Varón de 52 años, 172 cm, 150 kg. Neumonía, SpO₂ 90 % con reservorio y agotado. Hay que intubar.',
-    hint: 'Desatura en menos de 2 min. Preoxigena con VMNI (PEEP 8–10, FiO₂ 100 %) 3–5 min, pon gafas a 15 L/min durante la laringoscopia (oxigenación apneica) y usa videolaringoscopio de primeras. Dosis de inductor por peso ideal o ajustado; rocuronio por peso real. Tras intubar: Vt por peso ideal (≈ 480), PEEP 10–12.',
+    hint: 'Aun preoxigenado, desatura en 2–3 min de apnea. Preoxigena con VMNI (PEEP 8–10, FiO₂ 100 %) 3–5 min, pon gafas a 15 L/min durante la laringoscopia (oxigenación apneica) y usa videolaringoscopio de primeras. Dosis de inductor por peso ideal o ajustado; rocuronio por peso real. Tras intubar: Vt por peso ideal (≈ 480), PEEP 10–12.',
     targets: { spo2: [88, 100] } }, O2),
   viaDificil: Object.assign({ lvl: 'Vía aérea', title: 'No intubable, no oxigenable', pheno: 'trauma', sex: 'h', talla: 180, peso: 90, dav: .8, edAir: .3, deficit: .1,
     cfg: Object.assign(inv({ vt: 520, fr: 14, peep: 5 }), { o2dev: 'reserv' }),
@@ -201,7 +202,7 @@ const CASES = {
   epocO2: Object.assign({ lvl: 'Oxigenoterapia e intoxicaciones', title: 'EPOC con demasiado oxígeno', pheno: 'epoc', sex: 'm', talla: 160, peso: 58, pco2: 66, bs: 1.2,
     cfg: { o2dev: 'reserv', mode: 'PSV', ps: 10, peep: 6, trigE: 40, timax: 1.0, trigI: 2, fio2: 35, rise: .15, fr: 12, vt: 380, pmax: 30, flow: 40 },
     goal: 'Mujer de 79 años con EPOC. La familia la ha puesto con la mascarilla de reservorio de la bala de casa. Está cada vez más dormida. SpO₂ 99 %.',
-    hint: 'Hiperoxia en retenedora: empeora la V/Q y sube la pCO₂. Venturi 28–35 % para SpO₂ 88–92 % y gasometría; si pH < 7,35 con pCO₂ alta, VMNI.',
+    hint: 'Hiperoxia en retenedora: empeora la V/Q y sube la pCO₂. Venturi 28 % (o gafas a 1–2 L/min) para SpO₂ 88–92 % y gasometría; si pH < 7,35 con pCO₂ alta, VMNI.',
     targets: { spo2: [88, 92], pco2: [0, 70] } }, O2),
   co: Object.assign({ lvl: 'Oxigenoterapia e intoxicaciones', title: 'Intoxicación por monóxido de carbono', pheno: 'sano', sex: 'm', talla: 165, peso: 62, cohb: .3,
     cfg: Object.assign(inv({ vt: 420 }), { o2dev: 'gafas' }),
@@ -230,10 +231,10 @@ const CASES = {
     goal: 'Varón de 28 años con palpitaciones de inicio brusco. Consciente, bien perfundido, TAS 115.',
     hint: 'Maniobras vagales (Valsalva modificada) y, si no revierte, adenosina 6 mg en bolo rápido con lavado; después 12 mg y 18 mg. Avisa de la pausa y la sensación de muerte inminente.',
     targets: { sinus: [1, 1], tas: [90, 200] } }, O2),
-  faRapida: Object.assign({ lvl: 'Arritmias', title: 'FA rápida con hipotensión', pheno: 'sano', sex: 'h', talla: 172, peso: 84, rhythm: 'fa', arrPen: 55,
+  faRapida: Object.assign({ lvl: 'Arritmias', title: 'FA rápida con hipotensión', pheno: 'sano', sex: 'h', talla: 172, peso: 84, rhythm: 'fa', arrPen: 76,
     cfg: Object.assign(inv(), { o2dev: 'gafas' }),
     goal: 'Varón de 70 años con FA conocida, sin anticoagular desde hace un mes. Disnea y mareo. Ritmo irregular a 160, TAS 82.',
-    hint: 'Inestable: cardioversión sincronizada 120–150 J (máximo según equipo) con sedación. La adenosina no la revierte. Si es estable, control de frecuencia (amiodarona en este contexto). Sin anticoagulación, el riesgo embólico de cardiovertir existe, pero la inestabilidad manda.',
+    hint: 'Inestable: cardioversión sincronizada a la energía máxima del equipo (200 J) con sedación, según ERC 2025. La adenosina no la revierte. Si es estable, control de frecuencia (amiodarona en este contexto). Sin anticoagulación, el riesgo embólico de cardiovertir existe, pero la inestabilidad manda.',
     targets: { tas: [90, 200], sinus: [1, 1] } }, O2),
   tvPulso: Object.assign({ lvl: 'Arritmias', title: 'TV monomorfa con pulso', pheno: 'sano', sex: 'h', talla: 170, peso: 78, rhythm: 'tvp', arrPen: 55,
     cfg: Object.assign(inv(), { o2dev: 'gafas' }),
@@ -248,26 +249,26 @@ const CASES = {
   bav: Object.assign({ lvl: 'Arritmias', title: 'BAV completo con bajo gasto', pheno: 'sano', sex: 'h', talla: 170, peso: 78, bav: true,
     cfg: Object.assign(inv(), { o2dev: 'gafas' }),
     goal: 'Varón de 79 años, presíncope, sudoroso, FC 32 y TA baja. Consciente.',
-    hint: 'Atropina 0,5 mg (en el BAV completo suele fallar). Marcapasos transcutáneo a 70 lpm a demanda: sube los mA hasta la captura, confirma la mecánica (pletismografía y pulso femoral) y deja 10 mA por encima. Analgesia y sedación ligeras. Puente: adrenalina 2–10 mcg/min.',
-    targets: { tas: [100, 250] } }, O2),
+    hint: 'BAV completo con escape de QRS ancho: la atropina no está indicada (ERC 2025). Marcapasos transcutáneo a 70 lpm a demanda: sube los mA hasta la captura, confirma la mecánica (pletismografía y pulso femoral) y deja 10 mA por encima. Analgesia y sedación ligeras. Puente: adrenalina 2–10 mcg/min.',
+    targets: { tas: [90, 250] } }, O2),
 
   /* ---------- Parada ---------- */
   pcrFv: { lvl: 'Parada', title: 'PCR en FV', pheno: 'sano', sex: 'h', talla: 175, peso: 80, arrest: 'vf', comp: 'manual',
     cfg: { mode: 'CPV', pinsp: 15, fr: 10, ti: 1.0, peep: 0, fio2: 100, pmax: 60, vt: 500, tplat: 0 },
     goal: 'Varón de 58 años, FV presenciada en la ambulancia. Tu compañero comprime; ya está intubado y conectado al ventilador.',
-    hint: 'Carga mientras se comprime y descarga 150–200 J; reanuda las compresiones sin comprobar pulso. Análisis cada 2 min y relevo (o compresor mecánico). Adrenalina 1 mg y amiodarona 300 mg tras la 3.ª descarga; adrenalina cada 3–5 min y amiodarona 150 mg tras la 5.ª. Ventilación: CPV en el Monnal, CPR en el Medumat. Tras la RCE, SpO₂ 94–98 %, EtCO₂ 35–45, TAS > 100.',
+    hint: 'Carga mientras se comprime y descarga 150–200 J; reanuda las compresiones sin comprobar pulso. Análisis cada 2 min y relevo (o compresor mecánico). Adrenalina 1 mg y amiodarona 300 mg (o lidocaína 100 mg) tras la 3.ª descarga; adrenalina cada 3–5 min y amiodarona 150 mg (o lidocaína 50 mg) tras la 5.ª. Ventilación: CPV en el Monnal, CPR en el Medumat. Tras la RCE, SpO₂ 94–98 %, EtCO₂ 35–45, TAS > 100.',
     targets: {} },
-  fvRefractaria: { lvl: 'Parada', title: 'FV refractaria', pheno: 'sano', sex: 'h', talla: 182, peso: 95, arrest: 'vf', comp: 'manual', shockMul: .35,
+  fvRefractaria: { lvl: 'Parada', title: 'FV refractaria', pheno: 'sano', sex: 'h', talla: 182, peso: 95, arrest: 'vf', comp: 'manual', shockMul: .25,
     cfg: { mode: 'CPV', pinsp: 15, fr: 10, ti: 1.0, peep: 0, fio2: 100, pmax: 60, vt: 550, tplat: 0 },
     goal: 'Varón de 49 años, dolor torácico y FV en el domicilio. Intubado. Lleva varias descargas sin éxito.',
-    hint: 'Mantén la calidad: compresor mecánico, mínimas pausas, amiodarona 300 + 150 mg y adrenalina cada 3–5 min. Considera las causas reversibles y el traslado con compresor a un centro con hemodinámica o ECMO.',
+    hint: 'Tras tres descargas fallidas, cambia los parches a anteroposterior (cambio de vector, ERC 2025). Mantén la calidad: compresor mecánico, mínimas pausas, amiodarona 300 + 150 mg (o lidocaína 100 + 50 mg) y adrenalina cada 3–5 min. Considera las causas reversibles y el traslado con compresor a un centro con hemodinámica o ECMO.',
     targets: {} },
   aespPtx: { lvl: 'Parada', title: 'AESP por neumotórax a tensión', pheno: 'trauma', sex: 'h', talla: 176, peso: 80, arrest: 'aesp', arrestCause: 'ptx', comp: 'manual', ptx: .9, ptxTension: true, deficit: .15,
     cfg: { mode: 'CPV', pinsp: 15, fr: 10, ti: 1.0, peep: 0, fio2: 100, pmax: 60, vt: 500, tplat: 0 },
     goal: 'Varón de 30 años, accidente de tráfico. Intubado por bajo nivel de conciencia; en la ambulancia pierde el pulso. Monitor con complejos organizados.',
     hint: 'AESP traumática: 4H y 4T antes que adrenalina. Explora: hemitórax hipoventilado y timpánico. Descompresión (o toracostomía) bilateral si hay dudas, volumen y control de la hemorragia.',
     targets: {} },
-  asistolia: Object.assign({ lvl: 'Parada', title: 'Asistolia tras ahogamiento', pheno: 'sano', sex: 'm', talla: 150, peso: 45, arrest: 'asys', arrestCause: 'hypox', comp: 'manual',
+  asistolia: Object.assign({ lvl: 'Parada', title: 'Asistolia tras ahogamiento', pheno: 'sano', sex: 'm', talla: 150, peso: 45, ped: true, arrest: 'asys', arrestCause: 'hypox', comp: 'manual',
     cfg: Object.assign(inv({ vt: 350, fr: 10 }), { o2dev: 'reserv' }), iface: 'o2' }, AWAKE),
   pcrTep: { lvl: 'Parada', title: 'PCR por TEP masivo', pheno: 'sano', sex: 'm', talla: 165, peso: 75, arrest: 'aesp', arrestCause: 'tep', tep: .95, comp: 'manual',
     cfg: { mode: 'CPV', pinsp: 15, fr: 10, ti: 1.0, peep: 0, fio2: 100, pmax: 60, vt: 450, tplat: 0 },
@@ -279,7 +280,7 @@ const CASES = {
     goal: 'Elige paciente, interfaz y equipos; prueba ajustes y fármacos y provoca eventos desde el panel del instructor.', hint: null, targets: {} }
 };
 CASES.asistolia.goal = 'Niña de 13 años sacada de una piscina tras varios minutos sumergida. Asistolia. Tu compañero comprime; aún no tiene vía aérea avanzada.';
-CASES.asistolia.hint = 'En la parada por hipoxia la ventilación es la prioridad: ambú con O₂ al 100 % (5 insuflaciones de rescate) y compresiones; adrenalina 1 mg cuanto antes en ritmo no desfibrilable; intubación cuando sea posible sin interrumpir las compresiones.';
+CASES.asistolia.hint = 'En la parada por hipoxia la ventilación es la prioridad: ambú con O₂ al 100 % (5 insuflaciones de rescate) y compresiones 15:2; adrenalina 10 mcg/kg (≈ 0,45 mg) IV/IO cuanto antes en ritmo no desfibrilable y cada 3–5 min; si aparece un ritmo desfibrilable, 4 J/kg. Dosis por peso (ERC soporte vital pediátrico). Intubación cuando sea posible sin interrumpir las compresiones.';
 CASES.asistolia.targets = {};
 
 root.SIM_CASES = CASES;

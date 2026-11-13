@@ -276,7 +276,7 @@ footer{font-size:.8rem;color:var(--muted);max-width:90ch}
 <main>
   <header class="top">
     <div class="brand">
-      <span class="eyebrow">Simulador docente · SVA terrestre y HEMS · v0.4</span>
+      <span class="eyebrow">Simulador docente · SVA terrestre y HEMS · v0.5</span>
       <h1>Ventilación, monitor y RCP</h1>
     </div>
     <div class="toolbar">
@@ -342,7 +342,7 @@ footer{font-size:.8rem;color:var(--muted);max-width:90ch}
         </div>
         <div class="zctl"><button class="zbtn" id="zPniBtn" aria-pressed="false">PNI ahora</button><label for="zAuto" class="zrow">Auto</label><select class="zsel" id="zAuto"><option value="0">no</option><option value="3">3 min</option><option value="5" selected>5 min</option><option value="10">10 min</option></select><button class="zbtn" id="zSil" aria-pressed="false">Silenciar</button></div>
         <div class="zsec"><span class="zh">Desfibrilador</span>
-          <div class="zctl"><select class="zsel" id="zMode" aria-label="Modo del desfibrilador"><option value="manual">Manual</option><option value="aed">DEA</option></select><select class="zsel" id="zJ" aria-label="Energía"></select><button class="zbtn" id="zSync" aria-pressed="false">SINC</button><button class="zbtn" id="zAnalyze" hidden>Analizar</button><button class="zbtn charge" id="zCharge">Cargar</button><button class="zbtn shock" id="zShock" disabled>Descarga</button></div>
+          <div class="zctl"><select class="zsel" id="zMode" aria-label="Modo del desfibrilador"><option value="manual">Manual</option><option value="aed">DEA</option></select><select class="zsel" id="zJ" aria-label="Energía"></select><button class="zbtn" id="zSync" aria-pressed="false">SINC</button><button class="zbtn" id="zPads" aria-pressed="false" title="Cambio de vector en la FV refractaria">Parches AL</button><button class="zbtn" id="zAnalyze" hidden>Analizar</button><button class="zbtn charge" id="zCharge">Cargar</button><button class="zbtn shock" id="zShock" disabled>Descarga</button></div>
           <div class="zmsg" id="zMsg" aria-live="polite"></div>
         </div>
         <div class="zsec"><span class="zh">Marcapasos transcutáneo</span>
@@ -386,7 +386,7 @@ footer{font-size:.8rem;color:var(--muted);max-width:90ch}
             <button class="btn" data-act="decomp">Descompresión con aguja</button>
             <button class="btn" data-act="bottle">Cambiar botella</button>
           </div>
-          <div class="range"><label class="small" for="o2dev">Oxigenoterapia</label><select id="o2dev"><option value="gafas">Gafas nasales 2 L/min</option><option value="venturi35">Venturi 35 %</option><option value="venturi50">Venturi 50 %</option><option value="reserv" selected>Mascarilla con reservorio 15 L/min</option></select></div>
+          <div class="range"><label class="small" for="o2dev">Oxigenoterapia</label><select id="o2dev"><option value="gafas">Gafas nasales 2 L/min</option><option value="venturi28">Venturi 28 %</option><option value="venturi35">Venturi 35 %</option><option value="venturi50">Venturi 50 %</option><option value="reserv" selected>Mascarilla con reservorio 15 L/min</option></select></div>
         </div>
         <div class="findings" id="findings" hidden></div>
         <div class="agroup"><span class="flabel">Parada</span>
@@ -460,7 +460,7 @@ const PHENO = {
   asma:   { label: 'Asma grave', C: .050, Ri: 25, Re: 40, Pcrit: 8, vdAnat: 150, vdAlv: .14, vco2: 220, vo2: 270, shunt0: .10, shuntPeep: 0, shuntMin: .08, frc: 3.0, hemo: 1.8, tas: 130, fc: 115, sv: .68, sex: 'm', talla: 165, tiFrac: .33 },
   obeso:  { label: 'Obeso', C: .035, Ri: 15, Re: 15, Pcrit: 0, vdAnat: 130, vdAlv: .10, vco2: 260, vo2: 320, shunt0: .15, shuntPeep: .012, shuntMin: .06, frc: 1.2, hemo: 1.0, tas: 145, fc: 95, sv: .68, sex: 'h', talla: 172 },
   trauma: { label: 'Politrauma hipovolémico', C: .045, Ri: 12, Re: 12, Pcrit: 0, vdAnat: 130, vdAlv: .15, vco2: 220, vo2: 270, shunt0: .08, shuntPeep: .005, shuntMin: .05, frc: 2.2, hemo: 1.0, tas: 135, fc: 105, sv: .62, sex: 'h', talla: 180 },
-  epoc:   { label: 'EPOC agudizado', C: .070, Ri: 10, Re: 20, Pcrit: 5.5, vdAnat: 150, vdAlv: .35, vco2: 230, vo2: 260, shunt0: .10, vq: .8, shuntPeep: 0, shuntMin: .08, frc: 3.2, hemo: 1.0, tas: 150, fc: 104, sv: .60, sex: 'h', talla: 170,
+  epoc:   { label: 'EPOC agudizado', C: .070, Ri: 10, Re: 20, Pcrit: 5.5, vdAnat: 150, vdAlv: .35, vco2: 230, vo2: 260, shunt0: .27, vq: .8, shuntPeep: 0, shuntMin: .22, frc: 3.2, hemo: 1.0, tas: 150, fc: 104, sv: .60, sex: 'h', talla: 170,
             hco3: 31, co2set: 52, rr0: 16, rrMax: 32, p0: 6, pM: 18, tiFrac: .40, push: 6, hyper: true, sympa: .6, co2tau: 14 },
   eap:    { label: 'Edema agudo de pulmón', C: .050, Ri: 9, Re: 9, Pcrit: 0, vdAnat: 140, vdAlv: .10, vco2: 230, vo2: 280, shunt0: .06, shuntPeep: 0, shuntMin: .04, frc: 2.3, hemo: .6, tas: 200, fc: 112, sv: .58, sex: 'm', talla: 160,
             hco3: 22, rr0: 16, rrMax: 34, p0: 5, pM: 20, tiFrac: .38, push: 4, edema: true, sympa: 1 },
@@ -479,7 +479,7 @@ const DRUGS = {
   nor: { h: 2.5, on: 2, ec50: .12 }, adr: { h: 2.5, on: 1, ec50: 10 }, atr: { h: 60, on: 1, ec50: .4 },
   ntg: { h: 3, on: 2, ec50: 300 }, furo: { h: 90, on: 20, ec50: 40 }, amio: { h: 600, on: 2, ec50: 150 },
   aden: { h: .15, on: .05, ec50: 6 }, tnk: { h: 20, on: 2, ec50: .3 }, shs: { h: 120, on: 5, ec50: 1 }, manit: { h: 90, on: 10, ec50: 1 },
-  hidroxo: { h: 300, on: 5, ec50: 2.5 }, dexclor: { h: 300, on: 10, ec50: 2.5 }
+  hidroxo: { h: 300, on: 5, ec50: 2.5 }, dexclor: { h: 300, on: 10, ec50: 2.5 }, lido: { h: 90, on: 1, ec50: 100 }
 };
 const SED_RATE = 3 * Math.LN2 / 15; // perfusión que mantiene la sedación de base al 75 %
 
@@ -488,7 +488,7 @@ const defaultCfg = () => ({ mode: 'VCV', vt: 450, fr: 14, ti: 1.0, tplat: 0, pin
 const PRESS = { PCV: 1, PSV: 1, CPAP: 1, APV: 1, ASV: 1, PST: 1, CPV: 1 };
 const TIMED = { VCV: 1, PCV: 1, APV: 1, CPV: 1 };
 /* Oxigenoterapia convencional: FiO2 aproximada y caudal de O2 en L/min */
-const O2DEV = { gafas: { fi: .28, q: 2, k: 6 }, venturi35: { fi: .35, q: 9 }, venturi50: { fi: .5, q: 15 }, reserv: { fi: .75, q: 15, k: 6 } };
+const O2DEV = { gafas: { fi: .28, q: 2, k: 6 }, venturi28: { fi: .28, q: 4 }, venturi35: { fi: .35, q: 9 }, venturi50: { fi: .5, q: 15 }, reserv: { fi: .75, q: 15, k: 6 } };
 const o2Fi = (dev, ve) => { const d = O2DEV[dev]; return d.k ? .21 + (d.fi - .21) * clamp(d.k / Math.max(ve, 1), .5, 1) : d.fi; };
 
 function create(opts) {
@@ -515,12 +515,12 @@ function create(opts) {
     altitude: o.altitude || 0, pbar: 760,
     o2: { vol: o.bottleL || 5, bar: o.bottleBar || 200, supply: true, cons: 0 }, supAcc: 0, vmiEma: 6,
     pco2: o.pco2 || 40, veEma: 7, fao2: .45, spo2: .97, sao2: .97, tas: P.tas, fc: P.fc, vaEma: 4, drive: .3, awake: 0,
-    hypoxT: 0, arrest: false, rhythm: o.bav ? 'bav' : o.rhythm || 'sinus', bav: !!o.bav,
+    hypoxT: 0, lowT: 0, lact: 1, lact0: 1, hco3m: null, arrestAt: o.arrest ? 0 : null, arrest: false, rhythm: o.bav ? 'bav' : o.rhythm || 'sinus', bav: !!o.bav,
     arr: { type: o.rhythm || null, pen: o.arrPen != null ? o.arrPen : 40 }, tasAdj: o.tasAdj || 0, fcAdj: o.fcAdj || 0, sevFloor: o.sevFloor || 0,
-    tep: o.tep || 0, anaf: o.anaf || 0, cohb: o.cohb || 0, cn: o.cn || 0, weak: o.weak || 0, asp: o.asp || 0, aspT: o.asp || 0, derec: 0, clampUntil: -1,
+    tep: o.tep || 0, anaf: o.anaf || 0, cohb: o.cohb || 0, cn: o.cn || 0, weak: o.weak || 0, weak0: o.weak || 0, asp: o.asp || 0, aspT: o.asp || 0, derec: 0, clampUntil: -1,
     icp: o.icp ? { base: o.icp, grow: o.icpGrow || 0, v: o.icp } : null, edAir: o.edAir || 0, edAirRate: o.edAirRate || 0,
     dav: o.dav || .05, davMul: 1, attempts: 0, apox: false, o2boostUntil: -1, depotAdr: 0, adenPending: null, pauseUntil: -1, slowUntil: -1, bump: null, fiEff: .21,
-    cpr: { comp: 'off', relevo: 0, noFlow: 0, cprTime: 0, shocks: 0, cause: null, vfAmp: 1, sinceCheck: 0, roscAt: -99, charged: false },
+    cpr: { comp: 'off', relevo: 0, noFlow: 0, cprTime: 0, shocks: 0, cause: null, vfAmp: 1, sinceCheck: 0, roscAt: -99, charged: false, ap: false },
     pace: { on: false, mode: 'demand', rate: 70, mA: 0, thr: 55 + Math.round(rnd() * 25), capture: false },
     mech: null, trend: [], log: [], mon: {}, timers: []
   };
@@ -549,7 +549,7 @@ function create(opts) {
     S.opi = opi * (1 - E.nalox);
     S.sedTot = 1 - (1 - E.sed) * (1 - E.prop) * (1 - E.mid) * (1 - .9 * E.ket) * (1 - E.eto) * (1 - .35 * S.opi);
     S.relTot = 1 - (1 - E.rel) * (1 - E.sux);
-    S.drvMul = (1 - .6 * S.opi) * (1 - .3 * E.prop) * (1 - .25 * E.mid);
+    S.drvMul = (1 - .85 * S.opi) * (1 - .3 * E.prop) * (1 - .25 * E.mid);
     const bronch = 1 - (1 - .8 * E.salb) * (1 - .4 * E.mg) * (1 - .5 * E.adr) * (1 - .3 * E.ket) * (1 - .35 * E.cort);
     const tgt = (S.bs0 + 1.2 * S.anaf) * (1 - .45 * bronch);
     if (S.bs > tgt) S.bs += (tgt - S.bs) * Math.min(1, dtc / 6); else S.bs += (tgt - S.bs) * Math.min(1, dtc / 30);
@@ -591,14 +591,18 @@ function create(opts) {
     const pt = S.pat;
     S.peepiDyn = Math.max(0, S.V / S.mech.C - (S.iface === 'tube' || S.iface === 'mask' ? S.cfg.peep : 0));
     const narc = clamp((S.pco2 - 85) / 40, 0, .6);
-    let drive = Math.max((S.pco2 - P.co2set) / 20, (.92 - S.spo2) / .08, .25) + (P.edema ? .35 * S.sev : 0) + (S.clin < S.anxUntil ? .5 : 0);
+    const met = clamp((P.hco3 - (S.hco3m != null ? S.hco3m : P.hco3)) / 8, 0, 1); // acidosis metabólica (láctica)
+    // el CO2 manda: la hipocapnia frena el impulso hipóxico (salvo en el retenedor, que depende más de la hipoxemia)
+    const hyx = Math.max(0, (.92 - S.spo2) / .08), c2 = (S.pco2 - P.co2set) / (P.hyper ? 20 : 12);
+    let drive = Math.max(.25 + met, c2 + met + .8 * hyx, P.hyper ? hyx : 0) + (P.edema ? .35 * S.sev : 0) + (S.clin < S.anxUntil ? .5 : 0) + .4 * S.tep + .3 * S.anaf;
     drive = clamp(drive * (1 - narc) * S.drvMul, 0, 1.5);
     const awake = (1 - .85 * S.sedTot) * (1 - S.relTot) * (1 - narc * .5);
     const rr = clamp((P.rr0 + (P.rrMax - P.rr0) * Math.min(drive, 1.2)) * (1 - .4 * S.sedTot) * (1 - .85 * S.opi) * (1 + .6 * S.weak), 3, 42);
     let pm = (P.p0 + (P.pM - P.p0) * Math.min(drive, 1.2)) * awake * (1 + (rnd() - .5) * .2) * (1 - S.weak);
     // vía aérea natural (oxigenoterapia, alto flujo): el paciente despierto moviliza el volumen que pide su impulso; la C del fenotipo es la del paciente ventilado
     if (S.iface === 'o2' || S.iface === 'nasal') { const ti = P.tiFrac * 60 / rr, f = clamp(1 - Math.exp(-ti / (S.mech.Ri * S.mech.C)), .35, .9), shallow = clamp(1 - (rr - 25) * .02, .7, 1);
-      const need = (S.ibw * (6.2 + 2.5 * Math.min(drive, 1.2)) * shallow * (1 - .4 * S.opi) / 1000 / (S.mech.C * f) + 1.2 * Math.max(0, S.peepiDyn || 0)) * (1 - S.relTot) * (1 - narc * .5) * (1 - S.weak); pm = Math.min(30, Math.max(pm, need * (1 + (rnd() - .5) * .2))); }
+      const dx = clamp((Math.min(drive, 1.2) - .25) / .75, 0, 1.27), vtk = P.hyper ? 6.2 + 2.5 * Math.min(drive, 1.2) : (6.8 + 4.5 * dx) * (1 + .4 * Math.min(dx, 1));
+      const need = (S.ibw * vtk * shallow * (1 - .4 * S.opi) / 1000 / (S.mech.C * f) + 1.2 * Math.max(0, S.peepiDyn || 0)) * (1 - S.relTot) * (1 - narc * .5) * (1 - S.weak); pm = Math.min(30, Math.max(pm, need * (1 + (rnd() - .5) * .2))); }
     const m = mode(), lvl = m === 'PSV' || m === 'PST' ? S.cfg.ps : m === 'PCV' ? S.cfg.pinsp : (m === 'APV' || m === 'ASV') ? S.apv.p : 0;
     if (PRESS[m] && (S.iface === 'tube' || S.iface === 'mask')) pm *= (1 - .3 * clamp(lvl / 15, 0, 1));
     const skip = S.opi > .8 && rnd() < (S.opi - .8) * 2.5; // pausas de apnea en la intoxicación grave por opiáceos
@@ -821,20 +825,31 @@ function create(opts) {
     if (S.pace.capture) { fc = S.pace.rate; tas -= S.bav ? 10 : 0; }
     return { tas: clamp(tas, 30, 240), fc: clamp(fc, 25, 190) };
   }
-  function alvDS() { const low = clamp((90 - S.tas) / 40, 0, 1); return P.vdAlv + .25 * low + .1 * S.mech.ptxEff + .35 * S.tep + (P.hyper ? .1 * clamp((S.spo2 - .92) / .05, 0, 1) : 0); }
+  function alvDS() { const low = clamp((90 - S.tas) / 40, 0, 1); return P.vdAlv + .25 * low + .1 * S.mech.ptxEff + .35 * S.tep + (P.hyper ? .15 * clamp((S.spo2 - .9) / .07, 0, 1) : 0); }
 
   /* ---------- variables lentas (tiempo clínico acelerado) ---------- */
   function slow(dts) {
     const dtc = dts * S.scale / 60; // minutos clínicos
     S.clin += dtc;
     updateMech(dtc);
-    const t = S.t, W = Math.min(30, Math.max(t, 4));
+    const t = S.t;
+    // ventilación alveolar a partir de las últimas respiraciones, sin ventana fija de reloj: así no depende de la velocidad elegida
+    const ventDelivers = !isOpen() && (S.iface === 'tube' || S.iface === 'mask'), selfBreath = S.pat.pmax > 1 && !S.arrest;
+    if (!ventDelivers && !S.bag && !selfBreath) S.infl = []; // apnea conocida: la ventilación cae a cero en el acto
     S.infl = S.infl.filter(e => e.t > t - 40);
-    let va = 0, fiw = 0, ve = 0; for (const e of S.infl) if (e.t > t - W) { va += e.va; fiw += e.va * e.fi; ve += e.vt / 1000; }
-    S.veEma += (ve * 60 / W - S.veEma) * Math.min(1, dts / 6);
-    const VA = va * 60 / W, fiAvg = va > 0 ? fiw / va : (isOpen() ? .21 : S.cfg.fio2 / 100);
-    S.fiEff = fiAvg;
-    if (t > 6) S.vaEma += (VA - S.vaEma) * Math.min(1, dts / 6);
+    const L = S.infl.slice(-4);
+    let VA = 0, VE = 0, fiAvg = isOpen() && !S.bag ? .21 : S.cfg.fio2 / 100;
+    if (L.length) {
+      const last = L[L.length - 1], guess = Math.max(ventDelivers ? (S.cfg.fr || 0) : 0, selfBreath ? S.pat.rr : 0, S.bag ? 10 : 0) || 12;
+      const interval = L.length >= 2 ? (last.t - L[0].t) / (L.length - 1) : 60 / guess, effInt = Math.max(interval, t - last.t, .5);
+      let va = 0, fiw = 0, vt = 0; for (const e of L) { va += e.va; fiw += e.va * e.fi; vt += e.vt / 1000; }
+      VA = va / L.length * 60 / effInt; VE = vt / L.length * 60 / effInt; if (va > 0) fiAvg = fiw / va;
+    }
+    S.vaInst = VA; S.veInst = VE; S.fiEff = fiAvg;
+    // fatiga de la musculatura débil: empeora mientras trabaja sola con impulso alto; descansa con soporte
+    if (S.weak0 > 0) S.weak = clamp(S.weak + (ventDelivers ? -.006 : .03 * Math.max(0, S.drive - .4)) * dtc, S.weak0 * .8, .85);
+    S.veEma += (VE - S.veEma) * Math.min(1, dtc / .1);
+    S.vaEma += (VA - S.vaEma) * Math.min(1, dtc / .1);
     const vaE = Math.max(S.vaEma, 0);
     // ASV simplificado: frecuencia de mínimo trabajo (Otis) para el volumen minuto objetivo
     if (S.cfg.mode === 'ASV') {
@@ -846,9 +861,8 @@ function create(opts) {
     const eq = vaE > .4 ? clamp(.863 * P.vco2 / vaE, 15, 140) : 140;
     const tau = vaE > .4 ? P.co2tau : 20;
     S.pco2 += (eq - S.pco2) * Math.min(1, dtc / tau);
-    S.ph = 6.1 + Math.log10(P.hco3 / (.03 * S.pco2)) - (S.arrest ? Math.min(.4, .02 * S.cpr.noFlow + .01 * S.cpr.cprTime) : 0);
     // O2: reserva alveolar (FRC) con lavado por VA y consumo
-    const Pb = S.pbar, q = .863 * P.vo2 / (Pb - 47) * (S.tas < 80 ? .9 : 1);
+    const Pb = S.pbar, q = .863 * P.vo2 / (Pb - 47) * (S.tas < 80 ? .9 : 1) * (1 - .22 * clamp(1 - S.vaEma / 1.5, 0, 1));
     const frc = S.mech.frc;
     const apox = S.isr && S.isr.apox && S.o2.supply ? .15 : 1; // oxigenación apneica: el O2 consumido se repone por flujo de masa
     S.fao2 += ((vaE / frc) * (fiAvg - S.fao2) - q * apox / frc) * dtc;
@@ -862,6 +876,13 @@ function create(opts) {
     S.spo2 += (S.sao2 - S.spo2) * Math.min(1, dtc / .35);
     if (S.cohb > 0) { const th = 300 / (1 + 3 * clamp((S.fiEff - .21) / .79, 0, 1)) * clamp(4.5 / Math.max(vaE, .5), .8, 1.6); S.cohb = Math.max(0, S.cohb - S.cohb * Math.LN2 / th * dtc); }
     S.oxEff = S.spo2 * (1 - S.cohb) - .25 * S.cn; // el pulsioxímetro no distingue la COHb
+    // lactato (hipoperfusión, hipoxia tisular, sepsis, cianuro, CO, anafilaxia, parada) y equilibrio ácido-base con tampón agudo
+    const lt = 1 + 4 * clamp((90 - S.tas) / 40, 0, 1.2) + 4 * clamp((.85 - S.oxEff) / .25, 0, 1.2) + (S.pk === 'sepsis' ? 3 : 0) + 8 * S.cn + 6 * S.cohb + 3 * S.anaf;
+    if (!S.lactInit) { S.lactInit = true; S.lact = S.lact0 = S.arrest ? 2 : lt; }
+    if (S.arrest) S.lact += (S.cpr.comp !== 'off' ? .25 : .6) * dtc; else S.lact += (lt - S.lact) * Math.min(1, dtc / (lt > S.lact ? 6 : 40));
+    S.hco3m = P.hco3 - .9 * (S.lact - S.lact0);
+    S.hco3 = Math.max(4, S.hco3m + (S.pco2 >= P.co2set ? .1 : .2) * (S.pco2 - P.co2set));
+    S.ph = 6.1 + Math.log10(S.hco3 / (.03 * S.pco2));
     if (S.icp) { S.icp.base = clamp(S.icp.base + S.icp.grow * dtc, 5, 70); S.icp.v = clamp(S.icp.base - 9 * S.E.shs - 9 * S.E.manit + .9 * (S.pco2 - 40) + .3 * Math.max(0, S.cfg.peep - 5) + 10 * (S.fight || 0) + (S.oxEff < .9 ? 12 * (.9 - S.oxEff) / .2 : 0) + (S.tas > 160 ? (S.tas - 160) * .1 : 0), 3, 90); }
     if (S.adenPending && S.clin >= S.adenPending.at) { const d = S.adenPending.dose; S.adenPending = null; if (!S.arrest) { S.pauseUntil = S.t + 4.5; const t = S.arr.type;
         if (t === 'tsv' && rnd() < (d >= 12 ? .85 : .6)) { S.arr.type = null; S.log.push([S.clin, 'Adenosina: TSV revertida']); }
@@ -873,12 +894,13 @@ function create(opts) {
     // circulación, parada y RCP
     if (!S.arrest) {
       S.hypoxT = S.oxEff < .55 ? S.hypoxT + dtc : Math.max(0, S.hypoxT - dtc);
+      S.lowT = S.tas < 50 ? S.lowT + dtc : Math.max(0, S.lowT - 2 * dtc);
       const tg = targets();
       S.tas += (tg.tas - S.tas) * Math.min(1, dtc / 1.5);
       S.fc += (tg.fc - S.fc) * Math.min(1, dtc / 1.5);
       const ago = S.clin - S.cpr.roscAt;
       S.etAlv = S.pco2 * (1 - alvDS()) + (ago < 4 ? 14 * Math.exp(-ago / 1.5) : 0);
-      if (S.tas < 38 || S.hypoxT > 4) enterArrest(S.hypoxT > 4 ? (S.cohb > .25 ? 'co' : 'hypox') : S.ptxActive ? 'ptx' : S.tep > .4 ? 'tep' : S.anaf > .4 ? 'anaf' : S.arr.type === 'tvp' ? 'vt' : S.deficit > .35 ? 'hypo' : 'primary');
+      if (S.tas < 38 || S.hypoxT > 4 || S.lowT > 2.5) enterArrest(S.hypoxT > 4 ? (S.cohb > .25 ? 'co' : 'hypox') : S.ptxActive ? 'ptx' : S.tep > .4 ? 'tep' : S.anaf > .4 ? 'anaf' : S.arr.type === 'tvp' ? 'vt' : S.deficit > .35 ? 'hypo' : 'primary');
       else S.rhythm = S.pace.capture ? 'paced' : S.bav ? 'bav' : S.arr.type ? S.arr.type : S.hypoxT > 1.5 ? 'brady' : S.fc > 100 ? 'tsinus' : 'sinus';
     } else {
       const c = S.cpr, comp = c.comp !== 'off';
@@ -886,7 +908,7 @@ function create(opts) {
       c.sinceCheck += dtc;
       const co = comp ? cprQuality() * .25 : 0;
       S.tas = comp ? 30 + 70 * co + 25 * S.E.adr : 0; S.fc = S.rhythm === 'vf' ? 0 : S.rhythm === 'tvsp' ? 190 : S.rhythm === 'asys' ? 0 : 34;
-      S.etAlv = S.pco2 * (comp ? .1 + 1.6 * co : .05);
+      S.etAlv = comp ? clamp(80 * co - .25 * Math.min(S.clin - (S.arrestAt || 0), 30) - 4 * S.E.adr, 4, 35) : 2;
       if (S.rhythm === 'vf') { c.vfAmp = Math.max(.15, 1 - .07 * c.noFlow - .02 * c.cprTime); if (c.noFlow > 10) S.rhythm = 'asys'; }
       if (S.rhythm === 'aesp' && c.noFlow > 6) S.rhythm = 'asys';
     }
@@ -909,11 +931,11 @@ function create(opts) {
     if (S.onSlow) S.onSlow(dtc);
   }
   function enterArrest(cause) {
-    S.arrest = true; S.arr.type = null; S.rhythm = cause === 'vf' ? 'vf' : cause === 'vt' ? 'tvsp' : 'aesp'; S.cpr.cause = cause; S.cpr.noFlow = 0; S.cpr.cprTime = 0; S.cpr.sinceCheck = 0; S.tas = 0;
+    S.arrest = true; S.arrestAt = S.clin; S.arr.type = null; S.rhythm = cause === 'vf' ? 'vf' : cause === 'vt' ? 'tvsp' : 'aesp'; S.cpr.cause = cause; S.cpr.noFlow = 0; S.cpr.cprTime = 0; S.cpr.sinceCheck = 0; S.tas = 0;
     S.log.push([S.clin, 'Parada cardiorrespiratoria']);
   }
   function rosc() {
-    S.arrest = false; S.rhythm = 'tsinus'; S.tas = 85 + 30 * S.E.adr; S.fc = 115; S.hypoxT = 0; S.cpr.comp = 'off'; S.cpr.roscAt = S.clin;
+    S.arrest = false; S.rhythm = 'tsinus'; S.tas = 85 + 30 * S.E.adr; S.fc = 115; S.hypoxT = 0; S.lowT = 0; S.cpr.comp = 'off'; S.cpr.roscAt = S.clin;
     S.log.push([S.clin, 'RCE']);
   }
   function causeFixed() {
@@ -1034,7 +1056,7 @@ function create(opts) {
     intubate() {
       if (S.iface === 'tube') return { ok: false, msg: 'Ya está intubado.' };
       if (S.isr) return { ok: false, msg: 'Ya hay una laringoscopia en curso.' };
-      if (S.relTot < .5 && !(S.arrest || S.sedTot > .9)) return { ok: false, msg: 'Tiene tono y reflejos: necesitas inducción y relajante antes de la laringoscopia.' };
+      if (S.relTot < .9 && !(S.arrest || S.sedTot > .9)) return { ok: false, msg: S.relTot < .5 ? 'Tiene tono y reflejos: necesitas inducción y relajante antes de la laringoscopia.' : 'El relajante aún no ha hecho efecto completo: espera 45–60 s desde la dosis.' };
       const edema = Math.max(S.edAir, .8 * S.anaf);
       const pFail = clamp((S.dav + .55 * edema) * S.davMul * (S.attempts ? .85 : 1), 0, .97);
       S.attempts++;
@@ -1060,8 +1082,15 @@ function create(opts) {
       }
       if (sync && (S.rhythm === 'vf' || S.rhythm === 'asys')) { c.shocks--; return { result: 'noSync' }; }
       if (!(S.rhythm === 'vf' || S.rhythm === 'tvsp')) return { result: 'noShockable' };
-      const p = clamp((.5 + (c.cprTime >= 1.5 ? .1 : 0) + .15 * S.E.amio + .05 * S.E.adr - .05 * c.noFlow - (J < 150 ? .1 : 0)) * S.shockMul, .03, .85);
-      if (rnd() < p) { if (rnd() < .55) { rosc(); return { result: 'rosc' }; } S.rhythm = 'aesp'; S.cpr.cause = S.cpr.cause === 'vf' ? 'primary' : S.cpr.cause; return { result: 'organized' }; }
+      const E = S.E, mins = S.clin - (S.arrestAt || 0);
+      const eff = S.shockMul < 1 && c.ap ? Math.min(1, S.shockMul * 1.8) : S.shockMul; // parches anteroposteriores en la FV refractaria
+      const pTerm = clamp((.8 - .04 * c.noFlow - (J < 150 ? .1 : 0) + .1 * E.amio + .07 * E.lido) * eff, .03, .92);
+      if (rnd() < pTerm) {
+        const pR = clamp((.32 + (c.cprTime >= 1.5 ? .08 : 0) + .08 * E.adr + .05 * E.amio - .03 * c.noFlow - .015 * mins) * (.5 + .5 * eff), .05, .7), u = rnd();
+        if (u < pR) { rosc(); return { result: 'rosc' }; }
+        if (u < pR + (1 - pR) * .45 * eff) { S.rhythm = 'aesp'; S.cpr.cause = S.cpr.cause === 'vf' ? 'primary' : S.cpr.cause; return { result: 'organized' }; }
+        return { result: 'refib' };
+      }
       return { result: 'persist' };
     },
     check() { // análisis de ritmo y pulso
@@ -1069,18 +1098,23 @@ function create(opts) {
       if (!S.arrest) return { rhythm: S.rhythm, pulse: true };
       let res = { rhythm: S.rhythm, pulse: false };
       if ((S.rhythm === 'aesp' || S.rhythm === 'asys') && c.sinceCheck >= 1.2) {
-        const p = clamp(.05 + .15 * S.E.adr + (causeFixed() ? .5 : 0) + (c.cause === 'primary' ? .1 : 0) - .02 * c.noFlow + (c.cprTime > 2 ? .05 : 0), .02, .8);
-        if (rnd() < p) { rosc(); res = { rhythm: 'tsinus', pulse: true }; }
+        const fixable = ['hypox', 'ptx', 'hypo', 'opi', 'tep', 'anaf', 'co'].includes(c.cause), fixed = causeFixed();
+        const ccf = c.cprTime + c.noFlow > 0 ? c.cprTime / (c.cprTime + c.noFlow) : 1, mins = S.clin - (S.arrestAt || 0);
+        let p = fixable ? (fixed ? .22 + .2 * S.E.adr : .01) : .08 + .2 * S.E.adr;
+        if (S.rhythm === 'asys') p *= .5;
+        p *= clamp(ccf / .8, .3, 1) * Math.exp(-Math.max(0, mins - 10) / 15);
+        if (rnd() < clamp(p, .005, .7)) { rosc(); res = { rhythm: 'tsinus', pulse: true }; }
       }
       c.sinceCheck = 0;
       return res;
     },
+    setPads(ap) { S.cpr.ap = !!ap; },
     pace(on, rate, mA, mode) { S.pace.on = on; S.pace.rate = rate; S.pace.mA = mA; if (mode) S.pace.mode = mode; },
     setNor(r) { S.drug.nor.R = r * Math.LN2 / DRUGS.nor.h; S.norRate = r; },
     setNtg(r) { S.drug.ntg.R = r; S.ntgRate = r; },
     setAltitude(h) { S.altitude = h; updateMech(0); },
     setScale(x) { S.scale = x; },
-    gas() { const lact = 1.2 + 4 * clamp((90 - S.tas) / 40, 0, 1) + 3 * clamp((.85 - S.oxEff) / .25, 0, 1) + (S.arrest ? 6 : 0) + (S.pk === 'sepsis' ? 3 : 0) + 8 * S.cn + 6 * S.cohb + 3 * S.anaf; return { ph: S.ph - .03 - .02 * (lact - 1.2) * .3, pco2: S.pco2 + 6, hco3: P.hco3 + (S.pco2 - 40) * .1 - .8 * (lact - 1.2), lact, cohb: S.cohb * 100 }; },
+    gas() { return { ph: S.ph - .03, pco2: S.pco2 + 6, hco3: (S.hco3 || P.hco3) + 1, lact: S.lact, cohb: S.cohb * 100 }; },
     explore() {
       const a = S.air, f = [];
       if (S.arrest) return [S.cpr.comp !== 'off' ? 'Sin pulso central entre compresiones.' : 'Inconsciente, no respira, sin pulso central.'];
@@ -1129,6 +1163,7 @@ function create(opts) {
     const sc = S.scale; S.scale = .2;
     for (let i = 0; i < sec / .004; i++) step(.004);
     S.scale = sc;
+    if (S.vaInst != null) { S.vaEma = S.vaInst; S.veEma = S.veInst; }
     if (!S.arrest) { const tg = targets(); S.tas = tg.tas; S.fc = tg.fc; }
     const fi = S.iface === 'o2' ? o2Fi(S.cfg.o2dev, S.veEma) : S.o2.supply ? S.cfg.fio2 / 100 : .21, q = .863 * P.vo2 / (S.pbar - 47);
     S.fao2 = clamp(fi - q / Math.max(S.vaEma, .5), .02, 1);
@@ -1248,8 +1283,8 @@ const KEYLAB = {
 
 /* Monitores-desfibriladores */
 const MONS = {
-  zoll: { name: 'Estilo ZOLL X Series', short: 'ZOLL X Series', energies: [50, 70, 85, 100, 120, 150, 200], def: 150, aed: [120, 150, 200], paceRates: [30, 180], paceMa: [0, 140], cpr: 'Real CPR Help', rainbow: 'SpCO (opción rainbow)' },
-  corpuls: { name: 'Estilo corpuls3', short: 'corpuls3', energies: [50, 70, 100, 120, 150, 200], def: 150, aed: [150, 200, 200], paceRates: [30, 180], paceMa: [0, 140], cpr: 'feedback de RCP', rainbow: 'SpCO (rainbow)' }
+  zoll: { name: 'Estilo ZOLL X Series', short: 'ZOLL X Series', energies: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 30, 50, 70, 85, 100, 120, 150, 200], def: 150, aed: [120, 150, 200], paceRates: [30, 180], paceMa: [0, 140], cpr: 'Real CPR Help', rainbow: 'SpCO (opción rainbow)' },
+  corpuls: { name: 'Estilo corpuls3', short: 'corpuls3', energies: [2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 30, 50, 70, 100, 120, 150, 200], def: 150, aed: [150, 200, 200], paceRates: [30, 180], paceMa: [0, 140], cpr: 'feedback de RCP', rainbow: 'SpCO (rainbow)' }
 };
 
 root.SIM_DEV = { SPEC, PKEYS, KEYS, DEVS, KEYLAB, MONS };
@@ -1267,13 +1302,14 @@ root.SIM_DEV = { SPEC, PKEYS, KEYS, DEVS, KEYLAB, MONS };
      iface    'tube' (intubado), 'mask' (VMNI), 'nasal' (alto flujo) u 'o2' (oxigenoterapia, ventilador en espera)
      dev      opcional: fuerza el ventilador ('monnal', 'medumat', 't1')
      cfg      ajustes del ventilador (si iface es 'o2', los que tendrá preparados): mode VCV, PCV, APV, ASV, PSV, PST, CPAP, CPV, HFNC;
-              vt, fr, ti, tplat, pinsp, ps, rise, peep, fio2, trigI, trigE, timax, pmax, minvol, flow; o2dev: gafas, venturi35, venturi50, reserv
+              vt, fr, ti, tplat, pinsp, ps, rise, peep, fio2, trigI, trigE, timax, pmax, minvol, flow; o2dev: gafas, venturi28, venturi35, venturi50, reserv
      Fisiología (opcional): pco2, deficit (0–0,6 hipovolemia), bs (broncoespasmo, 1 = basal), opioid, sedE / relCe / sedStopped,
               rhythm ('tsv', 'fa', 'flutter', 'tvp', 'sbrady') y arrPen (mmHg que resta a la TAS), bav, arrest ('vf', 'aesp', 'asys') con
               comp ('manual', 'mech') y arrestCause ('hypox', 'ptx', 'tep', 'hypo'), shockMul (éxito de la descarga), tep (0–1), anaf (0–1),
               cohb (fracción), cn (cianuro 0–1), icp (mmHg) e icpGrow (mmHg/min), weak (debilidad 0–1), dav (probabilidad de intubación
               fallida), edAir y edAirRate (edema de vía aérea), asp (broncoaspiración 0–1), ptx y ptxTension, tasAdj, sevFloor,
               bottleL, bottleBar, leak10, altitude (m)
+     ped      true para dosis y energías pediátricas por peso (ERC soporte vital pediátrico)
      events   [{ at: minuto clínico, k: evento, txt }] o [{ at, alt: metros, txt }] para cambiar la altitud
               eventos: extub, disc, sel, obst, leak, bronco, ptx, o2, wake, anx, cough, vf, aspir, tep, anaf, tsv, fa, tvp
      targets  { clave: [mín, máx] } con claves spo2, et, tas, vtkg, pplat, dp, peepi, pco2, rr, ie, auto, leak, o2, fight, sinus
@@ -1433,7 +1469,7 @@ const CASES = {
   obesoIsr: Object.assign({ lvl: 'Vía aérea', title: 'ISR en obesidad mórbida', pheno: 'obeso', sex: 'h', talla: 172, peso: 150, dav: .35, asp: .25,
     cfg: Object.assign(inv({ vt: 480, fr: 18, peep: 10 }), { o2dev: 'reserv' }),
     goal: 'Varón de 52 años, 172 cm, 150 kg. Neumonía, SpO₂ 90 % con reservorio y agotado. Hay que intubar.',
-    hint: 'Desatura en menos de 2 min. Preoxigena con VMNI (PEEP 8–10, FiO₂ 100 %) 3–5 min, pon gafas a 15 L/min durante la laringoscopia (oxigenación apneica) y usa videolaringoscopio de primeras. Dosis de inductor por peso ideal o ajustado; rocuronio por peso real. Tras intubar: Vt por peso ideal (≈ 480), PEEP 10–12.',
+    hint: 'Aun preoxigenado, desatura en 2–3 min de apnea. Preoxigena con VMNI (PEEP 8–10, FiO₂ 100 %) 3–5 min, pon gafas a 15 L/min durante la laringoscopia (oxigenación apneica) y usa videolaringoscopio de primeras. Dosis de inductor por peso ideal o ajustado; rocuronio por peso real. Tras intubar: Vt por peso ideal (≈ 480), PEEP 10–12.',
     targets: { spo2: [88, 100] } }, O2),
   viaDificil: Object.assign({ lvl: 'Vía aérea', title: 'No intubable, no oxigenable', pheno: 'trauma', sex: 'h', talla: 180, peso: 90, dav: .8, edAir: .3, deficit: .1,
     cfg: Object.assign(inv({ vt: 520, fr: 14, peep: 5 }), { o2dev: 'reserv' }),
@@ -1460,7 +1496,7 @@ const CASES = {
   epocO2: Object.assign({ lvl: 'Oxigenoterapia e intoxicaciones', title: 'EPOC con demasiado oxígeno', pheno: 'epoc', sex: 'm', talla: 160, peso: 58, pco2: 66, bs: 1.2,
     cfg: { o2dev: 'reserv', mode: 'PSV', ps: 10, peep: 6, trigE: 40, timax: 1.0, trigI: 2, fio2: 35, rise: .15, fr: 12, vt: 380, pmax: 30, flow: 40 },
     goal: 'Mujer de 79 años con EPOC. La familia la ha puesto con la mascarilla de reservorio de la bala de casa. Está cada vez más dormida. SpO₂ 99 %.',
-    hint: 'Hiperoxia en retenedora: empeora la V/Q y sube la pCO₂. Venturi 28–35 % para SpO₂ 88–92 % y gasometría; si pH < 7,35 con pCO₂ alta, VMNI.',
+    hint: 'Hiperoxia en retenedora: empeora la V/Q y sube la pCO₂. Venturi 28 % (o gafas a 1–2 L/min) para SpO₂ 88–92 % y gasometría; si pH < 7,35 con pCO₂ alta, VMNI.',
     targets: { spo2: [88, 92], pco2: [0, 70] } }, O2),
   co: Object.assign({ lvl: 'Oxigenoterapia e intoxicaciones', title: 'Intoxicación por monóxido de carbono', pheno: 'sano', sex: 'm', talla: 165, peso: 62, cohb: .3,
     cfg: Object.assign(inv({ vt: 420 }), { o2dev: 'gafas' }),
@@ -1489,10 +1525,10 @@ const CASES = {
     goal: 'Varón de 28 años con palpitaciones de inicio brusco. Consciente, bien perfundido, TAS 115.',
     hint: 'Maniobras vagales (Valsalva modificada) y, si no revierte, adenosina 6 mg en bolo rápido con lavado; después 12 mg y 18 mg. Avisa de la pausa y la sensación de muerte inminente.',
     targets: { sinus: [1, 1], tas: [90, 200] } }, O2),
-  faRapida: Object.assign({ lvl: 'Arritmias', title: 'FA rápida con hipotensión', pheno: 'sano', sex: 'h', talla: 172, peso: 84, rhythm: 'fa', arrPen: 55,
+  faRapida: Object.assign({ lvl: 'Arritmias', title: 'FA rápida con hipotensión', pheno: 'sano', sex: 'h', talla: 172, peso: 84, rhythm: 'fa', arrPen: 76,
     cfg: Object.assign(inv(), { o2dev: 'gafas' }),
     goal: 'Varón de 70 años con FA conocida, sin anticoagular desde hace un mes. Disnea y mareo. Ritmo irregular a 160, TAS 82.',
-    hint: 'Inestable: cardioversión sincronizada 120–150 J (máximo según equipo) con sedación. La adenosina no la revierte. Si es estable, control de frecuencia (amiodarona en este contexto). Sin anticoagulación, el riesgo embólico de cardiovertir existe, pero la inestabilidad manda.',
+    hint: 'Inestable: cardioversión sincronizada a la energía máxima del equipo (200 J) con sedación, según ERC 2025. La adenosina no la revierte. Si es estable, control de frecuencia (amiodarona en este contexto). Sin anticoagulación, el riesgo embólico de cardiovertir existe, pero la inestabilidad manda.',
     targets: { tas: [90, 200], sinus: [1, 1] } }, O2),
   tvPulso: Object.assign({ lvl: 'Arritmias', title: 'TV monomorfa con pulso', pheno: 'sano', sex: 'h', talla: 170, peso: 78, rhythm: 'tvp', arrPen: 55,
     cfg: Object.assign(inv(), { o2dev: 'gafas' }),
@@ -1507,26 +1543,26 @@ const CASES = {
   bav: Object.assign({ lvl: 'Arritmias', title: 'BAV completo con bajo gasto', pheno: 'sano', sex: 'h', talla: 170, peso: 78, bav: true,
     cfg: Object.assign(inv(), { o2dev: 'gafas' }),
     goal: 'Varón de 79 años, presíncope, sudoroso, FC 32 y TA baja. Consciente.',
-    hint: 'Atropina 0,5 mg (en el BAV completo suele fallar). Marcapasos transcutáneo a 70 lpm a demanda: sube los mA hasta la captura, confirma la mecánica (pletismografía y pulso femoral) y deja 10 mA por encima. Analgesia y sedación ligeras. Puente: adrenalina 2–10 mcg/min.',
-    targets: { tas: [100, 250] } }, O2),
+    hint: 'BAV completo con escape de QRS ancho: la atropina no está indicada (ERC 2025). Marcapasos transcutáneo a 70 lpm a demanda: sube los mA hasta la captura, confirma la mecánica (pletismografía y pulso femoral) y deja 10 mA por encima. Analgesia y sedación ligeras. Puente: adrenalina 2–10 mcg/min.',
+    targets: { tas: [90, 250] } }, O2),
 
   /* ---------- Parada ---------- */
   pcrFv: { lvl: 'Parada', title: 'PCR en FV', pheno: 'sano', sex: 'h', talla: 175, peso: 80, arrest: 'vf', comp: 'manual',
     cfg: { mode: 'CPV', pinsp: 15, fr: 10, ti: 1.0, peep: 0, fio2: 100, pmax: 60, vt: 500, tplat: 0 },
     goal: 'Varón de 58 años, FV presenciada en la ambulancia. Tu compañero comprime; ya está intubado y conectado al ventilador.',
-    hint: 'Carga mientras se comprime y descarga 150–200 J; reanuda las compresiones sin comprobar pulso. Análisis cada 2 min y relevo (o compresor mecánico). Adrenalina 1 mg y amiodarona 300 mg tras la 3.ª descarga; adrenalina cada 3–5 min y amiodarona 150 mg tras la 5.ª. Ventilación: CPV en el Monnal, CPR en el Medumat. Tras la RCE, SpO₂ 94–98 %, EtCO₂ 35–45, TAS > 100.',
+    hint: 'Carga mientras se comprime y descarga 150–200 J; reanuda las compresiones sin comprobar pulso. Análisis cada 2 min y relevo (o compresor mecánico). Adrenalina 1 mg y amiodarona 300 mg (o lidocaína 100 mg) tras la 3.ª descarga; adrenalina cada 3–5 min y amiodarona 150 mg (o lidocaína 50 mg) tras la 5.ª. Ventilación: CPV en el Monnal, CPR en el Medumat. Tras la RCE, SpO₂ 94–98 %, EtCO₂ 35–45, TAS > 100.',
     targets: {} },
-  fvRefractaria: { lvl: 'Parada', title: 'FV refractaria', pheno: 'sano', sex: 'h', talla: 182, peso: 95, arrest: 'vf', comp: 'manual', shockMul: .35,
+  fvRefractaria: { lvl: 'Parada', title: 'FV refractaria', pheno: 'sano', sex: 'h', talla: 182, peso: 95, arrest: 'vf', comp: 'manual', shockMul: .25,
     cfg: { mode: 'CPV', pinsp: 15, fr: 10, ti: 1.0, peep: 0, fio2: 100, pmax: 60, vt: 550, tplat: 0 },
     goal: 'Varón de 49 años, dolor torácico y FV en el domicilio. Intubado. Lleva varias descargas sin éxito.',
-    hint: 'Mantén la calidad: compresor mecánico, mínimas pausas, amiodarona 300 + 150 mg y adrenalina cada 3–5 min. Considera las causas reversibles y el traslado con compresor a un centro con hemodinámica o ECMO.',
+    hint: 'Tras tres descargas fallidas, cambia los parches a anteroposterior (cambio de vector, ERC 2025). Mantén la calidad: compresor mecánico, mínimas pausas, amiodarona 300 + 150 mg (o lidocaína 100 + 50 mg) y adrenalina cada 3–5 min. Considera las causas reversibles y el traslado con compresor a un centro con hemodinámica o ECMO.',
     targets: {} },
   aespPtx: { lvl: 'Parada', title: 'AESP por neumotórax a tensión', pheno: 'trauma', sex: 'h', talla: 176, peso: 80, arrest: 'aesp', arrestCause: 'ptx', comp: 'manual', ptx: .9, ptxTension: true, deficit: .15,
     cfg: { mode: 'CPV', pinsp: 15, fr: 10, ti: 1.0, peep: 0, fio2: 100, pmax: 60, vt: 500, tplat: 0 },
     goal: 'Varón de 30 años, accidente de tráfico. Intubado por bajo nivel de conciencia; en la ambulancia pierde el pulso. Monitor con complejos organizados.',
     hint: 'AESP traumática: 4H y 4T antes que adrenalina. Explora: hemitórax hipoventilado y timpánico. Descompresión (o toracostomía) bilateral si hay dudas, volumen y control de la hemorragia.',
     targets: {} },
-  asistolia: Object.assign({ lvl: 'Parada', title: 'Asistolia tras ahogamiento', pheno: 'sano', sex: 'm', talla: 150, peso: 45, arrest: 'asys', arrestCause: 'hypox', comp: 'manual',
+  asistolia: Object.assign({ lvl: 'Parada', title: 'Asistolia tras ahogamiento', pheno: 'sano', sex: 'm', talla: 150, peso: 45, ped: true, arrest: 'asys', arrestCause: 'hypox', comp: 'manual',
     cfg: Object.assign(inv({ vt: 350, fr: 10 }), { o2dev: 'reserv' }), iface: 'o2' }, AWAKE),
   pcrTep: { lvl: 'Parada', title: 'PCR por TEP masivo', pheno: 'sano', sex: 'm', talla: 165, peso: 75, arrest: 'aesp', arrestCause: 'tep', tep: .95, comp: 'manual',
     cfg: { mode: 'CPV', pinsp: 15, fr: 10, ti: 1.0, peep: 0, fio2: 100, pmax: 60, vt: 450, tplat: 0 },
@@ -1538,7 +1574,7 @@ const CASES = {
     goal: 'Elige paciente, interfaz y equipos; prueba ajustes y fármacos y provoca eventos desde el panel del instructor.', hint: null, targets: {} }
 };
 CASES.asistolia.goal = 'Niña de 13 años sacada de una piscina tras varios minutos sumergida. Asistolia. Tu compañero comprime; aún no tiene vía aérea avanzada.';
-CASES.asistolia.hint = 'En la parada por hipoxia la ventilación es la prioridad: ambú con O₂ al 100 % (5 insuflaciones de rescate) y compresiones; adrenalina 1 mg cuanto antes en ritmo no desfibrilable; intubación cuando sea posible sin interrumpir las compresiones.';
+CASES.asistolia.hint = 'En la parada por hipoxia la ventilación es la prioridad: ambú con O₂ al 100 % (5 insuflaciones de rescate) y compresiones 15:2; adrenalina 10 mcg/kg (≈ 0,45 mg) IV/IO cuanto antes en ritmo no desfibrilable y cada 3–5 min; si aparece un ritmo desfibrilable, 4 J/kg. Dosis por peso (ERC soporte vital pediátrico). Intubación cuando sea posible sin interrumpir las compresiones.';
 CASES.asistolia.targets = {};
 
 root.SIM_CASES = CASES;
@@ -1556,11 +1592,11 @@ const { SPEC, PKEYS, KEYS, DEVS, KEYLAB, MONS } = window.SIM_DEV;
 const CASES = window.SIM_CASES, GROUPS = window.SIM_GROUPS;
 const N = 750, SR = .02, GAP = 12, ZN = 750, ZSR = .008, ZGAP = 20;
 const MODEL_KEYS = ['pco2', 'deficit', 'bs', 'opioid', 'rhythm', 'arrPen', 'tep', 'anaf', 'cohb', 'cn', 'icp', 'icpGrow', 'weak', 'dav', 'edAir', 'edAirRate', 'asp', 'arrest', 'arrestCause', 'comp', 'bav', 'tasAdj', 'fcAdj', 'sevFloor', 'bottleL', 'bottleBar', 'leak10', 'relCe', 'sedE', 'sedStopped', 'sev', 'ptx', 'ptxTension', 'shockMul'];
-const O2LAB = { gafas: 'gafas nasales 2 L/min', venturi35: 'Venturi 35 %', venturi50: 'Venturi 50 %', reserv: 'mascarilla con reservorio 15 L/min' };
+const O2LAB = { gafas: 'gafas nasales 2 L/min', venturi28: 'Venturi 28 %', venturi35: 'Venturi 35 %', venturi50: 'Venturi 50 %', reserv: 'mascarilla con reservorio 15 L/min' };
 const IFLAB = { tube: 'tubo endotraqueal', mask: 'mascarilla oronasal', nasal: 'cánula nasal de alto flujo', o2: 'paciente sin conectar' };
 const IFSHORT = { tube: 'intubado', mask: 'VMNI', nasal: 'alto flujo', o2: 'oxigenoterapia' };
 const RLAB = { sinus: 'sinusal', tsinus: 'taquicardia sinusal', brady: 'bradicardia', sbrady: 'bradicardia sinusal', bav: 'BAV completo', paced: 'ritmo de marcapasos', aesp: 'AESP', vf: 'FV', tvsp: 'TVSP', asys: 'asistolia', tsv: 'TSV', fa: 'FA rápida', flutter: 'flutter auricular', tvp: 'TV con pulso' };
-const FALLBACK = { CPV: ['PCV', 'VCV'], ASV: ['APV', 'VCV'], APV: ['VCV'], PST: ['PSV'], CPAP: ['PSV'], VCV: ['APV'], PCV: ['APV'], PSV: ['CPAP'], HFNC: [], DEM: ['CPAP', 'PSV'], MAN: ['VCV', 'APV'] };
+const FALLBACK = { CPV: ['VCV', 'APV', 'PCV'], ASV: ['APV', 'VCV'], APV: ['VCV'], PST: ['PSV'], CPAP: ['PSV'], VCV: ['APV'], PCV: ['APV'], PSV: ['CPAP'], HFNC: [], DEM: ['CPAP', 'PSV'], MAN: ['VCV', 'APV'] };
 
 /* ---------- fármacos (dosis de referencia para adulto; el efecto se escala al peso del caso) ---------- */
 const DRUGSET = [
@@ -1576,7 +1612,8 @@ const DRUGSET = [
   { g: 'Hemodinámica y parada', items: [
     { id: 'fluid', lab: 'Cristaloide', act: 'fluid', note: '500 mL' }, { id: 'adr1', lab: 'Adrenalina', k: 'adr', dose: 1, u: 'mg', amt: 100 },
     { id: 'adrP', lab: 'Adrenalina en bolo', k: 'adr', dose: 20, u: 'mcg', amt: 4 }, { id: 'amio300', lab: 'Amiodarona', k: 'amio', dose: 300, u: 'mg' },
-    { id: 'amio150', lab: 'Amiodarona', k: 'amio', dose: 150, u: 'mg' }, { id: 'tnk', lab: 'Tenecteplasa', k: 'tnk', amt: 1, tnk: true, u: 'mg' }] },
+    { id: 'amio150', lab: 'Amiodarona', k: 'amio', dose: 150, u: 'mg' },
+    { id: 'lido100', lab: 'Lidocaína', k: 'lido', dose: 100, u: 'mg' }, { id: 'lido50', lab: 'Lidocaína', k: 'lido', dose: 50, u: 'mg' }, { id: 'tnk', lab: 'Tenecteplasa', k: 'tnk', amt: 1, tnk: true, u: 'mg' }] },
   { g: 'Arritmias', items: [
     { id: 'aden6', lab: 'Adenosina', k: 'aden', dose: 6, u: 'mg', amt: 6, route: ' IV rápida' }, { id: 'aden12', lab: 'Adenosina', k: 'aden', dose: 12, u: 'mg', amt: 12, route: ' IV rápida' },
     { id: 'aden18', lab: 'Adenosina', k: 'aden', dose: 18, u: 'mg', amt: 18, route: ' IV rápida' }, { id: 'atr', lab: 'Atropina', k: 'atr', dose: .5, u: 'mg' },
@@ -1599,9 +1636,17 @@ const PERFS = [
   { id: 'mid', lab: 'Midazolam', u: 'mg/h', d: 0, opts: [0, 2, 5, 10], set: r => sim.perf('mid', r / 60 * fW) },
   { id: 'fent', lab: 'Fentanilo', u: 'mcg/h', d: 0, opts: [0, 50, 100, 150, 200], set: r => sim.perf('fent', r / 60 * fW) }
 ];
-const roundDose = x => x >= 50 ? Math.round(x / 5) * 5 : x >= 10 ? Math.round(x) : Math.round(x * 10) / 10;
+const roundDose = x => x >= 50 ? Math.round(x / 5) * 5 : x >= 10 ? Math.round(x) : x >= 1 ? Math.round(x * 10) / 10 : Math.round(x * 100) / 100;
+const PED = { adr1: { k: .01, max: 1, t: '10 mcg/kg' }, adrP: { k: 1, max: 20, t: '1 mcg/kg' }, amio300: { k: 5, max: 300, t: '5 mg/kg' }, amio150: { k: 5, max: 150, t: '5 mg/kg' },
+  lido100: { k: 1, max: 100, t: '1 mg/kg' }, lido50: { k: .5, max: 50, t: '0,5 mg/kg' }, atr: { k: .02, min: .1, max: .5, t: '20 mcg/kg' }, aden6: { k: .1, max: 6, t: '0,1 mg/kg' },
+  aden12: { k: .2, max: 12, t: '0,2 mg/kg' }, aden18: { k: .3, max: 18, t: '0,3 mg/kg' }, adrIM: { k: .01, max: .5, t: '10 mcg/kg' }, nalox: { k: .01, max: .4, t: '10 mcg/kg' },
+  mid: { k: .05, max: 2, t: '0,05 mg/kg' }, morf: { k: .05, max: 3, t: '0,05 mg/kg' }, mg: { k: .04, max: 2, t: '40 mg/kg' }, dexclor: { k: .15, max: 5, t: '0,15 mg/kg' },
+  furo: { k: 1, max: 40, t: '1 mg/kg' }, hidroxo: { k: .07, max: 5, t: '70 mg/kg' } };
+const isPed = () => !!(CASES[caseKey] && CASES[caseKey].ped);
+const pedOf = it => isPed() && PED[it.id];
+const dd = x => x == null ? 0 : x < 1 ? (Math.round(x * 100) % 10 ? 2 : 1) : x % 1 ? 1 : 0;
 const tnkDose = p => p < 60 ? 30 : p < 70 ? 35 : p < 80 ? 40 : p < 90 ? 45 : 50;
-const doseOf = it => it.tnk ? tnkDose(peso) : it.mgkg != null ? roundDose(it.mgkg * peso) : it.dose;
+const doseOf = it => { const pd = pedOf(it); if (pd) return roundDose(clamp(pd.k * peso, pd.min || 0, pd.max)); return it.tnk ? tnkDose(peso) : it.mgkg != null ? roundDose(it.mgkg * peso) : it.dose; };
 
 const TGT = {
   spo2: { lab: 'SpO₂', u: '%', get: () => S.spo2 * 100, d: 0 }, et: { lab: 'EtCO₂', u: 'mmHg', get: () => M.et, d: 0 },
@@ -1663,7 +1708,7 @@ function fitMode(cfg, dev, iface) {
   if (DEVS[dev].spec.fio2 && DEVS[dev].spec.fio2.bin) c.fio2 = (c.fio2 || 100) > 80 ? 100 : 60;
   const m = uMode(c);
   if (!list.length || list.find(x => x[0] === m)) return c;
-  for (const f of FALLBACK[m] || []) if (list.find(x => x[0] === f)) { if (m === 'CPAP' && f === 'PSV') c.ps = 0; if (m === 'CPV') { c.trigI = ((DEVS[dev].spec.trigI || {}).max) || SPEC.trigI.max; c.fr = Math.min(c.fr || 10, 10); } c.mode = f; delete c.umode; return toModel(c); }
+  for (const f of FALLBACK[m] || []) if (list.find(x => x[0] === f)) { if (m === 'CPAP' && f === 'PSV') c.ps = 0; if (m === 'CPV') { c.trigI = ((DEVS[dev].spec.trigI || {}).max) || SPEC.trigI.max; c.fr = Math.min(c.fr || 10, 10); c.peep = Math.min(c.peep || 0, 5); c.pmax = 60; } /* ERC 2025: volumen control, PEEP 0–5, alarma de pico 60–70 */ c.mode = f; delete c.umode; return toModel(c); }
   c.mode = list[0][0]; delete c.umode; return toModel(c);
 }
 const ventOffNow = () => S.iface === 'o2' || S.standby || (S.dev.pneumatic && !S.o2.supply && (S.iface === 'tube' || S.iface === 'mask'));
@@ -1703,7 +1748,7 @@ function loadCase(k) {
   // datos del paciente en el ventilador: si ya estaba conectado, los metió quien lo conectó; si no, los de fábrica (Monnal: mujer de 165 cm)
   devPat = iface !== 'o2' ? { sex: c.sex || S.P.sex, talla: c.talla || S.P.talla } : dev === 'monnal' ? { sex: 'm', talla: 165 } : { sex: 'h', talla: 170 };
   track = { t: {}, worst: { spo2: 100, tas: 300, ppk: 0 }, events: [], acts: 0, drugs: [], intubAt: null, peri: null, induct: null, relax: null, attempts: 0, cric: false,
-    arrestAt: S.arrest ? 0 : null, firstShock: null, lastShock: null, shocks: 0, adr: [], amio: 0, roscAt: null, nalox: null, convAt: null, hadArr: false, standbyApnea: 0 };
+    arrestAt: S.arrest ? 0 : null, firstShock: null, lastShock: null, shocks: 0, adr: [], amio: 0, lido: 0, roscAt: null, nalox: null, convAt: null, hadArr: false, standbyApnea: 0 };
   for (const key in (c.targets || {})) track.t[key] = { inT: 0, tot: 0 };
   sched = (c.events || []).map(e => Object.assign({ fired: false }, e));
   S.onSlow = onSlow; S.onIntubated = onIntubated; S.onIntubFail = onIntubFail; ended = false; prevArrest = S.arrest;
@@ -2059,7 +2104,8 @@ function applyMonUI() {
   const m = $('#monSel').value, mo = MONS[m];
   $('#zoll').classList.toggle('corpuls', m === 'corpuls');
   $('#monName').textContent = mo.name;
-  $('#zJ').innerHTML = mo.energies.map(e => `<option value="${e}" ${e === mo.def ? 'selected' : ''}>${e} J</option>`).join('');
+  const def = isPed() ? mo.energies.reduce((b, e) => Math.abs(e - 4 * peso) < Math.abs(b - 4 * peso) ? e : b, mo.energies[0]) : mo.def;
+  $('#zJ').innerHTML = mo.energies.map(e => `<option value="${e}" ${e === def ? 'selected' : ''}>${e} J</option>`).join('');
   $('#zRate').innerHTML = Array.from({ length: 31 }, (_, i) => 30 + i * 5).map(r => `<option ${r === 70 ? 'selected' : ''}>${r}</option>`).join('');
   $('#zmA').innerHTML = Array.from({ length: 29 }, (_, i) => i * 5).map(a => `<option value="${a}">${a}</option>`).join('');
   refreshZC();
@@ -2170,6 +2216,7 @@ $('#zShock').addEventListener('click', () => {
   logIt(`Descarga ${J} J${sync ? ' sincronizada' : ''}${res}`); if (isAed) monMsg('Descarga administrada. Reanude la RCP.');
   updateDefib();
 });
+$('#zPads').addEventListener('click', () => { sim.setPads(!S.cpr.ap); logIt(S.cpr.ap ? 'Parches en posición anteroposterior (cambio de vector)' : 'Parches en posición anterolateral'); track.drugs.push([S.clin, S.cpr.ap ? 'Parches anteroposteriores' : 'Parches anterolaterales']); updateDefib(); });
 $('#zSil').addEventListener('click', () => { monSilUntil = S.clin < monSilUntil ? -1 : S.clin + 2; updateDefib(); });
 $('#zMarkBtn').addEventListener('click', () => { logIt('Marcador: ' + $('#zMark').value); track.drugs.push([S.clin, 'Marcador: ' + $('#zMark').value]); });
 function aedEnergy() { const e = MONS[$('#monSel').value].aed; return e[Math.min(track.shocks, e.length - 1)]; }
@@ -2182,6 +2229,7 @@ function updateDefib() {
   s.disabled = defib.st !== 'ready'; s.classList.toggle('ready', defib.st === 'ready');
   s.textContent = defib.st === 'ready' ? 'Descarga ' + (isAed ? aedEnergy() : $('#zJ').value) + ' J' : 'Descarga';
   $('#zAnalyze').disabled = aed.st !== 'idle';
+  $('#zPads').setAttribute('aria-pressed', S.cpr.ap ? 'true' : 'false'); $('#zPads').textContent = S.cpr.ap ? 'Parches AP' : 'Parches AL';
   $('#zSil').setAttribute('aria-pressed', S.clin < monSilUntil); $('#zSil').textContent = S.clin < monSilUntil ? 'Silenciado' : 'Silenciar';
   $('#zMsg').textContent = performance.now() < zMsgUntil ? zMsg : '';
 }
@@ -2244,12 +2292,14 @@ function readings() {
   if (S.arrest) {
     const cp = S.cpr, shock = S.rhythm === 'vf' || S.rhythm === 'tvsp';
     if (cp.comp === 'off' && !resume) out.push(['bad', 'Parada sin compresiones', `Tiempo total sin flujo: ${fmt(cp.noFlow, 1)} min.`, 'Compresiones ya, manuales o con el compresor. Minimiza las pausas.']);
-    if (shock && (track.lastShock == null || S.clin - track.lastShock > 2.2)) out.push(['bad', 'Ritmo desfibrilable', 'FV o TV sin pulso en el monitor.', syncOn ? 'Desactiva SINC: en FV no hay onda R y el equipo no descargará.' : 'Carga mientras se comprime, descarga 150–200 J y reanuda las compresiones sin comprobar pulso.']);
+    if (shock && (track.lastShock == null || S.clin - track.lastShock > 2.2)) out.push(['bad', 'Ritmo desfibrilable', 'FV o TV sin pulso en el monitor.', syncOn ? 'Desactiva SINC: en FV no hay onda R y el equipo no descargará.' : `Carga mientras se comprime, descarga ${isPed() ? `4 J/kg (≈ ${fmt(4 * peso)} J)` : '150–200 J'} y reanuda las compresiones sin comprobar pulso.`]);
     if (cp.comp === 'manual' && cp.relevo > 2) out.push(['warn', 'Compresor cansado', `${fmt(cp.relevo, 1)} min sin relevo: la calidad cae.`, 'Relevo cada 2 min, aprovechando el análisis, o compresor mecánico.']);
     const lastAdr = track.adr.length ? S.clin - track.adr[track.adr.length - 1] : null;
-    if (!shock && (lastAdr == null || lastAdr > 5)) out.push(['warn', 'Adrenalina', lastAdr == null ? 'Aún no se ha dado.' : `Última dosis hace ${fmt(lastAdr)} min.`, 'Adrenalina 1 mg cada 3–5 min; en ritmo no desfibrilable, cuanto antes.']);
-    if (shock && track.shocks >= 3 && !track.amio) out.push(['warn', 'Tres descargas', 'Ritmo desfibrilable refractario.', 'Adrenalina 1 mg y amiodarona 300 mg tras la tercera descarga.']);
-    if (vent && tube && cp.comp !== 'off' && c.mode !== 'CPV' && (d.modes.tube.some(x => x[0] === 'CPV') || c.mode !== 'PCV' || c.fr > 12 || c.trigI < 5)) out.push(['warn', 'Modo no pensado para la RCP', 'Las compresiones disparan ciclos o cortan por presión máxima.', d.modes.tube.find(x => x[0] === 'CPV') ? `Pasa a ${modeLabel('CPV', null, 'tube')}: 10 c/min, FiO₂ 100 %.` : `${modeLabel('PCV', null, 'tube')} con FR 10, PEEP 0–5, FiO₂ 100 % y trigger al máximo para que las compresiones no disparen ciclos; o bolsa a 10/min.`]);
+    const adrTxt = isPed() ? `Adrenalina 10 mcg/kg (${fmt(Math.min(1, .01 * peso), 2)} mg)` : 'Adrenalina 1 mg';
+    if (!shock && (lastAdr == null || lastAdr > 5)) out.push(['warn', 'Adrenalina', lastAdr == null ? 'Aún no se ha dado.' : `Última dosis hace ${fmt(lastAdr)} min.`, `${adrTxt} cada 3–5 min; en ritmo no desfibrilable, cuanto antes.`]);
+    if (shock && track.shocks >= 3 && (!track.amio && !track.lido || !S.cpr.ap)) out.push(['warn', 'FV refractaria', `${track.shocks} descargas sin éxito.`, `${!track.amio && !track.lido ? `${adrTxt} y ${isPed() ? 'amiodarona 5 mg/kg' : 'amiodarona 300 mg (o lidocaína 100 mg)'} tras la tercera descarga. ` : ''}${!S.cpr.ap ? 'Cambia los parches a anteroposterior en el próximo análisis (ERC 2025).' : ''}`]);
+    const hasCpv = d.modes.tube.some(x => x[0] === 'CPV');
+    if (vent && tube && cp.comp !== 'off' && c.mode !== 'CPV' && (hasCpv || !['VCV', 'APV'].includes(c.mode) || c.fr > 12 || c.trigI < 5 || c.peep > 5 || c.pmax < 55)) out.push(['warn', 'Ventilador no ajustado para la RCP', 'Las compresiones disparan ciclos o cortan por presión máxima.', hasCpv ? `Pasa a ${modeLabel('CPV', null, 'tube')}: 10 c/min, FiO₂ 100 %.` : `ERC 2025: ${modeLabel(d.modes.tube.some(x => x[0] === 'VCV') ? 'VCV' : 'APV', null, 'tube')} con 6–8 mL/kg, FR 10, PEEP 0–5, FiO₂ 100 %, trigger al máximo y alarma de presión alta en 60–70; o bolsa a 10/min.`]);
     if (M.et != null && M.et < 10 && cp.comp !== 'off' && S.t > 10) out.push(['warn', 'EtCO₂ < 10 mmHg en RCP', 'Gasto cardiaco muy bajo o tubo mal colocado.', 'Mejora las compresiones y comprueba el tubo.']);
     const cause = { hypox: 'Hipoxia: oxigena y ventila con O₂ al 100 %; vía aérea.', ptx: 'Neumotórax a tensión: descomprime.', hypo: 'Hipovolemia: volumen.', opi: 'Opiáceos: naloxona y ventilación.', tep: 'TEP: fibrinólisis y RCP prolongada con compresor.', anaf: 'Anafilaxia: adrenalina y volumen a chorro.', co: 'CO e hipoxia: O₂ al 100 %.', vt: 'TV: desfibrila.' }[cp.cause];
     if (cause) out.push(['warn', 'Causa reversible probable', '4H y 4T.', cause]);
@@ -2268,12 +2318,12 @@ function readings() {
   if (!S.arrest && track.intubAt != null && S.clin - track.intubAt < 15 && S.tas < 90) out.push(['bad', 'Hipotensión tras la intubación', `TAS ${fmt(S.tas)} mmHg.`, 'Inductor y presión positiva sin precarga: volumen, noradrenalina o adrenalina en bolo de 10–20 mcg; revisa la PEEP.']);
   if (!S.arrest && S.arr.type && S.arr.type !== 'sbrady') {
     const unstable = S.tas < 90;
-    out.push([unstable ? 'bad' : 'warn', RLAB[S.arr.type] + (unstable ? ' inestable' : ' estable'), `FC ${fmt(S.fc)} lpm, TAS ${fmt(S.tas)} mmHg.`, unstable ? 'Cardioversión sincronizada con sedación (TSV o flutter 70–120 J; FA o TV 120–150 J). Activa SINC antes de cargar.' : S.arr.type === 'tsv' ? 'Maniobras vagales y adenosina 6 → 12 → 18 mg.' : S.arr.type === 'tvp' ? 'Amiodarona 300 mg en 10–20 min con el desfibrilador preparado.' : 'Control de frecuencia; anticoagulación según tiempo de evolución.']);
+    out.push([unstable ? 'bad' : 'warn', RLAB[S.arr.type] + (unstable ? ' inestable' : ' estable'), `FC ${fmt(S.fc)} lpm, TAS ${fmt(S.tas)} mmHg.`, unstable ? `Cardioversión sincronizada con sedación: TSV o flutter 70–120 J; TV 120–150 J; FA a la energía máxima (${Math.max(...MONS[$('#monSel').value].energies)} J). Activa SINC antes de cargar.` : S.arr.type === 'tsv' ? 'Maniobras vagales y adenosina 6 → 12 → 18 mg.' : S.arr.type === 'tvp' ? 'Amiodarona 300 mg en 10–20 min con el desfibrilador preparado.' : 'Control de frecuencia; anticoagulación según tiempo de evolución.']);
   }
   if (!S.arrest && S.arr.type === 'sbrady') out.push(['bad', 'Bradicardia con bajo gasto', `FC ${fmt(S.fc)} lpm.`, 'Atropina 0,5 mg cada 3–5 min; si no responde, adrenalina 2–10 mcg/min o marcapasos.']);
   if (!S.arrest && S.pace.on && !S.pace.capture && !(S.pace.mode === 'demand' && (S.fcIntr || 0) >= S.pace.rate)) out.push(['warn', 'Marcapasos sin captura', `${S.pace.mA} mA no capturan.`, 'Sube de 10 en 10 mA hasta captura y pulso; deja 10 mA por encima del umbral.']);
   if (!S.arrest && S.pace.on && S.pace.capture && S.pace.mA >= 40 && S.sedTot < .3 && S.opi < .3) out.push(['warn', 'Marcapasos sin analgesia', 'La estimulación transcutánea duele.', 'Fentanilo y midazolam a dosis bajas.']);
-  if (!S.arrest && S.bav && !S.pace.capture && S.fc < 45) out.push(['bad', 'BAV completo con bajo gasto', `FC ${fmt(S.fc)} lpm.`, 'Atropina 0,5 mg (suele fallar); marcapasos transcutáneo o adrenalina 2–10 mcg/min.']);
+  if (!S.arrest && S.bav && !S.pace.capture && S.fc < 45) out.push(['bad', 'BAV completo con bajo gasto', `FC ${fmt(S.fc)} lpm, escape de QRS ancho.`, 'Con QRS ancho la atropina no está indicada (ERC 2025): marcapasos transcutáneo o adrenalina 2–10 mcg/min.']);
   if (!S.arrest && S.tep > .3) out.push(['warn', 'Patrón de TEP', `EtCO₂ ${fmt(M.et)} frente a PaCO₂ ≈ ${fmt(S.pco2)} mmHg: espacio muerto.`, 'Noradrenalina para TAS ≥ 90, volumen prudente, PEEP baja y fibrinólisis si es de alto riesgo.']);
   if (!S.arrest && S.anaf > .2) out.push([S.tas < 90 ? 'bad' : 'warn', 'Anafilaxia activa', `TAS ${fmt(S.tas)}, broncoespasmo y angioedema.`, 'Adrenalina IM 0,5 mg (repite a los 5 min), volumen; perfusión de adrenalina si es refractaria.']);
   if (!S.arrest && S.cohb > .1) out.push(['warn', 'Carboxihemoglobina', `SpCO ${fmt(M.spco)} %: la SpO₂ de ${fmt(S.spo2 * 100)} % sobrestima el O₂ real.`, S.fiEff < .8 ? 'O₂ al 100 %: reservorio bien ajustado, VMNI con FiO₂ 100 % o intubación.' : 'Mantén O₂ al 100 % y valora cámara hiperbárica.']);
@@ -2353,24 +2403,26 @@ function logIt(t) { const s = Math.round((S ? S.clin : 0) * 60); const hh = Stri
 
 /* ---------- fármacos ---------- */
 function renderDrugs() {
-  const btn = it => { const ds = it.act ? null : doseOf(it);
-    const sub = it.note && ds == null ? it.note : ds != null && it.u ? `${fmt(ds, ds < 1 ? 1 : 0)} ${it.u}${it.mgkg ? ' · ' + fmt(it.mgkg, it.mgkg % 1 ? 1 : 0) + ' ' + it.u + '/kg' : it.tnk ? ' por peso' : ''}` : it.note || '';
+  const btn = it => { const ds = it.act ? null : doseOf(it), pd = pedOf(it);
+    const sub = it.note && ds == null ? it.note : ds != null && it.u ? `${fmt(ds, dd(ds))} ${it.u}${pd ? ' · ' + pd.t : it.mgkg ? ' · ' + fmt(it.mgkg, it.mgkg % 1 ? 1 : 0) + ' ' + it.u + '/kg' : it.tnk ? ' por peso' : ''}` : it.note || '';
     return `<button class="btn" data-drug="${it.id}">${it.lab}${sub ? ` <small>${sub}</small>` : ''}</button>`; };
   const perf = p => `<div class="range"><label class="small" for="pf_${p.id}">${p.lab}</label><select id="pf_${p.id}" data-perf="${p.id}">${p.opts.map(o => `<option value="${o}">${o ? fmt(o, p.d) + ' ' + p.u + (p.extra ? p.extra(o) : '') : 'parada'}</option>`).join('')}</select></div>`;
-  $('#drugPanel').innerHTML = `<span class="flabel">Fármacos · dosis para ${fmt(peso)} kg</span>` +
+  $('#drugPanel').innerHTML = `<span class="flabel">Fármacos · ${isPed() ? 'dosis pediátricas por peso' : 'dosis'} para ${fmt(peso)} kg</span>` +
     DRUGSET.map(g => `<details class="dg"${g.open ? ' open' : ''}><summary>${g.g}</summary><div class="abtns">${g.items.map(btn).join('')}</div></details>`).join('') +
     `<details class="dg"><summary>Perfusiones</summary><div class="agroup" style="margin-top:6px">${PERFS.map(perf).join('')}</div></details>`;
 }
 function giveDrug(id) {
   const it = DRUGITEMS[id];
   if (it.act) { sim.action(it.act); const t = ACTLAB[it.act] || it.lab; logIt(t); track.drugs.push([S.clin, t]); return; }
-  const ds = doseOf(it), amt = it.amt != null ? it.amt : ds * fW;
+  const ds = doseOf(it), pd = pedOf(it);
+  const amt = pd ? (it.amt != null ? it.amt * ds / it.dose : ds) * 75 / peso : it.amt != null ? it.amt : ds * fW;
   sim.drug(it.k, amt);
   const route = it.route != null ? it.route : ' IV';
-  const txt = it.lab + (ds != null && it.u ? ' ' + fmt(ds, ds < 1 ? 1 : 0) + ' ' + it.u : '') + (it.note ? ' (' + it.note + ')' : '') + route;
+  const txt = it.lab + (ds != null && it.u ? ' ' + fmt(ds, dd(ds)) + ' ' + it.u : '') + (it.note ? ' (' + it.note + ')' : '') + route;
   track.drugs.push([S.clin, txt]); logIt(txt);
   if (it.k === 'adr' && it.amt === 100 && S.arrest) track.adr.push(S.clin);
   if (it.k === 'amio' && S.arrest) track.amio += ds;
+  if (it.k === 'lido' && S.arrest) track.lido += ds;
   if (it.k === 'nalox') track.nalox = S.clin;
   if (['ket', 'eto', 'prop'].includes(it.k) && S.iface !== 'tube' && !track.induct) track.induct = txt;
   if (['rel', 'sux'].includes(it.k) && S.iface !== 'tube' && !track.relax) track.relax = txt;
@@ -2454,7 +2506,7 @@ function showDebrief(reason) {
     const cp = S.cpr, frac = cp.cprTime + cp.noFlow > 0 ? cp.cprTime / (cp.cprTime + cp.noFlow) : 0;
     cpr = H('Parada') + `<table class="dtable"><tr><td>Primera descarga</td><td class="n">${track.firstShock != null ? 'a los ' + mmss(track.firstShock) + ' min' : '—'}</td></tr><tr><td>Descargas</td><td class="n">${track.shocks}</td></tr>` +
       `<tr><td>Fracción de compresiones</td><td class="n">${fmt(frac * 100)} %</td></tr><tr><td>Tiempo total sin flujo</td><td class="n">${fmt(cp.noFlow, 1)} min</td></tr>` +
-      `<tr><td>Adrenalina 1 mg</td><td class="n">${track.adr.length} dosis</td></tr><tr><td>Amiodarona</td><td class="n">${fmt(track.amio)} mg</td></tr>` +
+      `<tr><td>Adrenalina 1 mg</td><td class="n">${track.adr.length} dosis</td></tr><tr><td>Amiodarona / lidocaína</td><td class="n">${fmt(track.amio)} / ${fmt(track.lido)} mg</td></tr><tr><td>Parches</td><td class="n">${S.cpr.ap ? 'anteroposteriores' : 'anterolaterales'}</td></tr>` +
       `<tr><td>RCE</td><td class="n">${track.roscAt != null ? 'a los ' + fmt(track.roscAt - track.arrestAt, 1) + ' min' : 'no'}</td></tr></table>`;
   }
   let isr = '';

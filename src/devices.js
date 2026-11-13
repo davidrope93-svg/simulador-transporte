@@ -100,8 +100,8 @@ const KEYLAB = {
 
 /* Monitores-desfibriladores */
 const MONS = {
-  zoll: { name: 'Estilo ZOLL X Series', short: 'ZOLL X Series', energies: [50, 70, 85, 100, 120, 150, 200], def: 150, aed: [120, 150, 200], paceRates: [30, 180], paceMa: [0, 140], cpr: 'Real CPR Help', rainbow: 'SpCO (opción rainbow)' },
-  corpuls: { name: 'Estilo corpuls3', short: 'corpuls3', energies: [50, 70, 100, 120, 150, 200], def: 150, aed: [150, 200, 200], paceRates: [30, 180], paceMa: [0, 140], cpr: 'feedback de RCP', rainbow: 'SpCO (rainbow)' }
+  zoll: { name: 'Estilo ZOLL X Series', short: 'ZOLL X Series', energies: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 30, 50, 70, 85, 100, 120, 150, 200], def: 150, aed: [120, 150, 200], paceRates: [30, 180], paceMa: [0, 140], cpr: 'Real CPR Help', rainbow: 'SpCO (opción rainbow)' },
+  corpuls: { name: 'Estilo corpuls3', short: 'corpuls3', energies: [2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 30, 50, 70, 100, 120, 150, 200], def: 150, aed: [150, 200, 200], paceRates: [30, 180], paceMa: [0, 140], cpr: 'feedback de RCP', rainbow: 'SpCO (rainbow)' }
 };
 
 root.SIM_DEV = { SPEC, PKEYS, KEYS, DEVS, KEYLAB, MONS };

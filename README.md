@@ -45,14 +45,31 @@ En el Medumat, además de los modos del motor, la interfaz usa `DEM` (RSI · Dem
 | `src/ui.js` | Interfaz: pantallas, mandos, alarmas, acciones, fármacos, lectura y debrief. |
 | `src/template.html` | Maquetación y estilos. |
 | `build.py` | Une todo en `index.html`. |
+| `tests/run.js` | Pruebas del motor (`node tests/run.js`): fisiología de referencia, independencia de la velocidad, parada y los 45 casos. GitHub las ejecuta en cada cambio. |
+
+## Pruebas
+
+Cada versión tiene que pasar 33 pruebas con rangos de referencia: regresión de la mecánica, tiempo de desaturación en apnea (sano preoxigenado 7–9,5 min, con aire 0,6–2 min, obeso 2,3–3,6 min) igual a ×1 que a ×20, PaCO₂ en respiración espontánea (TSV, TEP, opiáceos, EPOC con hiperoxia), SpO₂ del EPOC según FiO₂, EtCO₂ durante la RCP, tiempo de acción del relajante y tasas de RCE según se resuelva o no la causa.
+
+## Cambios en la v0.5
+
+- La fisiología ya no depende de la velocidad: la ventilación alveolar se calcula a partir de las últimas respiraciones y cae a cero en el acto en apnea.
+- Parada: la RCE depende de resolver la causa, de la fracción de compresión, del tiempo sin flujo, de la adrenalina y de la duración; FV refractaria con cambio de parches a anteroposterior (ERC 2025); lidocaína como alternativa a la amiodarona.
+- EtCO₂ de la RCP proporcional al flujo de las compresiones (10–20 mmHg, baja con el tiempo y con mala calidad).
+- Control ventilatorio en respiración espontánea: respuesta al CO₂, a la hipoxemia frenada por la hipocapnia, a la acidosis láctica y al TEP; lactato y tampón agudo en el pH; fatiga de la musculatura débil.
+- EPOC: SpO₂ 88 % con aire y 93 % con FiO₂ 28 %; la hiperoxia sube la pCO₂. Nueva Venturi 28 %.
+- Intubación solo con bloqueo completo (45–60 s tras el relajante).
+- Parada por hipotensión mantenida (TAS < 50 durante 2,5 min).
+- Caso pediátrico con dosis y energías por peso (ERC soporte vital pediátrico) y energías bajas en los monitores.
+- Textos según ERC 2025: FA inestable a energía máxima, sin atropina en el BAV de QRS ancho, ventilador en RCP en volumen control con PEEP 0–5.
 
 ## Supuestos sin confirmar en la documentación pública
 
-- Air Mix del Medumat ≈ 60 % de FiO₂; Vt del preajuste «Paciente nuevo» 7 mL/kg.
+- Air Mix del Medumat ≈ 60 % de FiO₂ (coherente con la fórmula de autonomía del fabricante, que se duplica con Air Mix); Vt del preajuste «Paciente nuevo» 7 mL/kg.
 - Vt del Quick setup 1 del T1 8 mL/kg; ASV simplificado.
 - Duración de O₂ 100 % del Monnal: 2 min.
 - Nombres de modos del Monnal y del Medumat aproximados a las versiones habituales.
-- Listas de energía y secuencia del DEA aproximadas; probabilidades de éxito de descarga, cardioversión y RCE orientativas.
+- Pasos de energía del corpuls3 (el fabricante da 2–200 J) y secuencia del DEA aproximados; probabilidades de éxito de descarga, cardioversión y RCE orientativas.
 - Tiempo de descarte de cambios sin confirmar: 20 s, genérico.
 
 ## Fuentes de referencia
@@ -61,4 +78,4 @@ Guía rápida y especificaciones técnicas del Hamilton T1; manual de usuario de
 
 ## Aviso
 
-Herramienta docente. Valores y dosis orientativos (dosis de referencia para adulto, calculadas con el peso del caso). No sustituye al manual del equipo, a los protocolos del servicio ni al juicio clínico.
+Herramienta docente. Valores y dosis orientativos (dosis de referencia para adulto, o pediátricas por peso en los casos marcados como pediátricos). No sustituye al manual del equipo, a los protocolos del servicio ni al juicio clínico.
