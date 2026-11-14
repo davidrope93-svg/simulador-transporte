@@ -35,7 +35,7 @@ const NIV = Object.assign({ iface: 'mask' }, AWAKE);
 const O2 = Object.assign({ iface: 'o2' }, AWAKE);
 const inv = (o) => Object.assign({ mode: 'VCV', vt: 480, fr: 16, ti: 1.0, tplat: 0, peep: 5, fio2: 100, pmax: 40, flow: 50 }, o || {});
 
-const GROUPS = ['VMI · SVA', 'VMI · HEMS', 'VMNI', 'Vía aérea', 'Oxigenoterapia e intoxicaciones', 'Pediatría', 'Trauma y obstetricia', 'Metabólico y ambiental', 'Shock', 'Cardiología', 'Neurología', 'Arritmias', 'Parada', 'Libre'];
+const GROUPS = ['VMI · SVA', 'VMI · HEMS', 'VMNI', 'Vía aérea', 'Oxigenoterapia e intoxicaciones', 'Pediatría', 'Neonatal', 'Trauma y obstetricia', 'Metabólico y ambiental', 'Shock', 'Cardiología', 'Neurología', 'Arritmias', 'Parada', 'Libre'];
 
 const CASES = {
   /* ---------- VMI · SVA ---------- */
@@ -197,11 +197,11 @@ const CASES = {
     hint: 'Vortex: tres intentos como máximo con cada técnica. Plan A: ISR con videolaringoscopio y bougie. Plan B: dispositivo supraglótico (i-gel). Plan C: bolsa y mascarilla con cánula y dos manos (aquí casi no ventila por la sangre y la fractura facial). Si ninguna oxigena (CICO): cricotiroidotomía sin esperar a la parada.',
     checks: [['act:vl', 'Videolaringoscopio'], ['act:sga', 'Supraglótico'], ['act:cric', 'Cricotiroidotomía']],
     targets: { spo2: [92, 100] } }, O2),
-  quemado: Object.assign({ lvl: 'Vía aérea', title: 'Incendio: inhalación de humo y vía aérea que se cierra', pheno: 'sano', sex: 'h', talla: 176, peso: 80, cohb: .28, cn: .35, edAir: .3, edAirRate: .06,
+  quemado: Object.assign({ lvl: 'Vía aérea', title: 'Incendio: inhalación de humo y vía aérea que se cierra', pheno: 'sano', sex: 'h', talla: 176, peso: 80, cohb: .28, cn: .35, edAir: .3, edAirRate: .06, burn: 24, pain: .6, deficit: .1,
     cfg: Object.assign(inv({ vt: 500, fr: 16, peep: 5 }), { o2dev: 'gafas' }),
-    goal: 'Varón de 48 años rescatado de un incendio en un garaje. Quemaduras faciales, voz ronca, confuso. SpO₂ 99 % con gafas. TAS 105.',
-    hint: 'La SpO₂ no ve la carboxihemoglobina: mira la SpCO y oxigena al 100 % (reservorio, VMNI o intubación). Lactato alto y shock en un incendio cerrado = piensa en cianuro: hidroxocobalamina 5 g. Voz ronca, estridor y hollín: intuba pronto, antes de que el edema cierre la vía aérea.',
-    checks: [['drug:hidroxo', 'Hidroxocobalamina'], ['intub', 'Vía aérea definitiva']],
+    goal: 'Varón de 48 años rescatado de un incendio en un garaje. Quemaduras en la cara, el cuello, el tórax y los brazos; voz ronca, confuso. SpO₂ 99 % con gafas. TAS 105.',
+    hint: 'La SpO₂ no ve la carboxihemoglobina: mira la SpCO y oxigena al 100 % (reservorio, VMNI o intubación). Lactato alto y shock en un incendio cerrado = piensa en cianuro: hidroxocobalamina 5 g. Voz ronca, estridor y hollín: intuba pronto, antes de que el edema cierre la vía aérea. Además es un gran quemado (calcula la superficie con la regla de los 9): cristaloide en bomba a 500 mL/h sin bolos, analgesia y manta; el exceso de volumen empeora el edema de la vía aérea.',
+    checks: [['drug:hidroxo', 'Hidroxocobalamina'], ['intub', 'Vía aérea definitiva'], ['perf:cris', 'Cristaloide en bomba']],
     targets: { spo2: [94, 100], tas: [90, 250] } }, O2),
 
   /* ---------- Pediatría (v0.7) ---------- */
@@ -223,6 +223,20 @@ const CASES = {
     hint: 'Adrenalina IM 0,01 mg/kg (0,2 mg) en el muslo, repetible a los 5 min; O₂, tumbada con las piernas elevadas y cristaloide 10 mL/kg (200 mL). Salbutamol si persiste el broncoespasmo. Si no responde a dos dosis IM, perfusión de adrenalina. Antihistamínico y corticoide, después.',
     checks: [['drug:adrIM', 'Adrenalina IM'], ['act:fluid', 'Cristaloide'], ['noarrest', 'Sin parada']],
     targets: { spo2: [94, 100], tas: [80, 250] } }, O2),
+
+  /* ---------- Neonatal (v1.9) ---------- */
+  rnApnea: Object.assign({ lvl: 'Neonatal', title: 'Recién nacido que no respira', pheno: 'sano', sex: 'h', talla: 50, peso: 3.4, ped: true, neo: { m: .55, aer: .12, hr: 70 }, temp: 36.9, tempRate: -8, speed: 1, duration: 12,
+    cfg: { o2dev: 'gafas', fio2: 21 },
+    goal: 'Parto en casa a las 39 semanas, atendido por la matrona del centro de salud, que os acaba de llamar. Al salir, el niño no respira, está hipotónico y cianótico; el cordón ya está pinzado. FC ≈ 70 por auscultación.',
+    hint: 'Secar, quitar la toalla mojada, gorro y calor, estimulando al secar. Vía aérea en posición neutra. Si no respira: 5 insuflaciones de 2–3 s a 30 cmH₂O con FiO₂ 21 % y comprueba que el tórax se mueve. Después, ventila a 30/min y reevalúa la FC cada 30 s: si sube por encima de 100, sigue hasta que respire bien. Ajusta la FiO₂ a la SpO₂ preductal (mano derecha): 2 min 65 %, 5 min 85 %, 10 min 90 %. Compresiones solo si la FC sigue por debajo de 60 tras 30 s de ventilación eficaz.',
+    checks: [['act:warm', 'Secar y abrigar'], ['act:infl', '5 insuflaciones'], ['act:bag', 'Ventilar a 30/min']],
+    targets: { fc: [100, 180], spo2: [80, 100], temp: [36.5, 37.6] } }, O2),
+  rnRcp: Object.assign({ lvl: 'Neonatal', title: 'Recién nacido con bradicardia extrema: compresiones 3:1', pheno: 'sano', sex: 'm', talla: 49, peso: 3.1, ped: true, neo: { m: .12, aer: .1, obs: .6, sec: true, hr: 40 }, temp: 36.8, tempRate: -8, access: false, speed: 1, duration: 15,
+    cfg: { o2dev: 'gafas', fio2: 21 },
+    goal: 'Parto en la ambulancia camino del hospital: expulsivo prolongado con líquido teñido de meconio. Nace flácida, pálida y sin respirar; FC ≈ 40 por auscultación.',
+    hint: 'Secar y abrigar, posición neutra y 5 insuflaciones a 30 cmH₂O. Si el tórax no se mueve, corrige antes de seguir (posición, sellado a dos manos y tracción mandibular, aspirar si hay secreciones espesas, abrir la boca, más presión; supraglótico o tubo) y repite las insuflaciones; no aspires la tráquea de rutina por el meconio. Con FC < 60 tras 30 s de ventilación eficaz: compresiones 3:1 con los dos pulgares (90 compresiones y 30 insuflaciones por minuto) y FiO₂ 100 %, reevaluando cada 30 s. Si sigue por debajo de 60: catéter venoso umbilical (o intraósea) y adrenalina 20 mcg/kg IV cada 3–5 min; volumen 10 mL/kg si sospechas pérdida de sangre. Con FC > 60, para las compresiones; con FC > 100, baja la FiO₂ según la SpO₂.',
+    checks: [['act:warm', 'Secar y abrigar'], ['act:infl', '5 insuflaciones'], ['act:neoPos|act:neoSuct', 'Corregir la ventilación'], ['act:neoComp', 'Compresiones 3:1'], ['act:uvc|act:io', 'Acceso vascular'], ['drug:adr', 'Adrenalina 20 mcg/kg']],
+    targets: { fc: [100, 180], spo2: [80, 100], temp: [36.5, 37.6] } }, O2),
 
   /* ---------- Trauma y obstetricia (v0.7) ---------- */
   pelvis: Object.assign({ lvl: 'Trauma y obstetricia', title: 'Fractura de pelvis con shock hemorrágico', pheno: 'trauma', sex: 'h', talla: 176, peso: 80, deficit: .3, tasAdj: -32, bleed: .009, bleedSrc: 'pelv', access: false, speed: 5, duration: 30,
@@ -420,7 +434,7 @@ const CASES = {
   estatus: Object.assign({ lvl: 'Neurología', title: 'Estatus epiléptico refractario', pheno: 'sano', sex: 'h', talla: 175, peso: 78, se: { r: .99, since: 12 }, glu: 118, temp: 37.4, tasAdj: 15, fcAdj: 25, access: false, speed: 5, duration: 30,
     cfg: { o2dev: 'reserv' },
     goal: 'Varón de 34 años con epilepsia que dejó la medicación hace una semana. La familia llamó hace 12 min: convulsiona sin recuperar la conciencia entre crisis. Al llegar sigue con una crisis tónico-clónica generalizada. SpO₂ 90 % con reservorio, FC 135, TAS 170.',
-    hint: 'Estatus = crisis de más de 5 min o crisis repetidas sin recuperar la conciencia, y el tiempo cuenta: cada minuto las benzodiacepinas funcionan peor. Glucemia capilar y vía. Primera línea: midazolam 0,15 mg/kg (máx. 10 mg) IM o IV, repetible una vez a los 5 min. Segunda línea en cuanto falle la primera, sin esperar: levetiracetam 60 mg/kg (máx. 4.500 mg) o valproato 40 mg/kg (máx. 3.000 mg) IV en 10 min. Si persiste (refractario): ISR con propofol o midazolam y perfusión anestésica (propofol 2–4 mg/kg/h o midazolam 0,2 mg/kg/h). El relajante quita los movimientos, no la crisis: sin perfusión, sigue convulsionando sin que lo veas. Normoglucemia y normotermia.',
+    hint: 'Estatus = crisis de más de 5 min o crisis repetidas sin recuperar la conciencia, y el tiempo cuenta: cada minuto las benzodiacepinas funcionan peor. Glucemia capilar y vía. Primera línea: midazolam 0,2 mg/kg (máx. 10 mg) IM o IV, repetible una vez a los 5 min. Segunda línea en cuanto falle la primera, sin esperar: levetiracetam 60 mg/kg (máx. 4.500 mg) o valproato 40 mg/kg (máx. 3.000 mg) IV en 10 min. Si persiste (refractario): ISR con propofol o midazolam y perfusión anestésica (propofol 2–4 mg/kg/h o midazolam 0,2 mg/kg/h). El relajante quita los movimientos, no la crisis: sin perfusión, sigue convulsionando sin que lo veas. Normoglucemia y normotermia.',
     checks: [['act:glu', 'Glucemia capilar'], ['drug:mid', 'Benzodiacepina'], ['drug:lev|drug:vpa', 'Antiepiléptico de 2.ª línea'], ['intub', 'Vía aérea definitiva'], ['perf:prop|perf:mid', 'Perfusión anestésica']],
     targets: { seizFree: [1, 1], spo2: [92, 100] } }, O2),
   ictusIsq: Object.assign({ lvl: 'Neurología', title: 'Código ictus: oclusión de gran vaso', pheno: 'sano', sex: 'm', talla: 162, peso: 70, stroke: { type: 'isq', side: 'izq', race: 7, onset: 50 }, tasAdj: 78, fcAdj: 10, glu: 168, speed: 5, duration: 25,
@@ -553,6 +567,8 @@ const META = {
   bronquiolitis: ['t', 1, 'Alto flujo a 2 L/kg/min en el lactante y cuándo escalar'],
   crup: ['t', 2, 'Crup grave: dexametasona, adrenalina nebulizada y no agitar al niño'],
   anafPed: ['t', 2, 'Anafilaxia pediátrica: adrenalina IM por peso, volumen y vía aérea'],
+  rnApnea: ['t', 1, 'Recién nacido que no respira: secar, insuflaciones y ventilación a 30/min'],
+  rnRcp: ['t', 3, 'Reanimación neonatal completa: corregir la ventilación, compresiones 3:1 y adrenalina'],
   pelvis: ['t', 2, 'Shock hemorrágico por pelvis: cinturón, hipotensión permisiva, tranexámico y sangre'],
   pcrTrauma: ['t', 3, 'Parada traumática: hemorragia y neumotórax antes que las compresiones'],
   eclampsia: ['t', 2, 'Eclampsia: magnesio, control de la TA y vía aérea'],

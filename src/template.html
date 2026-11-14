@@ -432,7 +432,7 @@ body.exam #tutBtn{display:none}
 <main>
   <header class="top">
     <div class="brand">
-      <span class="eyebrow">Simulador docente · SVA terrestre y HEMS · v1.8</span>
+      <span class="eyebrow">Simulador docente · SVA terrestre y HEMS · v1.9</span>
       <h1>Ventilación, monitor y RCP</h1>
     </div>
     <div class="toolbar">
@@ -556,6 +556,16 @@ body.exam #tutBtn{display:none}
             <button class="btn" data-act="bottle">Cambiar botella</button>
           </div>
           <div class="range"><label class="small" for="o2dev">Oxigenoterapia</label><select id="o2dev"><option value="gafas">Gafas nasales 2 L/min</option><option value="venturi28">Venturi 28 %</option><option value="venturi35">Venturi 35 %</option><option value="venturi50">Venturi 50 %</option><option value="reserv" selected>Mascarilla con reservorio 15 L/min</option></select></div>
+        </div>
+        <div class="agroup" id="neoGrp" hidden><span class="flabel">Reanimación neonatal</span>
+          <div class="abtns">
+            <button class="btn" data-act="infl">5 insuflaciones (30 cmH₂O, 2–3 s)</button>
+            <button class="btn" data-act="neoPos">Posición neutra y sellado a dos manos</button>
+            <button class="btn" data-act="neoSuct">Aspirar boca y nariz</button>
+            <button class="btn" data-act="neoComp" aria-pressed="false">Compresiones 3:1</button>
+            <button class="btn" data-act="uvc">Catéter venoso umbilical</button>
+          </div>
+          <div class="range"><label class="small" for="neoFio2">FiO₂ de la pieza en T</label><select id="neoFio2"><option value="21">21 %</option><option value="30">30 %</option><option value="40">40 %</option><option value="60">60 %</option><option value="100">100 %</option></select></div>
         </div>
         <div class="agroup"><span class="flabel">Circulación y exploración</span>
           <div class="abtns">

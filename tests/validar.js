@@ -40,7 +40,7 @@ function play(key, { seed = 1, idle = false } = {}) {
   function act(k) {
     if (k === 'fluid' || k === 'blood' || k === 'sedperf') return give(k);
     if (k === 'iv' || k === 'io') { if (!hasAcc() && !S.accessPend) { mark('act:' + k); sim.action(k); accTries++; } return; }
-    mark('act:' + k);
+    mark('act:' + k); if (k === 'infl') mark('act:bag'); // las insuflaciones dejan la pieza en T ventilando
     if (k === 'explore') sim.explore(); else if (k === 'glu') sim.glucemia(); else if (k === 'temp') sim.temperatura(); else if (k === 'ecg12') sim.ecg12(); else if (k === 'eco') sim.eco();
     else if (k === 'gas') { if (hasAcc()) sim.gas(); else { used.delete('act:gas'); access(() => act('gas')); } }
     else if (k === 'intubate') intubate(); else if (k === 'compMech') sim.compress('mech');
@@ -81,6 +81,7 @@ function play(key, { seed = 1, idle = false } = {}) {
     if (idle) return;
     if (!explored && S.clin >= .3) { explored = true; act('explore'); if (chk.some(x => /act:glu/.test(x))) act('glu'); if (chk.some(x => /act:temp/.test(x))) act('temp'); if (chk.some(x => x === 'act:gas')) act('gas'); }
     for (const e of L.sched) if (e.fired && !e.resp) { e.resp = true; lastEv = S.clin; if (RESP[e.k]) at(S.clin + .7, RESP[e.k]); }
+    if (S.neo && S.bag && S.neo.obs > .35 && S.clin >= (tNext.neo || 0)) { tNext.neo = S.clin + 1; act('neoPos'); act('neoSuct'); act('infl'); } // el tórax no se mueve: corrige la ventilación
     if (S.arrest) { arrestTick(); return; } else als = null;
     if (S.clin >= tNext.hold && (tg.pplat || tg.dp || tg.peepi) && S.iface === 'tube') { tNext.hold += 2; if (tg.peepi) sim.expHold(); if (tg.pplat || tg.dp) at(S.clin + .5, () => sim.inspHold()); }
     if (S.clin >= tNext.tit) {

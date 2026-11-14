@@ -122,6 +122,9 @@ function make(baseKey, seed) {
     if (!c.arrest) {
       const u = R(), fct = u < .25 ? rr(.75, .9) : u < .65 ? rr(.9, 1.1) : rr(1.1, 1.35);
       let n = 0; for (const [k, [lo, hi, z]] of Object.entries(SEV)) if (typeof c[k] === 'number') { const z0 = z || 0; c[k] = +clamp(z0 + (c[k] - z0) * fct, lo, hi).toFixed(4); n++; }
+      if (c.neo) { let hr = Math.round(clamp(c.neo.hr / fct, 25, 110) / 5) * 5; if (hr === c.neo.hr) hr += fct > 1 ? -5 : 5; c.neo = Object.assign({}, c.neo, { m: +clamp(c.neo.m / fct, .06, .9).toFixed(3), hr }); c.goal = c.goal.replace(/FC ≈ \d+/, `FC ≈ ${hr}`); n++; // v1.9: asfixia más o menos profunda
+        if (!c.neo.sec && R() < .5) { c.neo.obs = .55; c.neo.sec = true; lines.push('Nace con secreciones espesas: el tórax no se moverá hasta que recoloques la cabeza y aspires la boca y la nariz.'); c.checks = (c.checks || []).concat([['act:neoPos|act:neoSuct', 'Corregir la ventilación']]); }
+        else lines.push(`La asfixia es ${fct > 1 ? 'más profunda' : 'algo más leve'} que en el caso original: FC al nacer ≈ ${c.neo.hr} lpm.`); }
       if (n && fct > 1.12) lines.push('Es más grave que el caso original: lo mismo, con menos margen y menos tiempo.');
       if (n && fct < .88) lines.push('Es algo más leve que el caso original: no hace falta todo el arsenal.');
     }

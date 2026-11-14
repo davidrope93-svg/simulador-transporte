@@ -43,7 +43,7 @@ const SOL = {
   isrSeptico: { s: [[.3, 'a', 'fluid'], [.4, 'p', 'nor', .1], [.5, 'niv', { peep: 6, ps: 6, fio2: 100 }], [3.5, 'isr', { ind: 'ket' }]], nor: 90, post: { peep: 8 } },
   obesoIsr: { s: [[.3, 'niv', { peep: 10, ps: 6, fio2: 100 }], [3, 'a', 'vl'], [3, 'a', 'apox'], [3.5, 'isr', { ind: 'ket' }]], post: { peep: 10 } },
   viaDificil: { s: [[.3, 'a', 'bag'], [.8, 'a', 'vl'], [1, 'isr', { ind: 'ket' }], [3, 'a', 'sga'], [4.2, 'a', 'cric']], post: { peep: 10 } },
-  quemado: { s: [[.3, 'o2', 'reserv'], [.5, 'd', 'hidroxo'], [1, 'isr', { ind: 'ket' }]] },
+  quemado: { s: [[.3, 'o2', 'reserv'], [.5, 'd', 'hidroxo'], [1, 'isr', { ind: 'ket' }], [2.5, 'p', 'cris', 500], [3, 'a', 'warm']] },
   bronquiolitis: { s: [[.5, 'hfnc', 'kg2', 60]] },
   crup: { s: [[.5, 'd', 'adrNeb'], [.7, 'd', 'dexa']] },
   anafPed: { s: [[.3, 'd', 'adrIM'], [.4, 'o2', 'reserv'], [.6, 'a', 'fluid'], [5, 'd', 'adrIM'], [5.5, 'd', 'salb']] },
@@ -92,6 +92,8 @@ const SOL = {
   organofosf: { s: [[.2, 'a', 'decont'], [.3, 'a', 'io'], [1.1, 'd', 'atr2'], [4, 'd', 'atr4'], [7, 'd', 'atr8'], [10, 'd', 'atr16'], [14, 'p', 'atrP', 4]] },
   cocaina: { s: [[.3, 'd', 'midCr'], [.5, 'a', 'cool'], [.6, 'a', 'iv'], [1, 'a', 'temp'], [1.2, 'a', 'ecg12'], [16, 'a', 'cool']] },
   cadIntubada: { s: [[.4, 'cfg', { vt: 'ibw8', fr: 28, ti: .8 }], [1, 'p', 'cris', 750], [3, 'p', 'insD', .1]] },
+  rnApnea: { s: [[.1, 'a', 'warm'], [.2, 'a', 'infl'], [3, 'cfg', { fio2: 30 }], [7, 'cfg', { fio2: 21 }]], noAuto: true },
+  rnRcp: { s: [[.1, 'a', 'warm'], [.2, 'a', 'infl'], [.6, 'a', 'neoPos'], [.7, 'a', 'neoSuct'], [.8, 'a', 'infl'], [1.4, 'cfg', { fio2: 100 }], [1.5, 'a', 'neoComp'], [1.6, 'a', 'uvc'], [3.8, 'd', 'adr1'], [5, 'a', 'neoComp'], [6.5, 'cfg', { fio2: 40 }], [9, 'cfg', { fio2: 30 }]], noAuto: true },
   rceInestable: { s: [[.3, 'a', 'fluid'], [.4, 'p', 'nor', .1], [.5, 'vt', 7], [.6, 'cfg', { fr: 14 }], [3, 'a', 'fluid']], nor: 100 }
 };
 root.SIM_SOL = SOL;

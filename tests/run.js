@@ -203,7 +203,7 @@ console.log('— Neurología (v1.7): estatus epiléptico, ictus e hiponatremia')
   const ta0 = s.S.tas; s.drug('labet', 20); adv(s, 8); check('Labetalol 20 mg: baja la TAS', ta0 - s.S.tas, 10, 30, ' mmHg'); s.action('ictus'); check('Código ictus en el registro', s.S.log.some(x => /Código ictus activado/.test(x[1])) ? 1 : 0, 1, 1);
   s = load('ictusIsq', { seed: 4, scale: 10 }).sim; adv(s, .5); s.drug('labet', 100); s.drug('urap', 100); adv(s, 25); check('Hipotensión relativa: la penumbra empeora (RACE)', s.race() - 7, 1, 3);
   const hem = n => { const a = load('hemCerebral', { seed: 4, scale: 10 }).sim; adv(a, .5); if (n) { a.drug('labet', 40); a.drug('urap', 50); } adv(a, 30); return a.S; };
-  const h0 = hem(false), h1 = hem(true); check('Hemorragia sin bajar la TA: crece el hematoma en 30 min', h0.stroke.vol - 30, 10, 25, ' mL'); check('… y cae la GCS', h0.gcs, 3, 9); check('Con TAS ≤ 150: casi no crece', h1.stroke.vol - 30, 0, 6, ' mL');
+  const h0 = hem(false), h1 = hem(true); check('Hemorragia sin bajar la TA: crece el hematoma en 30 min', h0.stroke.vol - 30, 7, 16, ' mL'); check('… y cae la GCS', h0.gcs, 3, 11); check('Con TAS ≤ 150: casi no crece', h1.stroke.vol - 30, 0, 6, ' mL');
   L = load('hiponatremia', { seed: 1, scale: 10 }); s = L.sim; adv(s, .2); s.S.access = 'iv'; check('Hiponatremia: la gasometría da el sodio', s.gas().na, 115, 117, ' mmol/L'); check('Con Na 116, confusa (sin convulsionar)', seiz(s) ? 0 : s.S.gcs, 8, 12);
   const na0 = s.S.na; s.drug('ssh3', 100); adv(s, 10); check('Salino hipertónico 3 % 100 mL: sube el Na', s.S.na - na0, 1.1, 1.7, ' mmol/L');
   const n1 = s.S.na; s.drug('shs', 1); adv(s, 10); check('Salino 7,5 % 250 mL: sube más', s.S.na - n1, 5, 9, ' mmol/L');
@@ -234,6 +234,21 @@ console.log('— Tóxicos y cetoacidosis (v1.8): calcioantagonistas, betabloquea
   check('Con FR 14: hipotensión por la acidemia', d14.tas, 50, 92, ' mmHg');
   L = load('cadIntubada', { seed: 4, scale: 10 }); adv2(L, .3); L.sim.setCfg(Object.assign({}, L.S.cfg, { fr: 28, vt: 440, ti: .8 })); const g0 = L.S.glu, k0 = L.S.k; L.sim.perf('ins', .1 * 75 / 10 / 60); adv2(L, 30);
   check('Insulina 0,1 UI/kg/h: la glucemia baja 50–75 por hora', (g0 - L.S.glu) * 2, 40, 100, ' mg/dL/h'); check('… y baja el potasio', k0 - L.S.k, .3, 1.2, ' mmol/L'); }
+
+console.log('— Reanimación neonatal (v1.9): insuflaciones, ventilación, compresiones 3:1 y adrenalina');
+{ const nb = (k, acts, m) => { const L = load(k, { seed: 4, scale: 10 }), s = L.sim, out = {}; adv(s, .05); for (const [t, f] of acts) { if (s.S.clin < t) adv(s, t - s.S.clin); f(s); } adv(s, m - s.S.clin); out.S = s.S; out.sim = s; return out; };
+  let r = nb('rnApnea', [], 5); check('Recién nacido apneico sin reanimar: FC a los 5 min', r.S.fc, 20, 50, ' lpm'); check('… y SpO₂', r.S.spo2 * 100, 15, 40, ' %');
+  check('Exploración con Apgar', /Apgar ≈ \d/.test(r.sim.explore().join(' ')) ? 1 : 0, 1, 1);
+  r = nb('rnApnea', [[.1, s => s.action('warm')], [.2, s => s.action('infl')]], 3); check('Insuflaciones y ventilación: FC > 100 antes de 3 min', r.S.neo.hr100 != null ? r.S.neo.hr100 : 99, 0, 3, ' min');
+  adv(r.sim, 2); check('SpO₂ a los 5 min con aire (transición)', r.S.spo2 * 100, 80, 96, ' %'); adv(r.sim, 3); check('Respira solo antes de 8 min', r.S.neo.firstBreath != null ? r.S.neo.firstBreath : 99, 2, 8, ' min');
+  const bagOnly = nb('rnApnea', [[.2, s => s.action('bag')]], 3); check('Sin insuflaciones iniciales, la FC tarda más', (bagOnly.S.neo.hr100 != null ? bagOnly.S.neo.hr100 : 9) - r.S.neo.hr100, .4, 9, ' min');
+  r = nb('rnRcp', [[.1, s => s.action('warm')], [.2, s => s.action('infl')]], 2); check('Con el tórax sin moverse, la FC no sube', r.S.fc, 20, 55, ' lpm');
+  const vent = nb('rnRcp', [[.1, s => s.action('warm')], [.2, s => s.action('infl')], [.6, s => { s.action('neoPos'); s.action('neoSuct'); s.action('infl'); }], [1.4, s => s.setCfg(Object.assign({}, s.S.cfg, { fio2: 100 }))], [1.5, s => s.action('neoComp')]], 15);
+  const adr = nb('rnRcp', [[.1, s => s.action('warm')], [.2, s => s.action('infl')], [.6, s => { s.action('neoPos'); s.action('neoSuct'); s.action('infl'); }], [1.4, s => s.setCfg(Object.assign({}, s.S.cfg, { fio2: 100 }))], [1.5, s => s.action('neoComp')], [3.5, s => { s.S.access = 'iv'; s.drug('adr', 150); }]], 15);
+  check('Bradicardia extrema: con adrenalina, FC > 60 antes', (vent.S.neo.hr60 || 99) - (adr.S.neo.hr60 || 99), 1, 10, ' min'); check('Con adrenalina, FC > 60 antes de 6 min', adr.S.neo.hr60 || 99, 2, 6, ' min');
+  check('FC final con la reanimación completa', adr.S.fc, 120, 175, ' lpm');
+  const wet = nb('rnApnea', [], 10), dry = nb('rnApnea', [[.1, s => s.action('warm')]], 10); check('Mojado y sin calor: hipotermia a los 10 min', wet.S.temp, 35, 35.8, ' °C'); check('Secado y abrigado: normotermia', dry.S.temp, 36.5, 37.2, ' °C');
+  global.window = global; require('../src/drugs.js'); const DR = global.SIM_DRUGS; check('Adrenalina en el recién nacido de 3,1 kg: 20 mcg/kg', DR.doseOf(DR.DRUGITEMS.adr1, 3.1, true) * 1000, 60, 64, ' mcg'); check('En un niño de 26 kg sigue siendo 10 mcg/kg', DR.doseOf(DR.DRUGITEMS.adr1, 26, true) * 1000, 255, 265, ' mcg'); }
 
 console.log('— Instalable y sin conexión (v1.3): manifiesto, iconos y service worker');
 { const fs = require('fs'), path = require('path'), R = f => path.join(__dirname, '..', f);

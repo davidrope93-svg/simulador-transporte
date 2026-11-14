@@ -22,7 +22,7 @@ const DRUGSET = [
   { g: 'Sepsis', items: [
     { id: 'ceftri', lab: 'Ceftriaxona', k: 'atb', dose: 2, u: 'g' }, { id: 'pipta', lab: 'Piperacilina-tazobactam', k: 'atb', dose: 4, u: 'g' }, { id: 'mero', lab: 'Meropenem', k: 'atb', dose: 1, u: 'g' }] },
   { g: 'Neurología', items: [
-    { id: 'midCr', lab: 'Midazolam (crisis)', k: 'mid', mgkg: .15, max: 10, u: 'mg', route: ' IV o IM', noIV: true, note: 'repetible una vez a los 5 min' },
+    { id: 'midCr', lab: 'Midazolam (crisis)', k: 'mid', mgkg: .2, max: 10, u: 'mg', route: ' IV o IM', noIV: true, note: 'repetible una vez a los 5 min' },
     { id: 'lev', lab: 'Levetiracetam', k: 'lev', mgkg: 60, max: 4500, u: 'mg', note: 'IV en 10 min' }, { id: 'vpa', lab: 'Valproato', k: 'vpa', mgkg: 40, max: 3000, u: 'mg', note: 'IV en 10 min' },
     { id: 'ssh3', lab: 'Salino hipertónico 3 %', k: 'ssh3', amt: 100, note: '100 mL en 10 min' }] },
   { g: 'Tóxicos', items: [
@@ -77,7 +77,7 @@ const PERFS = [
   { id: 'atrP', lab: 'Atropina', u: 'mg/h', d: 0, opts: [0, 1, 2, 4, 8], run: (sim, r, fW) => sim.perf('atr', r / 60 * fW) }
 ];
 const roundDose = x => x >= 50 ? Math.round(x / 5) * 5 : x >= 10 ? Math.round(x) : x >= 1 ? Math.round(x * 10) / 10 : Math.round(x * 100) / 100;
-const PED = { glucgIV: { k: .05, max: 5, t: '50 mcg/kg' }, atr2: { k: .05, max: 2, t: '0,05 mg/kg' }, atr4: { k: .1, max: 4, t: '0,1 mg/kg' }, atr8: { k: .2, max: 8, t: '0,2 mg/kg' }, atr16: { k: .4, max: 16, t: '0,4 mg/kg' }, midCr: { k: .15, max: 10, t: '0,15 mg/kg' }, lev: { k: 60, max: 4500, t: '60 mg/kg', u: 'mg' }, vpa: { k: 40, max: 3000, t: '40 mg/kg', u: 'mg' }, ceftri: { k: 80, max: 2000, t: '80 mg/kg', u: 'mg' }, pipta: { k: 100, max: 4000, t: '100 mg/kg', u: 'mg' }, mero: { k: 20, max: 1000, t: '20 mg/kg', u: 'mg' }, adr1: { k: .01, max: 1, t: '10 mcg/kg' }, adrP: { k: 1, max: 20, t: '1 mcg/kg' }, amio300: { k: 5, max: 300, t: '5 mg/kg' }, amio150: { k: 5, max: 150, t: '5 mg/kg' },
+const PED = { glucgIV: { k: .05, max: 5, t: '50 mcg/kg' }, atr2: { k: .05, max: 2, t: '0,05 mg/kg' }, atr4: { k: .1, max: 4, t: '0,1 mg/kg' }, atr8: { k: .2, max: 8, t: '0,2 mg/kg' }, atr16: { k: .4, max: 16, t: '0,4 mg/kg' }, midCr: { k: .2, max: 10, t: '0,2 mg/kg IM, IN o IV' }, lev: { k: 60, max: 4500, t: '60 mg/kg (máx. 4.500 mg)', u: 'mg' }, vpa: { k: 40, max: 3000, t: '40 mg/kg (máx. 3.000 mg; evítalo antes de los 2 años y en enfermedad hepática o metabólica)', u: 'mg' }, ceftri: { k: 80, max: 2000, t: '80 mg/kg', u: 'mg' }, pipta: { k: 100, max: 4000, t: '100 mg/kg', u: 'mg' }, mero: { k: 20, max: 1000, t: '20 mg/kg', u: 'mg' }, adr1: { k: .01, max: 1, t: '10 mcg/kg' }, adrP: { k: 1, max: 20, t: '1 mcg/kg' }, amio300: { k: 5, max: 300, t: '5 mg/kg' }, amio150: { k: 5, max: 150, t: '5 mg/kg' },
   lido100: { k: 1, max: 100, t: '1 mg/kg' }, lido50: { k: .5, max: 50, t: '0,5 mg/kg' }, atr: { k: .02, min: .1, max: .5, t: '20 mcg/kg' }, aden6: { k: .1, max: 6, t: '0,1 mg/kg' },
   aden12: { k: .2, max: 12, t: '0,2 mg/kg' }, aden18: { k: .3, max: 18, t: '0,3 mg/kg' }, adrIM: { k: .01, max: .5, t: '10 mcg/kg' }, nalox: { k: .01, max: .4, t: '10 mcg/kg' },
   mid: { k: .05, max: 2, t: '0,05 mg/kg' }, morf: { k: .05, max: 3, t: '0,05 mg/kg' }, mg: { k: .04, max: 2, t: '40 mg/kg' }, dexclor: { k: .15, max: 5, t: '0,15 mg/kg' },
@@ -87,7 +87,10 @@ const PED = { glucgIV: { k: .05, max: 5, t: '50 mcg/kg' }, atr2: { k: .05, max: 
 const tnkDose = p => p < 60 ? 30 : p < 70 ? 35 : p < 80 ? 40 : p < 90 ? 45 : 50;
 const fWOf = (peso, ped) => ped ? 75 / peso : clamp(75 / peso, .7, 1.4);
 /* dosis que se muestra (en la unidad del botón) y cantidad que recibe el motor */
-function doseOf(it, peso, ped) { const pd = ped && PED[it.id]; if (pd) { const x = roundDose(clamp(pd.k * peso, pd.min || 0, pd.max)); return pd.u === 'mg' && it.u === 'g' ? x / 1000 : x; } return it.tnk ? tnkDose(peso) : it.mgkg != null ? roundDose(Math.min(it.max || Infinity, it.mgkg * peso)) : it.dose; }
-function amountOf(it, peso, ped) { const ds = doseOf(it, peso, ped), pd = ped && PED[it.id]; return (pd ? (it.amt != null ? it.amt * ds / it.dose : ds) * 75 / peso : it.amt != null ? it.amt : ds * fWOf(peso, ped)) * (it.bio || 1); }
-root.SIM_DRUGS = { DRUGSET, DRUGITEMS, PERFS, PED, roundDose, tnkDose, fWOf, doseOf, amountOf };
+// v1.9: en el recién nacido (≤ 5 kg), adrenalina de la reanimación neonatal (ERC 2021: 20 mcg/kg IV)
+const PED_NEO = { adr1: { k: .02, max: .1, t: '20 mcg/kg (recién nacido)' } };
+const pedEntry = (id, peso, ped) => ped ? (peso <= 5 && PED_NEO[id]) || PED[id] : null;
+function doseOf(it, peso, ped) { const pd = pedEntry(it.id, peso, ped); if (pd) { const x = roundDose(clamp(pd.k * peso, pd.min || 0, pd.max)); return pd.u === 'mg' && it.u === 'g' ? x / 1000 : x; } return it.tnk ? tnkDose(peso) : it.mgkg != null ? roundDose(Math.min(it.max || Infinity, it.mgkg * peso)) : it.dose; }
+function amountOf(it, peso, ped) { const ds = doseOf(it, peso, ped), pd = pedEntry(it.id, peso, ped); return (pd ? (it.amt != null ? it.amt * ds / it.dose : ds) * 75 / peso : it.amt != null ? it.amt : ds * fWOf(peso, ped)) * (it.bio || 1); }
+root.SIM_DRUGS = { DRUGSET, DRUGITEMS, PERFS, PED, pedEntry, roundDose, tnkDose, fWOf, doseOf, amountOf };
 })(typeof window !== 'undefined' ? window : globalThis);
