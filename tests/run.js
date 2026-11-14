@@ -497,6 +497,15 @@ console.log('— Itinerarios (v1.26): rutas por perfil, etapas que se desbloquea
   r = prog('residente', allPrac.concat(fin.map(k => A(k, 9))), 'Ana'); check('La evaluación final no se supera con intentos en práctica', !r.finished && r.nextExam ? 1 : 0, 1, 1);
   r = prog('residente', allPrac.concat(fin.slice(0, 3).map(k => A('u_var', 8, { base: k, exam: true }))), 'Ana'); check('… sí con variantes en modo examen ≥ 7: itinerario superado al 100 %', r.finished && r.pct === 100 && r.examAvg === 8 ? 1 : 0, 1, 1); }
 
+console.log('— Debrief comparado (v1.27): el bot de referencia del validador juega la misma situación en el navegador');
+{ const { play } = require('./validar'), BOT = global.SIM_BOT; require('../src/drugs.js'); const DR = global.SIM_DRUGS;
+  const refPlay = (k, seed) => { const c = CASES[k], L = load(k, { scale: 10, seed }); BOT.prep(L.sim); const B = BOT.make({ sim: L.sim, S: L.S, sched: L.sched, c, key: k, sol: global.SIM_SOL[c.vbase || k], DR, peso: L.peso }); const r = BOT.runner(L, B, c.targets || {}); r.advance(c.duration || 20); return { res: B.finish(r.SV, r.R, c.duration || 20), B, r }; };
+  let same = 0; for (const k of ['asma', 'pcrFv', 'hdaPalma']) if (Math.abs(refPlay(k, 8).res.score - play(k, { seed: 8 }).score) < 1e-9) same++;
+  check('Misma nota con el bot del debrief (preparado como en el navegador) que con el validador (de 3 casos)', same, 3, 3);
+  const x = refPlay('asma', 8); check('Registro legible de la referencia: acciones con su minuto', x.B.log.filter(e => ['drug', 'act', 'cfg'].includes(e[1]) && isFinite(e[0])).length, 4, 500);
+  check('… y la serie de la referencia para la gráfica (una muestra cada 0,25 min)', x.r.series.length, (CASES.asma.duration || 20) * 4 - 2, (CASES.asma.duration || 20) * 4 + 2);
+  const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'build.py'), 'utf8'); check('La página incluye las soluciones y el bot de referencia', /solutions\.js/.test(src) && /bot\.js/.test(src) ? 1 : 0, 1, 1); }
+
 console.log('— Instalable y sin conexión (v1.3): manifiesto, iconos y service worker');
 { const fs = require('fs'), path = require('path'), R = f => path.join(__dirname, '..', f);
   const man = JSON.parse(fs.readFileSync(R('manifest.webmanifest'), 'utf8'));

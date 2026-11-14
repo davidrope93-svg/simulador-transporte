@@ -149,6 +149,7 @@ function loadCase(k) {
   if (opts.pco2 == null) opts.pco2 = pk === 'epoc' ? 64 : 40;
   if (opts.bs == null && pk === 'epoc') opts.bs = 1.3;
   if (awake) { opts.relCe = 0; opts.sedE = 0; opts.sedStopped = true; }
+  refOpts = JSON.parse(JSON.stringify(opts)); refRatio = ratioUI; // v1.27: para jugar la misma situación con el bot de referencia en el debrief
   sim = VMI.create(opts);
   sim.warm(12); sim.setRatio(ratioUI);
   S = sim.S; pend = Object.assign({}, S.cfg); activeK = null; pendAt = 0;
@@ -1071,7 +1072,8 @@ function truthRows() {
     ['Umbral de captura del marcapasos', fmt(S.pace.thr) + ' mA'], ['Presión barométrica', fmt(S.pbar) + ' mmHg']];
   return rows;
 }
-function logIt(t) { const s = Math.round((S ? S.clin : 0) * 60); const hh = String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); const e = document.createElement('span'); e.textContent = hh + ' · ' + t; $('#log').prepend(e); }
+let refOpts = null, refRatio = 0;
+function logIt(t) { if (track && track.logT) track.logT.push([S ? S.clin : 0, String(t)]); const s = Math.round((S ? S.clin : 0) * 60); const hh = String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); const e = document.createElement('span'); e.textContent = hh + ' · ' + t; $('#log').prepend(e); }
 
 /* ---------- fármacos ---------- */
 function renderPedKit() { // v1.11: material, normalidad y dosis por peso y edad
