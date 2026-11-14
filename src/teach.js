@@ -15,7 +15,7 @@ const markUse = tok => { if (track && track.used) { track.used.add(tok); (track.
 
 /* ---------- nota ---------- */
 function checksOf(c) { return (c.checks || []).map(x => Array.isArray(x) ? x : [x, x]); }
-function checkDone(tok) { return tok.split('|').some(t => track.used.has(t) || (t === 'rosc' && track.roscAt != null) || (t === 'intub' && track.intubAt != null) || (t === 'noarrest' && !S.arrest && (track.arrestAt == null || track.roscAt != null))); }
+function checkDone(tok) { return tok.split('|').some(t => (t.startsWith('no:') ? !track.used.has(t.slice(3)) : track.used.has(t)) || (t === 'rosc' && track.roscAt != null) || (t === 'intub' && track.intubAt != null) || (t === 'noarrest' && !S.arrest && (track.arrestAt == null || track.roscAt != null))); }
 function examScore() {
   const c = CASES[caseKey], parts = [];
   const tg = Object.values(track.t).filter(v => v.tot > 0);

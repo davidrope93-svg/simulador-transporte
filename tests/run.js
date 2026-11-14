@@ -291,6 +291,24 @@ console.log('— Prematuro y transporte neonatal (v1.12): CPAP con PEEP, bolsa d
   check('Neumotórax a tensión en el prematuro sin descomprimir: bradicardia', nod.fc, 20, 100, ' lpm'); check('Con la punción: SpO₂', dec.spo2 * 100, 88, 97, ' %'); check('… y FC', dec.fc, 130, 175, ' lpm');
   check('Respiraciones de 5–8 mL: el prematuro de 1 kg ventila (PaCO₂ con CPAP)', cp.S.pco2, 30, 55, ' mmHg'); }
 
+console.log('— Respiratorio y shock pediátricos (v1.13): asma, neumonía con shock séptico, deshidratación y cetoacidosis');
+{ const run = (k, acts, m) => { const L = load(k, { seed: 4, scale: 10 }), s = L.sim; adv(s, .05); for (const [t, f] of acts) { if (s.S.clin < t) adv(s, t - s.S.clin); f(s); } adv(s, m - s.S.clin); return s; };
+  global.window = global; require('../src/drugs.js'); const DR = global.SIM_DRUGS, give = id => s => { if (!s.S.access) s.S.access = 'io'; s.drug(DR.DRUGITEMS[id].k, DR.amountOf(DR.DRUGITEMS[id], s.S.peso, true)); };
+  const res = s => s.setCfg(Object.assign({}, s.S.cfg, { o2dev: 'reserv' })), bolo = s => s.action('fluid', 10);
+  let a = run('asmaPed', [], 18); check('Asma grave sin tratar: se agota y sube la PaCO₂', a.S.arrest || a.S.pco2 > 55 ? 1 : 0, 1, 1); check('… con tórax silente', a.S.arrest || /silente/.test(a.explore().join(' ')) ? 1 : 0, 1, 1);
+  a = run('asmaPed', [[.3, res], [.5, give('salb')], [1.5, give('cort')], [5.5, give('salb')], [10.5, give('salb')], [11, give('mgso4')]], 25); check('Asma tratada: PaCO₂ a los 25 min (sin hipercapnia)', a.S.pco2, 22, 45, ' mmHg'); check('… y sin agotamiento', a.S.weak, 0, .15); check('… y SpO₂ con reservorio', a.S.spo2 * 100, 94, 100, ' %');
+  check('Sulfato de magnesio en el niño de 24 kg: 50 mg/kg', DR.doseOf(DR.DRUGITEMS.mgso4, 24, true), 1.2, 1.2, ' g'); check('Metilprednisolona en el niño: 2 mg/kg', DR.doseOf(DR.DRUGITEMS.cort, 24, true), 48, 48, ' mg'); check('Salino hipertónico 3 % en el niño de 30 kg: 5 mL/kg', DR.doseOf(DR.DRUGITEMS.ssh3, 30, true), 150, 150, ' mL');
+  let n = run('neumoSepsis', [], 3), n2 = run('neumoSepsis', [[.3, res]], 3); check('Neumonía: SpO₂ con gafas', n.S.spo2 * 100, 80, 90, ' %'); check('… responde al O₂ (baja V/Q, no shunt puro)', n2.S.spo2 * 100, 94, 100, ' %');
+  const sep = [[.3, res], [.5, s => { s.S.access = 'io'; }], [1.5, bolo], [2, give('ceftri')], [4, bolo], [6.5, bolo], [9, bolo], [11, s => DR.PERFS.find(p => p.id === 'adrIkg').run(s, .1)]];
+  n = run('neumoSepsis', [], 20); n2 = run('neumoSepsis', sep, 20); check('Shock séptico pediátrico sin tratar: TAS a los 20 min', n.S.tas, 40, 70, ' mmHg'); check('Bolos de 10 mL/kg, antibiótico y adrenalina: TAS', n2.S.tas, 85, 130, ' mmHg');
+  const over = run('neumoSepsis', [[.3, res], [.5, s => { s.S.access = 'io'; }], ...[1, 2, 3, 4, 5, 6, 7].map(t => [t, bolo])], 12); check('Siete bolos: sobrecarga con hígado palpable', /hígado palpable/.test(over.explore().join(' ')) ? 1 : 0, 1, 1); check('… y peor oxigenación que con cuatro', n2.S.spo2 * 100 - over.S.spo2 * 100, 1, 15, ' puntos');
+  let d = run('deshidratacion', [], 6), d2 = run('deshidratacion', [[.5, s => { s.S.access = 'io'; }], [1.5, bolo], [4, bolo], [6.5, bolo]], 15); check('Lactante deshidratado: FC sin tratar (el niño compensa con taquicardia)', d.S.fc, 170, 200, ' lpm'); check('Tres bolos de 10 mL/kg: FC a los 15 min', d2.S.fc, 120, 155, ' lpm');
+  check('G10 % 2 mL/kg en el lactante hipoglucémico', run('deshidratacion', [[.5, s => { s.S.access = 'io'; }], [1, give('gluc10')]], 3).S.glu, 80, 160, ' mg/dL');
+  const good = run('cadPed', [[.8, bolo], [14, give('manit')]], 30), bad = run('cadPed', [[.5, s => s.action('fluid', 20)], [3, s => s.action('fluid', 20)], [4, give('bic')], [5, give('ins')]], 25), none = run('cadPed', [[.8, bolo]], 30);
+  check('Cetoacidosis: aparece el edema cerebral', good.S.ced.on ? 1 : 0, 1, 1); check('Manitol: Glasgow a los 30 min', good.S.gcs, 13, 15); check('Sin osmoterapia: Glasgow a los 30 min', none.S.gcs, 7, 12);
+  check('40 mL/kg, bicarbonato y bolo de insulina: edema grave (Glasgow)', bad.S.gcs, 3, 7); check('… con Cushing (TAS alta y bradicardia)', bad.S.tas > 120 && bad.S.fc < 85 ? 1 : 0, 1, 1);
+  check('Adrenalina pediátrica en mcg/kg/min entre las perfusiones', DR.PERFS.some(p => p.id === 'adrIkg' && p.u === 'mcg/kg/min') ? 1 : 0, 1, 1); }
+
 console.log('— Instalable y sin conexión (v1.3): manifiesto, iconos y service worker');
 { const fs = require('fs'), path = require('path'), R = f => path.join(__dirname, '..', f);
   const man = JSON.parse(fs.readFileSync(R('manifest.webmanifest'), 'utf8'));

@@ -121,7 +121,7 @@ function create(opts) {
     stemi: o.stemi ? { loc: o.stemi.loc || 'ant', rv: !!o.stemi.rv, onset: o.stemi.onset || 60, pci: o.stemi.pci != null ? o.stemi.pci : 30, reperf: false, reperfAt: null, tnkAt: null, icp: null } : null,
     tamp: o.tamp || 0, tampRate: o.tampRate || 0, pericPend: null,
     // v1.5: shock distributivo — vasoplejia séptica (0–1 y progresión por minuto hasta el antibiótico), neurogénico (0–1) y volumen que tolera el pulmón (mL/kg)
-    vaso: o.vaso || 0, vasoRate: o.vasoRate || 0, neurog: o.neurog || 0, fluidTol: o.fluidTol || 35, atbAt: null, tad: 70, pam: 90,
+    tire: !!o.tire, pneu: o.pneu || 0, ced: o.cedema ? { at: o.cedema.at || 15, risk: o.cedema.risk || .3, on: false, bic: false, insB: false, pRef: o.pco2 || 40 } : null, vaso: o.vaso || 0, vasoRate: o.vasoRate || 0, neurog: o.neurog || 0, fluidTol: o.fluidTol || 35, atbAt: null, tad: 70, pam: 90,
     // v1.6: trauma torácico y quemado — hemotórax (L en la pleura), volet costal (0–1), dolor (0–1), superficie quemada (%) y cristaloide en bomba (mL/h)
     htx: o.htx || 0, htxOut: 0, flail: o.flail || 0, pain: o.pain || 0, burn: o.burn || 0, fluidRate: 0, analg: 0, painEff: 0,
     // v1.7: neurología — estatus epiléptico (refractariedad 0–1 y minutos de crisis), ictus (tipo, lado de la lesión, RACE, minutos de evolución, hematoma en mL) y sodio
@@ -197,11 +197,12 @@ function create(opts) {
     const hx = clamp(S.htx / 1.8, 0, 1); // hemotórax: 1,8 L ocupa el hemitórax; la contusión del volet suma shunt que recluta algo con PEEP
     const b = .6 + .4 * S.bs, a = S.air, sv = Math.min(1, S.sev), pe = (S.iface === 'tube' || S.iface === 'mask') ? S.cfg.peep : (S.iface === 'nasal' ? hfPaw() : 0);
     S.mech = {
-      C: P.C * (S.neo ? .25 + .75 * S.neo.aer : 1) * (1 - .35 * S.drown) * (a.sel ? .55 : 1) * (1 - .5 * ptxEff) * (1 - .5 * sv) * (1 - .4 * S.asp) * (1 - .2 * S.derec) * (1 - .35 * hx) * (1 - .15 * S.flail),
+      C: P.C * (1 - .2 * S.pneu) * (S.neo ? .25 + .75 * S.neo.aer : 1) * (1 - .35 * S.drown) * (a.sel ? .55 : 1) * (1 - .5 * ptxEff) * (1 - .5 * sv) * (1 - .4 * S.asp) * (1 - .2 * S.derec) * (1 - .35 * hx) * (1 - .15 * S.flail),
       Ri: P.Ri * b + 18 * S.opM + (a.obst ? 25 : 0) + (a.sel ? 2 : 0) + (S.iface === 'o2' || S.iface === 'nasal' ? -3 : 0) + (S.iface !== 'tube' ? croupR : 0),
       Re: P.Re * b + 18 * S.opM + (a.obst ? 25 : 0) + (S.iface !== 'tube' ? .3 * croupR : 0),
       Pcrit: P.Pcrit * b + 6 * Math.max(0, S.bs - 1),
       shunt: clamp(P.shunt0 - P.shuntPeep * (pe - 5), P.shuntMin, .5) + (a.sel ? .22 : 0) + .25 * ptxEff + (P.edema ? clamp(.3 * S.sev - .025 * (pe - 5) * Math.min(1, S.sev + .2), 0, .4) : 0) + clamp(.33 * S.asp - .015 * (pe - 5) * S.asp, 0, .38) + clamp(.009 * Math.max(0, (S.fluidKg || 0) - S.fluidTol), 0, .2) + .14 * S.derec + .06 * S.tep + (S.dci ? .3 * S.dci.chokes * S.dciE : 0) + clamp(.42 * S.drown - .03 * (pe - 5) * S.drown, 0, .45) + (S.neo ? .55 * (1 - S.neo.aer) + .3 * clamp(1 - (S.clin + S.neo.t0) / 8, 0, 1) + .3 * ptxEff : 0) + .18 * clamp((121 - S.na) / 5, 0, 1) + .45 * S.opM + (S.se && S.clin < S.seizUntil && S.relTot < .6 ? .26 : 0) + .26 * hx + clamp(.16 * S.flail - .012 * (pe - 5) * S.flail, 0, .22),
+      lvq: (S.tire ? .16 * clamp(S.bs - 1.3, 0, 2) : 0) + clamp(.42 * S.pneu - .01 * (pe - 5) * S.pneu, 0, .45), // v1.13: unidades de baja V/Q (asma, neumonía): mejoran con O₂
       frc: P.frc * (S.neo ? .25 + .75 * S.neo.aer : 1) * (a.sel ? .6 : 1) * (1 - .4 * ptxEff) * (1 - .4 * sv) * (1 - .35 * hx),
       ptxEff, hx
     };
@@ -218,7 +219,7 @@ function create(opts) {
     // acidosis metabólica: baja el punto de ajuste del CO2 según Winter (PaCO2 ≈ 1,5 × HCO3 + 8), sin hiperventilar por debajo
     const setp = P.co2set - Math.max(0, P.hco3 - (S.hco3m != null ? S.hco3m : P.hco3)) * (P.hyper ? .6 : 1);
     const hyx = Math.max(0, (.92 - S.spo2) / .08), c2 = (S.pco2 - setp) / (P.hyper ? 20 : 12);
-    let drive = Math.max(.25 + .1 * met, c2 + .8 * hyx, P.hyper ? hyx : 0) + (P.edema ? .35 * S.sev : 0) + (S.clin < S.anxUntil ? .5 : 0) + .5 * S.tep + .3 * S.anaf + (S.iface !== 'tube' ? .45 * S.croupEff : 0);
+    let drive = Math.max(.25 + .1 * met, c2 + .8 * hyx, P.hyper ? hyx : 0) + (P.edema ? .35 * S.sev : 0) + (S.clin < S.anxUntil ? .5 : 0) + .5 * S.tep + .3 * S.anaf + (S.iface !== 'tube' ? .45 * S.croupEff : 0) + (S.tire && S.iface !== 'tube' ? .35 * clamp(S.bs - 1.2, 0, 2) : 0); // v1.13: hambre de aire del asmático
     // bronquiolitis: taquipnea superficial por la inflamación, que alivia la presión positiva; sube la frecuencia, no el volumen
     const irr = P.irrit ? P.irrit * (1 - .5 * clamp((S.iface === 'tube' || S.iface === 'mask' ? S.cfg.peep : S.iface === 'nasal' ? hfPaw() : 0) / 4, 0, 1)) * S.drvMul : 0;
     drive = clamp(drive * (1 - narc) * S.drvMul, 0, 1.5);
@@ -462,6 +463,8 @@ function create(opts) {
     const X = S.mx || { kM: 0, tcaE: 0, tf: 0, seiz: false };
     let tas = base + S.tasAdj - bump - 70 * S.anaf * (1 - .6 * E.adr) - 60 * S.tep * (1 + .04 * Math.max(0, S.cfg.peep - 8)) - 40 * S.cn + 2.5 * icpX - 45 * S.deficit - 150 * Math.pow(Math.max(0, S.deficit - .35), 1.2) + 50 * E.nor + 60 * E.adr + 14 * E.ket - dep - 8 * E.furo - sens * Math.max(0, S.pmeanAlv - 8) - 80 * ptxT * ptxT + 18 * (S.fight || 0) - (S.spo2 < .7 ? 40 * (.7 - S.spo2) / .3 : 0) - (S.hypoxT > 1.5 ? 30 : 0) - 55 * X.kM - 55 * X.tcaE - 5 * X.tf - 55 * E.urap - 60 * E.labet - 8 * E.iso + (X.seiz ? 25 : 0) + 6 * E.ca;
     let fc = P.fc + 30 * S.deficit + 22 * clamp((100 - S.tas) / 40, 0, 1) + 20 * (S.fight || 0) - 10 * S.sedTot + 12 * E.salb + 12 * (S.drive - .5) * (S.awake > .3 ? 1 : 0) + 8 * E.ntg + 30 * E.atr + 28 * E.adr + 10 * E.ket - 8 * S.opi - 10 * E.amio + S.fcAdj + 25 * S.tep + 25 * S.anaf + 20 * S.cn + 30 * S.cohb - 1.8 * icpX - 50 * X.kM + 35 * S.tca - 20 * E.labet + 45 * E.iso + 10 * E.adrN + (X.seiz ? 25 : 0) + 15 * clamp((60 - S.glu) / 35, 0, 1);
+    if (S.tire) fc += 22 * clamp(S.bs - 1.2, 0, 2) * (S.iface === 'tube' ? .3 : 1); // el trabajo respiratorio taquicardiza
+    if (S.ped && !S.neo) fc += (P.fc / 70 - 1) * (30 * S.deficit + 22 * clamp((100 - S.tas) / 40, 0, 1)); // v1.13: el niño compensa el shock con más taquicardia
     fc *= 1 - .055 * X.tf;
     // v1.4: taponamiento (la presión positiva lo empeora; el volumen gana tiempo) e infarto de VD (los nitratos hunden la TA)
     const tE = tampEff();
@@ -514,6 +517,7 @@ function create(opts) {
       S.bicKg -= S.bicKg * Math.LN2 / 180 * dtc;
       if (S.croup > 0 && E.dexa > .1) S.croup = Math.max(.1, S.croup - .012 * E.dexa * dtc);
       if (S.croup > 0 && S.iface !== 'tube') S.weak = clamp(S.weak + (S.croupEff > .5 ? .04 * (S.croupEff - .5) : -.01) * dtc, 0, .6); // agotamiento por el trabajo respiratorio
+      if (S.tire && S.iface !== 'tube') { const wob = clamp((S.bs - 1.3) / 1.2, 0, 1.2); S.weak = clamp(S.weak + (wob > .6 ? .075 * (wob - .6) : -.025) * dtc, 0, .6); } // v1.13: el niño con broncoespasmo grave se agota
       // hemorragia: depende de la presión, del tranexámico, de la hemostasia, de la oxitocina y de la coagulopatía (frío, dilución, acidosis)
       if (S.bleed > 0 && !S.arrest) {
         const pf = Math.pow(clamp(S.tas / 100, .3, 1.6), 1.5), src = S.bleedSrc;
@@ -639,7 +643,7 @@ function create(opts) {
   function tep(seiz) {
     if (S.iface === 'tube' || S.sedTot > .6 || S.relTot > .5) return 'Triángulo de evaluación pediátrica: no valorable (sedado y ventilado).';
     const n = pedNorms(S.age || 0), A = S.gcs >= 14 && !seiz && S.glu > 55, rr = S.pat.pmax > 1 ? S.pat.rr : 0;
-    const B = !(S.drive > .75 || rr > n.fr[1] * 1.3 || S.croupEff > .25 || S.bs > 1.4 || S.anaf > .4 || S.spo2 < .9 || (S.pat.pmax <= 1 && !S.bag));
+    const B = !(S.drive > .75 || rr > n.fr[1] * 1.3 || S.croupEff > .25 || S.bs > 1.4 || S.anaf > .4 || S.spo2 < .9 || (S.pat.pmax <= 1 && !S.bag) || !!S.dka);
     const C = !(S.deficit > .2 || S.tas < n.tasMin || S.vaso > .25 || S.anaf > .3 || S.fc > n.fc[1] * 1.25);
     const imp = A && B && C ? 'estable' : A && !B && C ? 'dificultad respiratoria' : !A && !B && C ? 'fallo respiratorio' : A && B && !C ? 'shock compensado' : !A && B && !C ? 'shock descompensado' : !A && B && C ? 'disfunción del sistema nervioso central o metabólica' : A && !B && !C ? 'dificultad respiratoria con mala perfusión' : 'fallo cardiorrespiratorio';
     return `Triángulo de evaluación pediátrica: apariencia ${A ? 'normal' : 'alterada'}, respiración ${B ? 'normal' : 'alterada'}, circulación ${C ? 'normal' : 'alterada'} → ${imp}.`;
@@ -695,7 +699,8 @@ function create(opts) {
     const sv = P.sv - .12 * clamp((90 - S.tas) / 40, 0, 1) - (S.fao2 < .08 ? .1 : 0);
     const sc = sat(PAO2);
     const mixed = Math.min(sv, sc), lowVQ = Math.max(mixed, Math.min(sat(PAO2 * .3), sc)); // unidades de baja V/Q: mejoran con más FiO2; el shunt verdadero no
-    S.sao2 = clamp((1 - S.mech.shunt) * sc + S.mech.shunt * ((1 - P.vq) * mixed + P.vq * lowVQ), .2, 1);
+    const lv = Math.min(S.mech.lvq || 0, .9 - S.mech.shunt);
+    S.sao2 = clamp((1 - S.mech.shunt - lv) * sc + S.mech.shunt * ((1 - P.vq) * mixed + P.vq * lowVQ) + lv * Math.max(mixed, Math.min(sat(PAO2 * .2), sc)), .2, 1);
     S.pao2 = PAO2;
     S.spo2 += (S.sao2 - S.spo2) * Math.min(1, dtc / .35);
     if (S.cohb > 0) { const th = 300 / (1 + 3 * clamp((S.fiEff - .21) / .79, 0, 1)) * clamp(4.5 / Math.max(vaE, .5), .8, 1.6); S.cohb = Math.max(0, S.cohb - S.cohb * Math.LN2 / th * dtc); }
@@ -707,7 +712,10 @@ function create(opts) {
     S.hco3m = P.hco3 - .9 * (S.lact - S.lact0) + S.bicKg / .4 + (S.hco3Off || 0);
     S.hco3 = Math.max(3, S.hco3m + (S.pco2 >= P.co2set ? .1 : .2) * clamp(S.hco3m / P.hco3, .25, 1.2) * (S.pco2 - P.co2set)); // el tampón agudo es proporcional al bicarbonato que queda
     S.ph = 6.1 + Math.log10(S.hco3 / (.03 * S.pco2));
-    if (S.icp) { S.icp.base = clamp(S.icp.base + S.icp.grow * dtc, 5, 70); S.icp.v = clamp(S.icp.base - 9 * S.E.shs - 9 * S.E.manit + .9 * (S.pco2 - 40) + .3 * Math.max(0, S.cfg.peep - 5) + 10 * (S.fight || 0) + (S.oxEff < .9 ? 12 * (.9 - S.oxEff) / .2 : 0) + (S.tas > 160 ? (S.tas - 160) * .1 : 0), 3, 90); }
+    if (S.ced && !S.ced.on && S.clin >= S.ced.at) { const c = S.ced, r = c.risk + .3 * clamp(((S.fluidKg || 0) - 20) / 10, 0, 2) + (c.bic ? .4 : 0) + (c.insB ? .3 : 0) + (S.E.ins > .1 ? .15 : 0); c.on = true; c.r = r; // v1.13: edema cerebral de la cetoacidosis pediátrica
+      S.icp = { base: 20 + 12 * Math.min(r, 1.5), grow: .12 + .45 * Math.min(r, 1.5), v: 20 }; S.log.push([S.clin, 'Cefalea intensa, vómitos y tendencia al sueño: edema cerebral']); }
+    if (S.ced && S.ced.on && S.icp && (S.E.manit > .2 || S.E.shs > .2)) S.icp.grow = Math.max(-.5, S.icp.grow - .1 * dtc); // la osmoterapia frena el edema y lo hace retroceder
+    if (S.icp) { S.icp.base = clamp(S.icp.base + S.icp.grow * dtc, 5, 70); S.icp.v = clamp(S.icp.base - 9 * S.E.shs - 9 * S.E.manit + .9 * (S.pco2 - (S.ced ? S.ced.pRef : 40)) + .3 * Math.max(0, S.cfg.peep - 5) + 10 * (S.fight || 0) + (S.oxEff < .9 ? 12 * (.9 - S.oxEff) / .2 : 0) + (S.tas > 160 ? (S.tas - 160) * .1 : 0), 3, 90); }
     if (S.adenPending && S.clin >= S.adenPending.at) { const d = S.adenPending.dose; S.adenPending = null; if (!S.arrest) { S.pauseUntil = S.t + 4.5; const t = S.arr.type;
         if (t === 'tsv' && rnd() < (d >= 12 ? .85 : .6)) { S.arr.type = null; S.log.push([S.clin, 'Adenosina: TSV revertida']); }
         else if (t === 'fa' || t === 'flutter' || t === 'tvp') S.slowUntil = S.t + 9; } }
@@ -912,11 +920,12 @@ function create(opts) {
     drug(k, amount) {
       if (k === 'adrIM') { S.depotAdr += amount * 24; return; }
       if (k === 'sugam') { const mgkg = amount / 75, rev = mgkg >= 12 ? .98 : mgkg >= 4 ? .9 : .65; S.drug.rel.cp *= 1 - rev; updateMech(0); return; } // encapsula el rocuronio, no la succinilcolina
+      if (S.ced && (k === 'bic' || k === 'ins')) { if (k === 'bic') S.ced.bic = true; else S.ced.insB = true; if (S.ced.on && S.icp) S.icp.grow += .15; } // factores de riesgo del edema cerebral
       if (k === 'bic') { S.bicKg += amount / 75; return; } // mEq/kg normalizados a 75 kg
       if (k === 'gluc') { S.glu += 5 * amount * (S.neo ? .6 : 1); return; } // en el recién nacido, más agua extracelular: sube menos por g/kg // g normalizados a 75 kg: 25 g suben ≈ 125 mg/dL
-      if (k === 'ssh3') { addNa(513, amount / 1000); return; } // salino hipertónico 3 % (mL)
+      if (k === 'ssh3') { addNa(513, amount / 1000); if (S.icp) S.drug.shs.cp += amount * .0016; return; } // también osmoterapia (2,5–5 mL/kg en el niño) // salino hipertónico 3 % (mL)
       if (k === 'shs') addNa(1283, .25 * amount); // salino hipertónico 7,5 % 250 mL
-      if (k === 'ins') S.glu += 125 * amount; // 10 UI de insulina con 25 g de glucosa
+      if (k === 'ins' && !S.ced) S.glu += 125 * amount; // 10 UI de insulina con 25 g de glucosa
       if (k === 'sux') S.kTot += .5; // la succinilcolina sube el potasio
       if (k === 'sux' && S.op > .2) { S.drug.rel.cp += 14; S.log.push([S.clin, 'Bloqueo prolongado: la succinilcolina no se metaboliza (colinesterasas inhibidas)']); }
       if (k === 'insHD') amount /= 75; // UI/kg
@@ -1070,12 +1079,12 @@ function create(opts) {
         f.push(`Cuentas ${Math.round(S.pat.rr)} respiraciones por minuto.`);
         if (S.drive > .8) f.push('Tiraje supraclavicular e intercostal, uso de musculatura accesoria' + (P.hyper ? ', respiración con labios fruncidos.' : '.'));
         else if (S.drive > .5 || (S.spo2 < .9 && S.opi < .3 && S.sedTot < .3)) f.push('Trabajo respiratorio moderado.');
-        else f.push('Respira tranquilo, sin tiraje.');
+        else if (!S.dka) f.push('Respira tranquilo, sin tiraje.');
         const ie = S.ies.filter(e => e > S.t - 20).length;
         if (ie >= 2) f.push('Ves esfuerzos inspiratorios que el ventilador no acompaña.');
       } else if (S.iface !== 'tube' && !S.bag && !seiz) f.push('No respira.');
       if (S.opi > .4) f.push('Pupilas puntiformes.');
-      if (S.vaso > .25) f.push(S.lact > 4 && S.tas < 90 ? 'Piel moteada en las rodillas, frialdad acra y relleno capilar de más de 3 s.' : 'Piel caliente y enrojecida, pulsos saltones y relleno capilar rápido.');
+      if (S.vaso > .25) f.push(S.ped ? 'Piel moteada, manos y pies fríos, relleno capilar de 4 s y pulsos periféricos débiles (shock frío).' : S.lact > 4 && S.tas < 90 ? 'Piel moteada en las rodillas, frialdad acra y relleno capilar de más de 3 s.' : 'Piel caliente y enrojecida, pulsos saltones y relleno capilar rápido.');
       if (S.neurog > .25) f.push('Piel caliente y seca; no mueve ni siente por debajo del cuello; respiración abdominal.');
       if ((S.fluidKg || 0) > S.fluidTol + 8) f.push('Crepitantes bilaterales nuevos.');
       if (tampEff() > .25) f.push('Ingurgitación yugular, tonos cardiacos apagados y pulso paradójico.');
@@ -1094,7 +1103,9 @@ function create(opts) {
       if (S.ptxActive && S.ptx > .25) f.push('Hemitórax derecho hipoventilado y timpánico; yugulares ingurgitadas' + (S.ptx > .6 ? '; tráquea desviada a la izquierda.' : '.'));
       else if (S.ptxActive) f.push('Hipoventilación leve en la base derecha.');
       if (a.obst) f.push('La sonda de aspiración no progresa bien por el tubo; secreciones espesas.');
-      if (S.bs > 1.25) f.push('Sibilancias espiratorias difusas con espiración muy alargada.');
+      if (S.tire && S.bs > 1.6 && S.weak > .3) f.push('Tórax silente: apenas entra aire y casi no se oyen sibilancias. Agotado, sudoroso, no puede hablar.');
+      else if (S.bs > 1.25) f.push('Sibilancias espiratorias difusas con espiración muy alargada.' + (S.tire ? (S.bs > 2 ? ' Habla con palabras sueltas; tiraje intercostal y supraclavicular.' : ' Habla con frases cortas.') : ''));
+      if (S.pneu > .2) f.push('Crepitantes y soplo tubárico en la base derecha, con matidez a la percusión.' + ((S.fluidKg || 0) > S.fluidTol + 5 ? ' Crepitantes nuevos en ambas bases e hígado palpable a 3 cm.' : ''));
       if ((S.lastPeepTot && S.lastPeepTot.v - S.cfg.peep > 10) || (S.mech.Pcrit > 7 && S.pat.rr > 24)) f.push('Tórax hiperinsuflado que no termina de bajar entre respiraciones.');
       if (a.leak > 0 && S.iface === 'tube') f.push('Gorgoteo audible en la boca en cada inspiración; balón poco inflado.');
       if (a.sga) f.push('Dispositivo supraglótico colocado' + (S.Paw > 25 ? '; se oye fuga por la boca en las inspiraciones con presión alta.' : ', sella bien.'));
@@ -1118,7 +1129,9 @@ function create(opts) {
         if (!S.decont) f.push('La ropa está impregnada de producto y huele a disolvente: riesgo para el equipo.'); }
       if (S.cocaine > 0) f.push(S.cocE > .35 ? 'Muy agitado, sudoroso, con midriasis y dolor torácico opresivo; no se deja explorar.' : 'Más tranquilo tras la sedación; menos sudoroso.');
       if (S.temp > 40) f.push('Piel muy caliente al tacto' + (S.cool ? '; enfriándose con agua pulverizada y ventilación.' : '.'));
-      if (S.dka) f.push('Aliento afrutado (cetósico), mucosas muy secas y signo del pliegue.');
+      if (S.dka) f.push('Aliento afrutado (cetósico), mucosas muy secas y signo del pliegue.' + (S.iface !== 'tube' ? ' Respiración de Kussmaul: profunda, rápida y regular.' : ''));
+      if (S.ced && S.ced.on && S.iface !== 'tube') f.push(S.icp && S.icp.v > 30 ? 'Cefalea intensa, vómitos, muy somnolienta; responde mal a la voz.' : S.icp && S.icp.v > 22 ? 'Se queja de que le duele mucho la cabeza y ha vomitado; más dormida que antes.' : 'Refiere menos cefalea.');
+      if (S.ped && !S.dka && !S.vaso && S.deficit > .15) f.push(`${S.age != null && S.age < 1.5 ? 'Fontanela deprimida, ' : ''}ojos hundidos, mucosas secas, signo del pliegue y relleno capilar de ${S.deficit > .25 ? 5 : 3} s.`);
       if (S.dci) { const d = S.dciE * S.dci.neuro; f.push(d > .55 ? 'Paraparesia (fuerza 2/5 en ambas piernas), hipoestesia desde el ombligo y globo vesical; piel marmórea en el tronco.' : d > .3 ? 'Debilidad en ambas piernas (fuerza 4/5) y hormigueo; dolor lumbar; piel marmórea en el tronco.' : d > .12 ? 'Hormigueo en las piernas y dolor en los hombros; la fuerza se ha recuperado.' : 'Sin déficit neurológico; persiste algo de dolor articular.');
         if (S.dci.chokes > 0 && S.dciE > .3) f.push('Tos seca, dolor retroesternal y disnea (afectación pulmonar).'); }
       if (S.heat && S.temp > 39.5) f.push('Piel caliente y enrojecida; ' + (S.temp > 41 ? 'agitado y confuso, con lenguaje incoherente.' : 'confuso.'));

@@ -24,7 +24,7 @@ const DRUGSET = [
   { g: 'Neurología', items: [
     { id: 'midCr', lab: 'Midazolam (crisis)', k: 'mid', mgkg: .2, max: 10, u: 'mg', route: ' IV o IM', noIV: true, note: 'repetible una vez a los 5 min' },
     { id: 'lev', lab: 'Levetiracetam', k: 'lev', mgkg: 60, max: 4500, u: 'mg', note: 'IV en 10 min' }, { id: 'vpa', lab: 'Valproato', k: 'vpa', mgkg: 40, max: 3000, u: 'mg', note: 'IV en 10 min' },
-    { id: 'ssh3', lab: 'Salino hipertónico 3 %', k: 'ssh3', amt: 100, note: '100 mL en 10 min' }] },
+    { id: 'ssh3', lab: 'Salino hipertónico 3 %', k: 'ssh3', dose: 100, u: 'mL', amt: 100, note: 'en 10 min' }] },
   { g: 'Tóxicos', items: [
     { id: 'glucgIV', lab: 'Glucagón IV', k: 'glucg', dose: 5, u: 'mg', note: 'en 1–2 min; repetible a los 10 min (vómitos)' }, { id: 'insHD', lab: 'Insulina a dosis altas', k: 'insHD', mgkg: 1, u: 'UI', note: 'con glucosa; después 1 UI/kg/h' },
     { id: 'atr2', lab: 'Atropina', k: 'atr', dose: 2, u: 'mg', note: 'organofosforados: dobla cada 5 min' }, { id: 'atr4', lab: 'Atropina', k: 'atr', dose: 4, u: 'mg' },
@@ -39,7 +39,7 @@ const DRUGSET = [
     { id: 'aden18', lab: 'Adenosina', k: 'aden', dose: 18, u: 'mg', amt: 18, route: ' IV rápida' }, { id: 'atr', lab: 'Atropina', k: 'atr', dose: .5, u: 'mg' },
     { id: 'vagal', lab: 'Maniobras vagales', act: 'vagal', note: 'Valsalva modificada' }] },
   { g: 'Respiratorio y anafilaxia', items: [
-    { id: 'salb', lab: 'Salbutamol + ipratropio', k: 'salb', amt: 1, note: 'nebulizado o en línea', route: '', noIV: true }, { id: 'mgso4', lab: 'Sulfato de magnesio', k: 'mg', dose: 2, u: 'g' },
+    { id: 'salb', lab: 'Salbutamol + ipratropio', k: 'salb', amt: 1, note: 'nebulizado o en línea', pnote: '2,5 mg (< 20 kg) o 5 mg + ipratropio 250 mcg nebulizados, cada 20 min la 1.ª hora', route: '', noIV: true }, { id: 'mgso4', lab: 'Sulfato de magnesio', k: 'mg', dose: 2, u: 'g' },
     { id: 'cort', lab: 'Metilprednisolona', k: 'cort', mgkg: 1, u: 'mg' }, { id: 'adrIM', lab: 'Adrenalina IM', k: 'adrIM', dose: .5, u: 'mg', amt: .5, route: ' en el muslo', noIV: true },
     { id: 'dexclor', lab: 'Dexclorfeniramina', k: 'dexclor', dose: 5, u: 'mg' }, { id: 'adrNeb', lab: 'Adrenalina nebulizada', k: 'adrN', dose: 5, u: 'mg', route: ' nebulizada', noIV: true },
     { id: 'dexa', lab: 'Dexametasona', k: 'dexa', dose: 8, u: 'mg', route: ' oral o IM', noIV: true }] },
@@ -61,6 +61,8 @@ const DRUGITEMS = {}; DRUGSET.forEach(g => g.items.forEach(it => { DRUGITEMS[it.
 const PERFS = [
   { id: 'nor', lab: 'Noradrenalina', u: 'mcg/kg/min', d: 2, opts: [0, .05, .1, .15, .2, .3, .5], run: (sim, r, fW) => sim.setNor(r), extra: (r, peso, fmt) => r ? ` · ${fmt(r * peso)} mcg/min` : '' },
   { id: 'adrI', lab: 'Adrenalina', u: 'mcg/min', d: 0, opts: [0, 2, 5, 10, 20], run: (sim, r, fW) => sim.perfSteady('adr', r) },
+  // v1.13: adrenalina por peso para el niño (shock frío o refractario a volumen)
+  { id: 'adrIkg', lab: 'Adrenalina (pediátrica)', u: 'mcg/kg/min', d: 2, opts: [0, .05, .1, .2, .3, .5], run: (sim, r) => sim.perfSteady('adr', r * 75), extra: (r, peso, fmt) => r ? ` · ${fmt(r * peso, 1)} mcg/min` : '' },
   { id: 'ntg', lab: 'Nitroglicerina', u: 'mcg/min', d: 0, opts: [0, 20, 50, 100, 150, 200], run: (sim, r, fW) => sim.setNtg(r) },
   { id: 'prop', lab: 'Propofol', u: 'mg/h', d: 0, opts: [0, 50, 100, 150, 200, 300], run: (sim, r, fW) => sim.perf('prop', r / 60 * fW) },
   { id: 'mid', lab: 'Midazolam', u: 'mg/h', d: 0, opts: [0, 2, 5, 10], run: (sim, r, fW) => sim.perf('mid', r / 60 * fW) },
@@ -82,7 +84,7 @@ const roundDose = x => x >= 50 ? Math.round(x / 5) * 5 : x >= 10 ? Math.round(x)
 const PED = { glucgIV: { k: .05, max: 5, t: '50 mcg/kg' }, atr2: { k: .05, max: 2, t: '0,05 mg/kg' }, atr4: { k: .1, max: 4, t: '0,1 mg/kg' }, atr8: { k: .2, max: 8, t: '0,2 mg/kg' }, atr16: { k: .4, max: 16, t: '0,4 mg/kg' }, midCr: { k: .2, max: 10, t: '0,2 mg/kg IM, IN o IV' }, lev: { k: 60, max: 4500, t: '60 mg/kg (máx. 4.500 mg)', u: 'mg' }, vpa: { k: 40, max: 3000, t: '40 mg/kg (máx. 3.000 mg; evítalo antes de los 2 años y en enfermedad hepática o metabólica)', u: 'mg' }, ceftri: { k: 80, max: 2000, t: '80 mg/kg', u: 'mg' }, pipta: { k: 100, max: 4000, t: '100 mg/kg', u: 'mg' }, mero: { k: 20, max: 1000, t: '20 mg/kg', u: 'mg' }, adr1: { k: .01, max: 1, t: '10 mcg/kg' }, adrP: { k: 1, max: 20, t: '1 mcg/kg' }, amio300: { k: 5, max: 300, t: '5 mg/kg' }, amio150: { k: 5, max: 150, t: '5 mg/kg' },
   lido100: { k: 1, max: 100, t: '1 mg/kg' }, lido50: { k: .5, max: 50, t: '0,5 mg/kg' }, atr: { k: .02, min: .1, max: .5, t: '20 mcg/kg' }, aden6: { k: .1, max: 6, t: '0,1 mg/kg' },
   aden12: { k: .2, max: 12, t: '0,2 mg/kg' }, aden18: { k: .3, max: 18, t: '0,3 mg/kg' }, adrIM: { k: .01, max: .5, t: '10 mcg/kg' }, nalox: { k: .01, max: .4, t: '10 mcg/kg' },
-  mid: { k: .05, max: 2, t: '0,05 mg/kg' }, morf: { k: .05, max: 3, t: '0,05 mg/kg' }, mg: { k: .04, max: 2, t: '40 mg/kg' }, dexclor: { k: .15, max: 5, t: '0,15 mg/kg' },
+  mid: { k: .05, max: 2, t: '0,05 mg/kg' }, mgso4: { k: .05, max: 2, t: '50 mg/kg en 20 min (máx. 2 g)' }, ssh3: { k: 5, max: 250, t: '2,5–5 mL/kg en 10–15 min' }, cort: { k: 2, max: 60, t: '2 mg/kg (máx. 60 mg)', u: 'mg' }, morf: { k: .05, max: 3, t: '0,05 mg/kg' }, mg: { k: .04, max: 2, t: '40 mg/kg' }, dexclor: { k: .15, max: 5, t: '0,15 mg/kg' },
   furo: { k: 1, max: 40, t: '1 mg/kg' }, hidroxo: { k: .07, max: 5, t: '70 mg/kg' }, ca: { k: .2, max: 10, t: '0,2 mL/kg' }, gluc: { k: .2, max: 25, t: '0,2 g/kg (2 mL/kg de G10 %)' },
   gluc10: { k: .2, max: 10, t: '0,2 g/kg' }, glucg: { k: .03, min: .5, max: 1, t: '0,5 mg si < 25 kg' }, txa: { k: 15, max: 1000, t: '15 mg/kg', u: 'mg' }, adrNeb: { k: .5, max: 5, t: '0,5 mg/kg' },
   dexa: { k: .6, max: 16, t: '0,6 mg/kg' }, midIN: { k: .3, max: 10, t: '0,3 mg/kg' }, mg4: { k: .05, max: 2, t: '50 mg/kg' } };
