@@ -47,7 +47,8 @@ const DRUGS = {
   // v1.7: antiepilépticos de 2.ª línea (mg normalizados a 75 kg; en 10 min)
   lev: { h: 420, on: 8, ec50: 1500 }, vpa: { h: 600, on: 8, ec50: 1000 },
   // v1.8: insulina a dosis altas (UI/kg), emulsión lipídica 20 % (mL, 75 kg) y pralidoxima (mg, 75 kg)
-  insHD: { h: 25, on: 15, ec50: .6 }, lipid: { h: 30, on: 2, ec50: 112 }, prali: { h: 120, on: 15, ec50: 1000 }, nifed: { h: 240, on: 20, ec50: 20 }
+  insHD: { h: 25, on: 15, ec50: .6 }, flum: { h: 50, on: 1, ec50: .25 }, // v1.20: flumazenilo (mg)
+  lipid: { h: 30, on: 2, ec50: 112 }, prali: { h: 120, on: 15, ec50: 1000 }, nifed: { h: 240, on: 20, ec50: 20 }
 };
 const SED_RATE = 3 * Math.LN2 / 15; // perfusión que mantiene la sedación de base al 75 %
 
@@ -121,7 +122,7 @@ function create(opts) {
     access: o.access !== false, accessPend: null, ecg: { qrs: .08, t: 1, p: 1, j: 0, st: 0, amp: 1 }, gcs: 15,
     // v1.4: SCACEST (localización, VD, minutos de evolución al empezar, minutos hasta la ICP primaria) y taponamiento (0–1 y crecimiento por minuto)
     stemi: o.stemi ? { loc: o.stemi.loc || 'ant', rv: !!o.stemi.rv, onset: o.stemi.onset || 60, pci: o.stemi.pci != null ? o.stemi.pci : 30, reperf: false, reperfAt: null, tnkAt: o.stemi.failed ? -70 : null, icp: null, noTnk: !!o.stemi.noTnk, nste: !!o.stemi.nste, failed: !!o.stemi.failed, ich: false } : null,
-    qtl: o.qtl ? { qtc: o.qtl.qtc || 600, n: 0, until: -1 } : null, dissec: o.dissec ? { prog: 0, done: false } : null, bavN: !!o.bavN, pmFail: !!o.pmFail, // v1.18+: QT largo, disección aórtica, BAV nodal y fallo de marcapasos
+    qtl: o.qtl ? { qtc: o.qtl.qtc || 600, n: 0, until: -1 } : null, bzd: o.bzd || 0, bzdEff: 0, diur: o.diur || 0, bzdChronic: !!o.bzdChronic, flumSeizAt: null, etoh: o.etoh || 0, anticol: !!o.anticol, caust: !!o.caust, hhs: !!o.hhs, adrenal: o.adrenal || 0, thyro: o.thyro || 0, thyroEff: 0, salic: o.salic || 0, suelo: !!o.suelo, dissec: o.dissec ? { prog: 0, done: false } : null, bavN: !!o.bavN, pmFail: !!o.pmFail, // v1.19–v1.20: tóxicos, metabólico, QT largo, disección aórtica, BAV nodal y fallo de marcapasos
     tamp: o.tamp || 0, tampRate: o.tampRate || 0, pericPend: null,
     // v1.5: shock distributivo — vasoplejia séptica (0–1 y progresión por minuto hasta el antibiótico), neurogénico (0–1) y volumen que tolera el pulmón (mL/kg)
     tire: !!o.tire, pneu: o.pneu || 0, tbi: o.tbi || 0, tbi0: o.tbi || 0, preg: o.preg || 0, lud: false, tdp: !!o.tdp, ptxOpen: !!o.ptxOpen, crush: o.crush || 0, released: false, drive0: o.drive0 || 1, ptxRate: o.ptxRate || 0, irritant: !!o.irritant, hape: o.hape || 0, anxRate: o.anxRate || 0, anxBase: o.anxBase || 0, calmAt: null, retainer: !!o.retainer, ced: o.cedema ? { at: o.cedema.at || 15, risk: o.cedema.risk || .3, on: false, bic: false, insB: false, pRef: o.pco2 || 40 } : null, vaso: o.vaso || 0, vasoRate: o.vasoRate || 0, neurog: o.neurog || 0, fluidTol: o.fluidTol || 35, atbAt: null, tad: 70, pam: 90,
@@ -169,6 +170,8 @@ function create(opts) {
     S.analg = 1 - (1 - Math.min(1, 1.7 * E.fent)) * (1 - Math.min(1, 2 * E.morf)) * (1 - Math.min(1, 2.6 * E.ket)); // dosis analgésicas: fentanilo 1 mcg/kg, morfina 3–6 mg, ketamina 0,3 mg/kg
     S.painEff = S.pain * (1 - .85 * S.analg) * (S.relTot > .5 || S.sedTot > .7 ? 0 : 1) * (S.hemo && S.bleedSrc === 'femur' ? .5 : 1); // v1.17: la tracción alivia el dolor del fémur
     if (S.op > 0) { const ac = S.drug.atr.cp; S.opM = S.op * (1 - ac / (ac + 10 * S.op)); S.opN = S.op * (1 - .55 * E.prali); S.weak = Math.max(S.weak, .5 * S.opN); } // v1.8: síndrome colinérgico (muscarínico y nicotínico)
+    S.bzdEff = S.bzd * (1 - .9 * clamp(E.flum / .5, 0, 1)); // v1.20: benzodiacepinas (el flumazenilo las revierte poco tiempo)
+    if (S.thyro > 0) S.thyroEff = S.thyro * (1 - .55 * clamp(E.labet / .4, 0, 1)) * (1 - .3 * clamp(E.cort / .3, 0, 1)); // tormenta tiroidea: betabloqueante e hidrocortisona
     if (S.cocaine > 0) S.cocE = S.cocaine * (1 - .65 * clamp(Math.max((E.mid - .15) / .35, (E.prop - .2) / .3, (S.sedTot - .3) / .4), 0, 1)); // las benzodiacepinas frenan el cuadro simpaticomimético
     S.opiR = S.opi * clamp((S.opi - .2) / .5, 0, 1) * (1 - .5 * S.pain); // v1.6: a dosis analgésicas el opiáceo deprime poco la respiración, y menos con dolor; en la intoxicación, todo su efecto
     S.drvMul = (1 - .85 * S.opiR) * (1 - .3 * E.prop) * (1 - .25 * E.mid) * (1 - .3 * S.tca) * (S.drive0 || 1); // v1.16: impulso central reducido (obesidad-hipoventilación)
@@ -225,7 +228,7 @@ function create(opts) {
     let drive = Math.max(.25 + .1 * met, c2 + .8 * hyx, P.hyper ? hyx : 0) + (P.edema ? .35 * S.sev : 0) + (S.clin < S.anxUntil ? .5 : 0) + (S.anxBase || 0) + .5 * S.tep + .3 * S.anaf + (S.iface !== 'tube' ? .45 * S.croupEff : 0) + (S.tire && S.iface !== 'tube' ? .35 * clamp(S.bs - 1.2, 0, 2) : 0); // v1.13: hambre de aire del asmático
     // bronquiolitis: taquipnea superficial por la inflamación, que alivia la presión positiva; sube la frecuencia, no el volumen
     const irr = P.irrit ? P.irrit * (1 - .5 * clamp((S.iface === 'tube' || S.iface === 'mask' ? S.cfg.peep : S.iface === 'nasal' ? hfPaw() : 0) / 4, 0, 1)) * S.drvMul : 0;
-    drive = clamp(drive * (1 - narc) * S.drvMul * (S.icp && S.icp.v > 40 ? 1 - clamp((S.icp.v - 40) / 20, 0, .9) : 1), 0, 1.5); // v1.17: la herniación deprime el centro respiratorio
+    drive = clamp((drive + .45 * S.salic) * (1 - narc) * S.drvMul * (S.icp && S.icp.v > 40 ? 1 - clamp((S.icp.v - 40) / 20, 0, .9) : 1) * (1 - .55 * S.bzdEff - .3 * S.etoh), 0, 1.5); // v1.17: la herniación deprime el centro respiratorio
     const driveV = drive; drive = Math.min(1.5, drive + irr);
     const awake = (1 - .85 * S.sedTot) * (1 - S.relTot) * (1 - narc * .5) * (S.icp && S.icp.v > 40 ? 1 - clamp((S.icp.v - 40) / 20, 0, .95) : 1); // v1.17: herniación: respiración irregular hasta la apnea
     const rr = clamp((P.rr0 + (P.rrMax - P.rr0) * Math.min(drive, 1.2)) * (1 - .4 * S.sedTot) * (1 - .85 * S.opiR) * (1 + .6 * S.weak) * (1 + .25 * S.painEff), 3, S.rrCap);
@@ -479,6 +482,8 @@ function create(opts) {
       tas -= (bb ? 60 : 78) * T + 25 * E.nor * T + 25 * E.adr * T; fc -= (bb ? 55 : 45) * T + 22 * E.atr * T + 22 * clamp((100 - S.tas) / 40, 0, 1) * Math.min(1, 1.2 * T); } // sin taquicardia refleja
     if (S.op > 0) { tas -= 45 * S.opM; fc += -58 * S.opM + 15 * S.opN; } // bradicardia muscarínica, taquicardia nicotínica
     if (S.cocE > 0) { tas += 70 * S.cocE; fc += 62 * S.cocE; }
+    if (S.thyroEff > 0) { tas += 30 * S.thyroEff; fc += 45 * S.thyroEff; }
+    if (S.adrenal > 0) { const ok = clamp(E.cort / .3, 0, 1); tas -= S.adrenal * (60 + 45 * E.nor + 50 * E.adr) * (1 - .85 * ok); } // la falta de cortisol anula la respuesta a las catecolaminas // v1.20: crisis suprarrenal — la noradrenalina sola apenas responde
     if (S.ph < 7.1) tas -= 30 * clamp((7.1 - S.ph) / .25, 0, 1.3); // la acidemia grave deprime el miocardio y anula los vasopresores
     if (S.temp > 38.5) fc += 6 * (S.temp - 38.5);
     if (S.heat) tas -= 25 * clamp((S.temp - 39.5) / 2, 0, 1.2); // vasodilatación cutánea del golpe de calor
@@ -487,7 +492,7 @@ function create(opts) {
     if (S.neurog > 0) { tas -= 55 * S.neurog - 45 * E.nor * S.neurog; fc -= S.neurog * (22 * clamp((100 - S.tas) / 40, 0, 1) + 38); }
     const ar = S.arr.type;
     if (ar && !S.pace.capture) {
-      fc = ar === 'tsv' ? 186 : ar === 'flutter' ? 150 - 20 * E.amio : ar === 'fa' ? 158 - 45 * E.amio : ar === 'tvp' ? 178 - 15 * E.amio : ar === 'fapre' ? 225 - 10 * E.amio : ar === 'tdp' ? 240 : 36 + 55 * E.atr + 40 * E.adr + 45 * E.iso;
+      fc = ar === 'tsv' ? 186 : ar === 'flutter' ? 150 - 20 * E.amio : ar === 'fa' ? (S.thyro ? 150 + 30 * S.thyroEff : 158) - 45 * E.amio - 40 * E.labet : ar === 'tvp' ? 178 - 15 * E.amio : ar === 'fapre' ? 225 - 10 * E.amio : ar === 'tdp' ? 240 : 36 + 55 * E.atr + 40 * E.adr + 45 * E.iso;
       if (S.t < S.slowUntil) fc *= .55;
       tas -= S.arr.pen * (ar === 'sbrady' ? clamp((62 - fc) / 26, 0, 1) : clamp((fc - 120) / 60, 0, 1.3));
     }
@@ -513,6 +518,10 @@ function create(opts) {
       if (S.dka && E.ins > .3) S.hco3Off = Math.min(0, S.hco3Off + .03 * E.ins * dtc); // la insulina frena la cetogénesis (horas)
       if (S.op > 0 && !S.decont) S.op = clamp(S.op + S.opRate * dtc, 0, 1); // sigue absorbiéndose por la piel y la ropa
       if (S.cocE > 0) S.temp = clamp(S.temp + .1 * S.cocE * dtc, 30, 43.5);
+      if (S.thyroEff > 0) S.temp = clamp(S.temp + .06 * S.thyroEff * dtc, 30, 43.5);
+      if (S.diur && S.glu > 300) S.deficit = Math.min(.7, S.deficit + S.diur * dtc); // v1.20: diuresis osmótica (estado hiperosmolar, cetoacidosis)
+      if (S.salic > 0) S.hco3Off -= .3 * S.salic * (1 - clamp(S.bicKg / 1.2, 0, 1)) * dtc; // v1.20: salicilatos — la acidosis avanza si no se alcaliniza
+      if (S.flumSeizAt != null && S.clin >= S.flumSeizAt) { S.flumSeizAt = null; S.se = S.se || { r: .3, since: 0, on: true, by: null, ctrlAt: null }; S.se.on = true; S.seizUntil = 1e9; S.seizures++; S.log.push([S.clin, 'Convulsión tras el flumazenilo']); if (S.onSeizure) S.onSeizure(); }
       if (S.cool && S.temp > 37.2) S.temp -= .15 * dtc; // enfriamiento activo (evaporación, hielo, suero frío): ≈ 0,15 °C/min
       S.glu = clamp(S.glu, 10, 700);
       if (S.gluPerf) S.glu += 5 * S.gluPerf * dtc;
@@ -596,7 +605,7 @@ function create(opts) {
     else if (S.temp > 42.3 && rnd() < dtc * .1) enterArrest('primary');
     // escala de Glasgow aproximada
     const tLow = S.ped ? pedNorms(S.age || 0).tasMin - 8 : 70; // en el niño, la hipotensión que altera la conciencia depende de la edad
-    let g = 15 - 12 * S.sedTot - 3 * S.opi - 9 * gluN - 1.3 * clamp(32 - S.temp, 0, 8) - (S.pco2 > (S.retainer ? 66 : 80) ? (S.pco2 - (S.retainer ? 66 : 80)) / 5 : 0) - (S.oxEff < .75 ? (.75 - S.oxEff) * 30 : 0) - (S.tas < tLow ? (tLow - S.tas) / 5 : 0) - (S.cohb > .2 ? (S.cohb - .2) * 25 : 0) - (S.icp && S.icp.v > 22 ? (S.icp.v - 20) / 3 : 0) - 6 * naEff() - strokeGcs() - 5 * S.op - 1 * S.cocE - 1.5 * clamp(S.temp - 40.5, 0, 2.5) - 3 * clamp((7.1 - (S.ph || 7.4)) / .2, 0, 1) - S.tbi;
+    let g = 15 - 12 * S.sedTot - 3 * S.opi - 9 * gluN - 1.3 * clamp(32 - S.temp, 0, 8) - (S.pco2 > (S.retainer ? 66 : 80) ? (S.pco2 - (S.retainer ? 66 : 80)) / 5 : 0) - (S.oxEff < .75 ? (.75 - S.oxEff) * 30 : 0) - (S.tas < tLow ? (tLow - S.tas) / 5 : 0) - (S.cohb > .2 ? (S.cohb - .2) * 25 : 0) - (S.icp && S.icp.v > 22 ? (S.icp.v - 20) / 3 : 0) - 6 * naEff() - strokeGcs() - 5 * S.op - 9 * S.bzdEff - 5 * S.etoh - 7 * S.cn - clamp((2 * S.na + S.glu / 18 - 320) / 8, 0, 8) - 1 * S.cocE - 1.5 * clamp(S.temp - 40.5, 0, 2.5) - 3 * clamp((7.1 - (S.ph || 7.4)) / .2, 0, 1) - S.tbi;
     if (S.tbi > 0 && dtc > 0) S.tbi = Math.min(S.tbi0 + 6, S.tbi + (.35 * clamp((tLow + 16 - S.tas) / 20, 0, 1.5) + .2 * clamp((.92 - S.spo2) / .1, 0, 1.5) + .05 * clamp(35 - S.temp, 0, 2)) * dtc); // v1.14: lesión cerebral secundaria por hipotensión, hipoxia o frío
     if (seiz) g = Math.min(g, 5); else if (S.clin < S.postIctUntil) g -= 4;
     S.gcs = Math.round(clamp(g, 3, 15));
@@ -947,6 +956,7 @@ function create(opts) {
       if (k === 'adrIM') { S.depotAdr += amount * 24; return; }
       if (k === 'sugam') { const mgkg = amount / 75, rev = mgkg >= 12 ? .98 : mgkg >= 4 ? .9 : .65; S.drug.rel.cp *= 1 - rev; updateMech(0); return; } // encapsula el rocuronio, no la succinilcolina
       if (S.ced && (k === 'bic' || k === 'ins')) { if (k === 'bic') S.ced.bic = true; else S.ced.insB = true; if (S.ced.on && S.icp) S.icp.grow += .15; } // factores de riesgo del edema cerebral
+      if (k === 'flum' && (S.tca > .1 || S.bzdChronic) && S.flumSeizAt == null && rnd() < .7) S.flumSeizAt = S.clin + .5 + rnd(); // v1.20: el flumazenilo desenmascara las convulsiones
       if (k === 'bic') { S.bicKg += amount / 75; return; } // mEq/kg normalizados a 75 kg
       if (k === 'gluc') { S.glu += 5 * amount * (S.neo ? .6 : 1); return; } // en el recién nacido, más agua extracelular: sube menos por g/kg // g normalizados a 75 kg: 25 g suben ≈ 125 mg/dL
       if (k === 'ssh3') { addNa(513, amount / 1000); if (S.icp) S.drug.shs.cp += amount * .0016; return; } // también osmoterapia (2,5–5 mL/kg en el niño) // salino hipertónico 3 % (mL)
@@ -1055,7 +1065,7 @@ function create(opts) {
       if (e.j > .25) f.push('Ondas J de Osborn.');
       if (S.tamp > .35) f.push('Bajo voltaje' + (S.tamp > .55 ? ' y alternancia eléctrica.' : '.'));
       if (S.tep > .3) f.push('S1Q3T3 y T negativas de V1 a V4.');
-      if (S.cocE > .35) f.push('Descenso del ST de 1–2 mm en V4–V6 (isquemia por vasoespasmo y taquicardia).');
+      if (S.cocE > .35 && !S.anticol) f.push('Descenso del ST de 1–2 mm en V4–V6 (isquemia por vasoespasmo y taquicardia).');
       if (S.cv && S.cvT > .3) f.push(S.cv.type === 'cca' ? 'PR largo con escape de la unión a ratos.' : 'PR alargado.');
       if (f.length === 1) f.push('Sin alteraciones agudas de la repolarización.');
       return f.join(' ');
@@ -1159,7 +1169,8 @@ function create(opts) {
       if (S.deficit > .35 && S.vaso < .25 && S.neurog < .25) f.push('Piel fría y pálida, relleno capilar enlentecido.'); // en el shock distributivo la piel está caliente
       if (S.pace.on) f.push(S.pace.capture ? 'Pulso femoral a la frecuencia del marcapasos: hay captura mecánica.' : 'Espigas sin captura: el pulso no sigue al marcapasos.');
       if (S.anaf > .15) f.push(S.iface === 'tube' ? 'Eritema y habones generalizados' + (S.anaf > .4 ? ', edema facial y de párpados; sibilancias en ambos campos' : '') + '.' : 'Habones generalizados' + (S.anaf > .4 ? ', angioedema de labios y lengua, voz ronca' : '') + '.');
-      if (S.edAir > .25 && S.iface !== 'tube') f.push('Hollín en fosas nasales, vibrisas chamuscadas, voz ronca' + (S.edAir > .55 ? ' y estridor inspiratorio.' : '.'));
+      if (S.caust) f.push('Quemaduras blanquecinas en labios, lengua y paladar, babeo y dolor retroesternal al tragar' + (S.edAir > .55 ? '; voz ronca y estridor inspiratorio.' : S.edAir > .3 ? '; voz algo ronca.' : '.')); // v1.20
+      else if (S.edAir > .25 && S.iface !== 'tube') f.push('Hollín en fosas nasales, vibrisas chamuscadas, voz ronca' + (S.edAir > .55 ? ' y estridor inspiratorio.' : '.'));
       if (S.cohb > .15 && S.iface !== 'tube') f.push('Cefalea, náuseas y confusión' + (S.cohb > .3 ? '; responde mal a órdenes.' : '.'));
       if (S.tep > .3) f.push('Ingurgitación yugular sin crepitantes; extremidades frías.');
       if (S.asp > .2) f.push('Restos de contenido gástrico en orofaringe' + (S.iface === 'tube' ? ' y al aspirar por el tubo' : '') + '; crepitantes en base derecha.');
@@ -1172,8 +1183,16 @@ function create(opts) {
       if (S.op > .15) { if (S.opM > .2) f.push('Sialorrea, broncorrea con roncus y sibilancias, sudoración profusa, vómitos y diarrea; pupilas puntiformes.'); else f.push('Atropinizado: tórax seco a la auscultación, axilas secas, piel caliente' + (S.drug.atr.cp > 20 ? '; algo agitado, con midriasis.' : '; pupilas ya no puntiformes.'));
         if (S.opN > .25 && S.relTot < .5) f.push('Fasciculaciones en párpados, hombros y pantorrillas; debilidad generalizada y tos ineficaz.');
         if (!S.decont) f.push('La ropa está impregnada de producto y huele a disolvente: riesgo para el equipo.'); }
-      if (S.cocaine > 0) f.push(S.cocE > .35 ? 'Muy agitado, sudoroso, con midriasis y dolor torácico opresivo; no se deja explorar.' : 'Más tranquilo tras la sedación; menos sudoroso.');
+      if (S.cocaine > 0 && S.anticol) f.push(S.cocE > .35 ? 'Piel roja, seca y caliente, mucosas secas, midriasis sin reacción, ruidos intestinales ausentes y globo vesical; agitado, habla sin sentido y coge cosas que no existen.' : 'Más tranquilo tras la sedación; sigue con la piel seca y midriasis.'); // v1.20: anticolinérgico (estramonio)
+      else if (S.cocaine > 0) f.push(S.cocE > .35 ? 'Muy agitado, sudoroso, con midriasis y dolor torácico opresivo; no se deja explorar.' : 'Más tranquilo tras la sedación; menos sudoroso.');
       if (S.temp > 40) f.push('Piel muy caliente al tacto' + (S.cool ? '; enfriándose con agua pulverizada y ventilación.' : '.'));
+      if (S.bzd > 0) f.push(S.bzdEff > .3 ? 'Ronca, hipotónico, pupilas medias reactivas; blísteres vacíos de lorazepam y de amitriptilina en la mesilla.' : 'Abre los ojos y balbucea; sigue somnoliento.');
+      if (S.etoh > 0) f.push('Fuerte olor a alcohol; ropa mojada de orina' + (S.temp < 35 ? ', piel fría al tacto' : '') + '. Sin signos externos de traumatismo craneal.');
+      if (S.salic > 0) f.push('Taquipneico sin trabajo respiratorio, sudoroso, con acúfenos y vómitos; dice que tomó «muchas aspirinas» para el dolor de muelas.');
+      if (S.hhs) f.push('Mucosas muy secas, ojos hundidos y signo del pliegue; sin aliento cetósico ni Kussmaul. La glucemia capilar marca «HI».');
+      if (S.adrenal > 0) f.push(S.E.cort > .3 ? 'Más reactivo y menos sudoroso.' : 'Piel hiperpigmentada en pliegues y encías, dolor abdominal difuso y vómitos; toma prednisona desde hace años y la dejó al empezar con la gastroenteritis.');
+      if (S.thyro > 0) f.push(S.thyroEff > .4 ? 'Agitado, sudoroso y caliente; temblor fino, exoftalmos y bocio; deposiciones líquidas. Dejó el tiamazol hace un mes.' : 'Más tranquilo; sigue caliente y con temblor fino.');
+      if (S.suelo) f.push('Lleva dos días en el suelo: eritema y flictenas en la cadera y el hombro derechos, orina escasa y oscura, piel fría.');
       if (S.dka) f.push('Aliento afrutado (cetósico), mucosas muy secas y signo del pliegue.' + (S.iface !== 'tube' ? ' Respiración de Kussmaul: profunda, rápida y regular.' : ''));
       if (S.ced && S.ced.on && S.iface !== 'tube') f.push(S.icp && S.icp.v > 30 ? 'Cefalea intensa, vómitos, muy somnolienta; responde mal a la voz.' : S.icp && S.icp.v > 22 ? 'Se queja de que le duele mucho la cabeza y ha vomitado; más dormida que antes.' : 'Refiere menos cefalea.');
       if (S.ped && !S.dka && !S.vaso && !S.bleed && S.deficit > .15) f.push(`${S.age != null && S.age < 1.5 ? 'Fontanela deprimida, ojos' : 'Ojos'} hundidos, mucosas secas, signo del pliegue y relleno capilar de ${S.deficit > .25 ? 5 : 3} s.`);

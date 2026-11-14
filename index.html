@@ -449,7 +449,7 @@ body.exam #tutBtn{display:none}
 <main>
   <header class="top">
     <div class="brand">
-      <span class="eyebrow">Simulador docente · SVA terrestre y HEMS · v1.19</span>
+      <span class="eyebrow">Simulador docente · SVA terrestre y HEMS · v1.20</span>
       <h1>Ventilación, monitor y RCP</h1>
     </div>
     <div class="toolbar">
@@ -789,7 +789,8 @@ const DRUGS = {
   // v1.7: antiepilépticos de 2.ª línea (mg normalizados a 75 kg; en 10 min)
   lev: { h: 420, on: 8, ec50: 1500 }, vpa: { h: 600, on: 8, ec50: 1000 },
   // v1.8: insulina a dosis altas (UI/kg), emulsión lipídica 20 % (mL, 75 kg) y pralidoxima (mg, 75 kg)
-  insHD: { h: 25, on: 15, ec50: .6 }, lipid: { h: 30, on: 2, ec50: 112 }, prali: { h: 120, on: 15, ec50: 1000 }, nifed: { h: 240, on: 20, ec50: 20 }
+  insHD: { h: 25, on: 15, ec50: .6 }, flum: { h: 50, on: 1, ec50: .25 }, // v1.20: flumazenilo (mg)
+  lipid: { h: 30, on: 2, ec50: 112 }, prali: { h: 120, on: 15, ec50: 1000 }, nifed: { h: 240, on: 20, ec50: 20 }
 };
 const SED_RATE = 3 * Math.LN2 / 15; // perfusión que mantiene la sedación de base al 75 %
 
@@ -863,7 +864,7 @@ function create(opts) {
     access: o.access !== false, accessPend: null, ecg: { qrs: .08, t: 1, p: 1, j: 0, st: 0, amp: 1 }, gcs: 15,
     // v1.4: SCACEST (localización, VD, minutos de evolución al empezar, minutos hasta la ICP primaria) y taponamiento (0–1 y crecimiento por minuto)
     stemi: o.stemi ? { loc: o.stemi.loc || 'ant', rv: !!o.stemi.rv, onset: o.stemi.onset || 60, pci: o.stemi.pci != null ? o.stemi.pci : 30, reperf: false, reperfAt: null, tnkAt: o.stemi.failed ? -70 : null, icp: null, noTnk: !!o.stemi.noTnk, nste: !!o.stemi.nste, failed: !!o.stemi.failed, ich: false } : null,
-    qtl: o.qtl ? { qtc: o.qtl.qtc || 600, n: 0, until: -1 } : null, dissec: o.dissec ? { prog: 0, done: false } : null, bavN: !!o.bavN, pmFail: !!o.pmFail, // v1.18+: QT largo, disección aórtica, BAV nodal y fallo de marcapasos
+    qtl: o.qtl ? { qtc: o.qtl.qtc || 600, n: 0, until: -1 } : null, bzd: o.bzd || 0, bzdEff: 0, diur: o.diur || 0, bzdChronic: !!o.bzdChronic, flumSeizAt: null, etoh: o.etoh || 0, anticol: !!o.anticol, caust: !!o.caust, hhs: !!o.hhs, adrenal: o.adrenal || 0, thyro: o.thyro || 0, thyroEff: 0, salic: o.salic || 0, suelo: !!o.suelo, dissec: o.dissec ? { prog: 0, done: false } : null, bavN: !!o.bavN, pmFail: !!o.pmFail, // v1.19–v1.20: tóxicos, metabólico, QT largo, disección aórtica, BAV nodal y fallo de marcapasos
     tamp: o.tamp || 0, tampRate: o.tampRate || 0, pericPend: null,
     // v1.5: shock distributivo — vasoplejia séptica (0–1 y progresión por minuto hasta el antibiótico), neurogénico (0–1) y volumen que tolera el pulmón (mL/kg)
     tire: !!o.tire, pneu: o.pneu || 0, tbi: o.tbi || 0, tbi0: o.tbi || 0, preg: o.preg || 0, lud: false, tdp: !!o.tdp, ptxOpen: !!o.ptxOpen, crush: o.crush || 0, released: false, drive0: o.drive0 || 1, ptxRate: o.ptxRate || 0, irritant: !!o.irritant, hape: o.hape || 0, anxRate: o.anxRate || 0, anxBase: o.anxBase || 0, calmAt: null, retainer: !!o.retainer, ced: o.cedema ? { at: o.cedema.at || 15, risk: o.cedema.risk || .3, on: false, bic: false, insB: false, pRef: o.pco2 || 40 } : null, vaso: o.vaso || 0, vasoRate: o.vasoRate || 0, neurog: o.neurog || 0, fluidTol: o.fluidTol || 35, atbAt: null, tad: 70, pam: 90,
@@ -911,6 +912,8 @@ function create(opts) {
     S.analg = 1 - (1 - Math.min(1, 1.7 * E.fent)) * (1 - Math.min(1, 2 * E.morf)) * (1 - Math.min(1, 2.6 * E.ket)); // dosis analgésicas: fentanilo 1 mcg/kg, morfina 3–6 mg, ketamina 0,3 mg/kg
     S.painEff = S.pain * (1 - .85 * S.analg) * (S.relTot > .5 || S.sedTot > .7 ? 0 : 1) * (S.hemo && S.bleedSrc === 'femur' ? .5 : 1); // v1.17: la tracción alivia el dolor del fémur
     if (S.op > 0) { const ac = S.drug.atr.cp; S.opM = S.op * (1 - ac / (ac + 10 * S.op)); S.opN = S.op * (1 - .55 * E.prali); S.weak = Math.max(S.weak, .5 * S.opN); } // v1.8: síndrome colinérgico (muscarínico y nicotínico)
+    S.bzdEff = S.bzd * (1 - .9 * clamp(E.flum / .5, 0, 1)); // v1.20: benzodiacepinas (el flumazenilo las revierte poco tiempo)
+    if (S.thyro > 0) S.thyroEff = S.thyro * (1 - .55 * clamp(E.labet / .4, 0, 1)) * (1 - .3 * clamp(E.cort / .3, 0, 1)); // tormenta tiroidea: betabloqueante e hidrocortisona
     if (S.cocaine > 0) S.cocE = S.cocaine * (1 - .65 * clamp(Math.max((E.mid - .15) / .35, (E.prop - .2) / .3, (S.sedTot - .3) / .4), 0, 1)); // las benzodiacepinas frenan el cuadro simpaticomimético
     S.opiR = S.opi * clamp((S.opi - .2) / .5, 0, 1) * (1 - .5 * S.pain); // v1.6: a dosis analgésicas el opiáceo deprime poco la respiración, y menos con dolor; en la intoxicación, todo su efecto
     S.drvMul = (1 - .85 * S.opiR) * (1 - .3 * E.prop) * (1 - .25 * E.mid) * (1 - .3 * S.tca) * (S.drive0 || 1); // v1.16: impulso central reducido (obesidad-hipoventilación)
@@ -967,7 +970,7 @@ function create(opts) {
     let drive = Math.max(.25 + .1 * met, c2 + .8 * hyx, P.hyper ? hyx : 0) + (P.edema ? .35 * S.sev : 0) + (S.clin < S.anxUntil ? .5 : 0) + (S.anxBase || 0) + .5 * S.tep + .3 * S.anaf + (S.iface !== 'tube' ? .45 * S.croupEff : 0) + (S.tire && S.iface !== 'tube' ? .35 * clamp(S.bs - 1.2, 0, 2) : 0); // v1.13: hambre de aire del asmático
     // bronquiolitis: taquipnea superficial por la inflamación, que alivia la presión positiva; sube la frecuencia, no el volumen
     const irr = P.irrit ? P.irrit * (1 - .5 * clamp((S.iface === 'tube' || S.iface === 'mask' ? S.cfg.peep : S.iface === 'nasal' ? hfPaw() : 0) / 4, 0, 1)) * S.drvMul : 0;
-    drive = clamp(drive * (1 - narc) * S.drvMul * (S.icp && S.icp.v > 40 ? 1 - clamp((S.icp.v - 40) / 20, 0, .9) : 1), 0, 1.5); // v1.17: la herniación deprime el centro respiratorio
+    drive = clamp((drive + .45 * S.salic) * (1 - narc) * S.drvMul * (S.icp && S.icp.v > 40 ? 1 - clamp((S.icp.v - 40) / 20, 0, .9) : 1) * (1 - .55 * S.bzdEff - .3 * S.etoh), 0, 1.5); // v1.17: la herniación deprime el centro respiratorio
     const driveV = drive; drive = Math.min(1.5, drive + irr);
     const awake = (1 - .85 * S.sedTot) * (1 - S.relTot) * (1 - narc * .5) * (S.icp && S.icp.v > 40 ? 1 - clamp((S.icp.v - 40) / 20, 0, .95) : 1); // v1.17: herniación: respiración irregular hasta la apnea
     const rr = clamp((P.rr0 + (P.rrMax - P.rr0) * Math.min(drive, 1.2)) * (1 - .4 * S.sedTot) * (1 - .85 * S.opiR) * (1 + .6 * S.weak) * (1 + .25 * S.painEff), 3, S.rrCap);
@@ -1221,6 +1224,8 @@ function create(opts) {
       tas -= (bb ? 60 : 78) * T + 25 * E.nor * T + 25 * E.adr * T; fc -= (bb ? 55 : 45) * T + 22 * E.atr * T + 22 * clamp((100 - S.tas) / 40, 0, 1) * Math.min(1, 1.2 * T); } // sin taquicardia refleja
     if (S.op > 0) { tas -= 45 * S.opM; fc += -58 * S.opM + 15 * S.opN; } // bradicardia muscarínica, taquicardia nicotínica
     if (S.cocE > 0) { tas += 70 * S.cocE; fc += 62 * S.cocE; }
+    if (S.thyroEff > 0) { tas += 30 * S.thyroEff; fc += 45 * S.thyroEff; }
+    if (S.adrenal > 0) { const ok = clamp(E.cort / .3, 0, 1); tas -= S.adrenal * (60 + 45 * E.nor + 50 * E.adr) * (1 - .85 * ok); } // la falta de cortisol anula la respuesta a las catecolaminas // v1.20: crisis suprarrenal — la noradrenalina sola apenas responde
     if (S.ph < 7.1) tas -= 30 * clamp((7.1 - S.ph) / .25, 0, 1.3); // la acidemia grave deprime el miocardio y anula los vasopresores
     if (S.temp > 38.5) fc += 6 * (S.temp - 38.5);
     if (S.heat) tas -= 25 * clamp((S.temp - 39.5) / 2, 0, 1.2); // vasodilatación cutánea del golpe de calor
@@ -1229,7 +1234,7 @@ function create(opts) {
     if (S.neurog > 0) { tas -= 55 * S.neurog - 45 * E.nor * S.neurog; fc -= S.neurog * (22 * clamp((100 - S.tas) / 40, 0, 1) + 38); }
     const ar = S.arr.type;
     if (ar && !S.pace.capture) {
-      fc = ar === 'tsv' ? 186 : ar === 'flutter' ? 150 - 20 * E.amio : ar === 'fa' ? 158 - 45 * E.amio : ar === 'tvp' ? 178 - 15 * E.amio : ar === 'fapre' ? 225 - 10 * E.amio : ar === 'tdp' ? 240 : 36 + 55 * E.atr + 40 * E.adr + 45 * E.iso;
+      fc = ar === 'tsv' ? 186 : ar === 'flutter' ? 150 - 20 * E.amio : ar === 'fa' ? (S.thyro ? 150 + 30 * S.thyroEff : 158) - 45 * E.amio - 40 * E.labet : ar === 'tvp' ? 178 - 15 * E.amio : ar === 'fapre' ? 225 - 10 * E.amio : ar === 'tdp' ? 240 : 36 + 55 * E.atr + 40 * E.adr + 45 * E.iso;
       if (S.t < S.slowUntil) fc *= .55;
       tas -= S.arr.pen * (ar === 'sbrady' ? clamp((62 - fc) / 26, 0, 1) : clamp((fc - 120) / 60, 0, 1.3));
     }
@@ -1255,6 +1260,10 @@ function create(opts) {
       if (S.dka && E.ins > .3) S.hco3Off = Math.min(0, S.hco3Off + .03 * E.ins * dtc); // la insulina frena la cetogénesis (horas)
       if (S.op > 0 && !S.decont) S.op = clamp(S.op + S.opRate * dtc, 0, 1); // sigue absorbiéndose por la piel y la ropa
       if (S.cocE > 0) S.temp = clamp(S.temp + .1 * S.cocE * dtc, 30, 43.5);
+      if (S.thyroEff > 0) S.temp = clamp(S.temp + .06 * S.thyroEff * dtc, 30, 43.5);
+      if (S.diur && S.glu > 300) S.deficit = Math.min(.7, S.deficit + S.diur * dtc); // v1.20: diuresis osmótica (estado hiperosmolar, cetoacidosis)
+      if (S.salic > 0) S.hco3Off -= .3 * S.salic * (1 - clamp(S.bicKg / 1.2, 0, 1)) * dtc; // v1.20: salicilatos — la acidosis avanza si no se alcaliniza
+      if (S.flumSeizAt != null && S.clin >= S.flumSeizAt) { S.flumSeizAt = null; S.se = S.se || { r: .3, since: 0, on: true, by: null, ctrlAt: null }; S.se.on = true; S.seizUntil = 1e9; S.seizures++; S.log.push([S.clin, 'Convulsión tras el flumazenilo']); if (S.onSeizure) S.onSeizure(); }
       if (S.cool && S.temp > 37.2) S.temp -= .15 * dtc; // enfriamiento activo (evaporación, hielo, suero frío): ≈ 0,15 °C/min
       S.glu = clamp(S.glu, 10, 700);
       if (S.gluPerf) S.glu += 5 * S.gluPerf * dtc;
@@ -1338,7 +1347,7 @@ function create(opts) {
     else if (S.temp > 42.3 && rnd() < dtc * .1) enterArrest('primary');
     // escala de Glasgow aproximada
     const tLow = S.ped ? pedNorms(S.age || 0).tasMin - 8 : 70; // en el niño, la hipotensión que altera la conciencia depende de la edad
-    let g = 15 - 12 * S.sedTot - 3 * S.opi - 9 * gluN - 1.3 * clamp(32 - S.temp, 0, 8) - (S.pco2 > (S.retainer ? 66 : 80) ? (S.pco2 - (S.retainer ? 66 : 80)) / 5 : 0) - (S.oxEff < .75 ? (.75 - S.oxEff) * 30 : 0) - (S.tas < tLow ? (tLow - S.tas) / 5 : 0) - (S.cohb > .2 ? (S.cohb - .2) * 25 : 0) - (S.icp && S.icp.v > 22 ? (S.icp.v - 20) / 3 : 0) - 6 * naEff() - strokeGcs() - 5 * S.op - 1 * S.cocE - 1.5 * clamp(S.temp - 40.5, 0, 2.5) - 3 * clamp((7.1 - (S.ph || 7.4)) / .2, 0, 1) - S.tbi;
+    let g = 15 - 12 * S.sedTot - 3 * S.opi - 9 * gluN - 1.3 * clamp(32 - S.temp, 0, 8) - (S.pco2 > (S.retainer ? 66 : 80) ? (S.pco2 - (S.retainer ? 66 : 80)) / 5 : 0) - (S.oxEff < .75 ? (.75 - S.oxEff) * 30 : 0) - (S.tas < tLow ? (tLow - S.tas) / 5 : 0) - (S.cohb > .2 ? (S.cohb - .2) * 25 : 0) - (S.icp && S.icp.v > 22 ? (S.icp.v - 20) / 3 : 0) - 6 * naEff() - strokeGcs() - 5 * S.op - 9 * S.bzdEff - 5 * S.etoh - 7 * S.cn - clamp((2 * S.na + S.glu / 18 - 320) / 8, 0, 8) - 1 * S.cocE - 1.5 * clamp(S.temp - 40.5, 0, 2.5) - 3 * clamp((7.1 - (S.ph || 7.4)) / .2, 0, 1) - S.tbi;
     if (S.tbi > 0 && dtc > 0) S.tbi = Math.min(S.tbi0 + 6, S.tbi + (.35 * clamp((tLow + 16 - S.tas) / 20, 0, 1.5) + .2 * clamp((.92 - S.spo2) / .1, 0, 1.5) + .05 * clamp(35 - S.temp, 0, 2)) * dtc); // v1.14: lesión cerebral secundaria por hipotensión, hipoxia o frío
     if (seiz) g = Math.min(g, 5); else if (S.clin < S.postIctUntil) g -= 4;
     S.gcs = Math.round(clamp(g, 3, 15));
@@ -1689,6 +1698,7 @@ function create(opts) {
       if (k === 'adrIM') { S.depotAdr += amount * 24; return; }
       if (k === 'sugam') { const mgkg = amount / 75, rev = mgkg >= 12 ? .98 : mgkg >= 4 ? .9 : .65; S.drug.rel.cp *= 1 - rev; updateMech(0); return; } // encapsula el rocuronio, no la succinilcolina
       if (S.ced && (k === 'bic' || k === 'ins')) { if (k === 'bic') S.ced.bic = true; else S.ced.insB = true; if (S.ced.on && S.icp) S.icp.grow += .15; } // factores de riesgo del edema cerebral
+      if (k === 'flum' && (S.tca > .1 || S.bzdChronic) && S.flumSeizAt == null && rnd() < .7) S.flumSeizAt = S.clin + .5 + rnd(); // v1.20: el flumazenilo desenmascara las convulsiones
       if (k === 'bic') { S.bicKg += amount / 75; return; } // mEq/kg normalizados a 75 kg
       if (k === 'gluc') { S.glu += 5 * amount * (S.neo ? .6 : 1); return; } // en el recién nacido, más agua extracelular: sube menos por g/kg // g normalizados a 75 kg: 25 g suben ≈ 125 mg/dL
       if (k === 'ssh3') { addNa(513, amount / 1000); if (S.icp) S.drug.shs.cp += amount * .0016; return; } // también osmoterapia (2,5–5 mL/kg en el niño) // salino hipertónico 3 % (mL)
@@ -1797,7 +1807,7 @@ function create(opts) {
       if (e.j > .25) f.push('Ondas J de Osborn.');
       if (S.tamp > .35) f.push('Bajo voltaje' + (S.tamp > .55 ? ' y alternancia eléctrica.' : '.'));
       if (S.tep > .3) f.push('S1Q3T3 y T negativas de V1 a V4.');
-      if (S.cocE > .35) f.push('Descenso del ST de 1–2 mm en V4–V6 (isquemia por vasoespasmo y taquicardia).');
+      if (S.cocE > .35 && !S.anticol) f.push('Descenso del ST de 1–2 mm en V4–V6 (isquemia por vasoespasmo y taquicardia).');
       if (S.cv && S.cvT > .3) f.push(S.cv.type === 'cca' ? 'PR largo con escape de la unión a ratos.' : 'PR alargado.');
       if (f.length === 1) f.push('Sin alteraciones agudas de la repolarización.');
       return f.join(' ');
@@ -1901,7 +1911,8 @@ function create(opts) {
       if (S.deficit > .35 && S.vaso < .25 && S.neurog < .25) f.push('Piel fría y pálida, relleno capilar enlentecido.'); // en el shock distributivo la piel está caliente
       if (S.pace.on) f.push(S.pace.capture ? 'Pulso femoral a la frecuencia del marcapasos: hay captura mecánica.' : 'Espigas sin captura: el pulso no sigue al marcapasos.');
       if (S.anaf > .15) f.push(S.iface === 'tube' ? 'Eritema y habones generalizados' + (S.anaf > .4 ? ', edema facial y de párpados; sibilancias en ambos campos' : '') + '.' : 'Habones generalizados' + (S.anaf > .4 ? ', angioedema de labios y lengua, voz ronca' : '') + '.');
-      if (S.edAir > .25 && S.iface !== 'tube') f.push('Hollín en fosas nasales, vibrisas chamuscadas, voz ronca' + (S.edAir > .55 ? ' y estridor inspiratorio.' : '.'));
+      if (S.caust) f.push('Quemaduras blanquecinas en labios, lengua y paladar, babeo y dolor retroesternal al tragar' + (S.edAir > .55 ? '; voz ronca y estridor inspiratorio.' : S.edAir > .3 ? '; voz algo ronca.' : '.')); // v1.20
+      else if (S.edAir > .25 && S.iface !== 'tube') f.push('Hollín en fosas nasales, vibrisas chamuscadas, voz ronca' + (S.edAir > .55 ? ' y estridor inspiratorio.' : '.'));
       if (S.cohb > .15 && S.iface !== 'tube') f.push('Cefalea, náuseas y confusión' + (S.cohb > .3 ? '; responde mal a órdenes.' : '.'));
       if (S.tep > .3) f.push('Ingurgitación yugular sin crepitantes; extremidades frías.');
       if (S.asp > .2) f.push('Restos de contenido gástrico en orofaringe' + (S.iface === 'tube' ? ' y al aspirar por el tubo' : '') + '; crepitantes en base derecha.');
@@ -1914,8 +1925,16 @@ function create(opts) {
       if (S.op > .15) { if (S.opM > .2) f.push('Sialorrea, broncorrea con roncus y sibilancias, sudoración profusa, vómitos y diarrea; pupilas puntiformes.'); else f.push('Atropinizado: tórax seco a la auscultación, axilas secas, piel caliente' + (S.drug.atr.cp > 20 ? '; algo agitado, con midriasis.' : '; pupilas ya no puntiformes.'));
         if (S.opN > .25 && S.relTot < .5) f.push('Fasciculaciones en párpados, hombros y pantorrillas; debilidad generalizada y tos ineficaz.');
         if (!S.decont) f.push('La ropa está impregnada de producto y huele a disolvente: riesgo para el equipo.'); }
-      if (S.cocaine > 0) f.push(S.cocE > .35 ? 'Muy agitado, sudoroso, con midriasis y dolor torácico opresivo; no se deja explorar.' : 'Más tranquilo tras la sedación; menos sudoroso.');
+      if (S.cocaine > 0 && S.anticol) f.push(S.cocE > .35 ? 'Piel roja, seca y caliente, mucosas secas, midriasis sin reacción, ruidos intestinales ausentes y globo vesical; agitado, habla sin sentido y coge cosas que no existen.' : 'Más tranquilo tras la sedación; sigue con la piel seca y midriasis.'); // v1.20: anticolinérgico (estramonio)
+      else if (S.cocaine > 0) f.push(S.cocE > .35 ? 'Muy agitado, sudoroso, con midriasis y dolor torácico opresivo; no se deja explorar.' : 'Más tranquilo tras la sedación; menos sudoroso.');
       if (S.temp > 40) f.push('Piel muy caliente al tacto' + (S.cool ? '; enfriándose con agua pulverizada y ventilación.' : '.'));
+      if (S.bzd > 0) f.push(S.bzdEff > .3 ? 'Ronca, hipotónico, pupilas medias reactivas; blísteres vacíos de lorazepam y de amitriptilina en la mesilla.' : 'Abre los ojos y balbucea; sigue somnoliento.');
+      if (S.etoh > 0) f.push('Fuerte olor a alcohol; ropa mojada de orina' + (S.temp < 35 ? ', piel fría al tacto' : '') + '. Sin signos externos de traumatismo craneal.');
+      if (S.salic > 0) f.push('Taquipneico sin trabajo respiratorio, sudoroso, con acúfenos y vómitos; dice que tomó «muchas aspirinas» para el dolor de muelas.');
+      if (S.hhs) f.push('Mucosas muy secas, ojos hundidos y signo del pliegue; sin aliento cetósico ni Kussmaul. La glucemia capilar marca «HI».');
+      if (S.adrenal > 0) f.push(S.E.cort > .3 ? 'Más reactivo y menos sudoroso.' : 'Piel hiperpigmentada en pliegues y encías, dolor abdominal difuso y vómitos; toma prednisona desde hace años y la dejó al empezar con la gastroenteritis.');
+      if (S.thyro > 0) f.push(S.thyroEff > .4 ? 'Agitado, sudoroso y caliente; temblor fino, exoftalmos y bocio; deposiciones líquidas. Dejó el tiamazol hace un mes.' : 'Más tranquilo; sigue caliente y con temblor fino.');
+      if (S.suelo) f.push('Lleva dos días en el suelo: eritema y flictenas en la cadera y el hombro derechos, orina escasa y oscura, piel fría.');
       if (S.dka) f.push('Aliento afrutado (cetósico), mucosas muy secas y signo del pliegue.' + (S.iface !== 'tube' ? ' Respiración de Kussmaul: profunda, rápida y regular.' : ''));
       if (S.ced && S.ced.on && S.iface !== 'tube') f.push(S.icp && S.icp.v > 30 ? 'Cefalea intensa, vómitos, muy somnolienta; responde mal a la voz.' : S.icp && S.icp.v > 22 ? 'Se queja de que le duele mucho la cabeza y ha vomitado; más dormida que antes.' : 'Refiere menos cefalea.');
       if (S.ped && !S.dka && !S.vaso && !S.bleed && S.deficit > .15) f.push(`${S.age != null && S.age < 1.5 ? 'Fontanela deprimida, ojos' : 'Ojos'} hundidos, mucosas secas, signo del pliegue y relleno capilar de ${S.deficit > .25 ? 5 : 3} s.`);
@@ -2099,7 +2118,7 @@ const DRUGSET = [
   { g: 'Sedoanalgesia y antídoto', items: [
     { id: 'mid', lab: 'Midazolam', k: 'mid', dose: 2, u: 'mg' }, { id: 'propS', lab: 'Propofol', k: 'prop', mgkg: .5, u: 'mg' },
     { id: 'fentS', lab: 'Fentanilo', k: 'fent', mgkg: 1, u: 'mcg' }, { id: 'morf', lab: 'Morfina', k: 'morf', dose: 3, u: 'mg' }, { id: 'ketA', lab: 'Ketamina analgésica', k: 'ket', mgkg: .3, u: 'mg', note: 'IV lenta; 0,5–1 mg/kg IM o IN' },
-    { id: 'nalox', lab: 'Naloxona', k: 'nalox', dose: .4, u: 'mg' }, { id: 'sedB', lab: 'Bolo de la bomba de sedación', k: 'sed', amt: 2, note: 'midazolam + fentanilo' },
+    { id: 'nalox', lab: 'Naloxona', k: 'nalox', dose: .4, u: 'mg' }, { id: 'flum', lab: 'Flumazenilo', k: 'flum', dose: .5, u: 'mg', note: 'solo en sobredosis pura de benzodiacepinas' }, { id: 'sedB', lab: 'Bolo de la bomba de sedación', k: 'sed', amt: 2, note: 'midazolam + fentanilo' },
     { id: 'sedperf', lab: 'Reanudar la bomba de sedación', act: 'sedperf' }] },
   { g: 'Hemodinámica y parada', items: [
     { id: 'fluid', lab: 'Cristaloide', act: 'fluid', note: '500 mL' }, { id: 'blood', lab: 'Concentrado de hematíes', act: 'blood', note: '1 unidad, si se dispone' }, { id: 'adr1', lab: 'Adrenalina', k: 'adr', dose: 1, u: 'mg', amt: 100 },
@@ -2127,7 +2146,7 @@ const DRUGSET = [
     { id: 'vagal', lab: 'Maniobras vagales', act: 'vagal', note: 'Valsalva modificada' }] },
   { g: 'Respiratorio y anafilaxia', items: [
     { id: 'salb', lab: 'Salbutamol + ipratropio', k: 'salb', amt: 1, note: 'nebulizado o en línea', pnote: '2,5 mg (< 20 kg) o 5 mg + ipratropio 250 mcg nebulizados, cada 20 min la 1.ª hora', route: '', noIV: true }, { id: 'mgso4', lab: 'Sulfato de magnesio', k: 'mg', dose: 2, u: 'g' },
-    { id: 'cort', lab: 'Metilprednisolona', k: 'cort', mgkg: 1, u: 'mg' }, { id: 'adrIM', lab: 'Adrenalina IM', k: 'adrIM', dose: .5, u: 'mg', amt: .5, route: ' en el muslo', noIV: true },
+    { id: 'cort', lab: 'Metilprednisolona', k: 'cort', mgkg: 1, u: 'mg' }, { id: 'hidroc', lab: 'Hidrocortisona', k: 'cort', dose: 100, u: 'mg', note: 'crisis suprarrenal, tormenta tiroidea' }, { id: 'adrIM', lab: 'Adrenalina IM', k: 'adrIM', dose: .5, u: 'mg', amt: .5, route: ' en el muslo', noIV: true },
     { id: 'dexclor', lab: 'Dexclorfeniramina', k: 'dexclor', dose: 5, u: 'mg' }, { id: 'adrNeb', lab: 'Adrenalina nebulizada', k: 'adrN', dose: 5, u: 'mg', route: ' nebulizada', noIV: true },
     { id: 'dexa', lab: 'Dexametasona', k: 'dexa', dose: 8, u: 'mg', route: ' oral o IM', noIV: true }, { id: 'nifed', lab: 'Nifedipino retard', k: 'nifed', dose: 30, u: 'mg', route: ' oral', noIV: true, note: 'edema de altura' }] },
   { g: 'Metabólico, tóxicos y obstetricia', items: [
@@ -2750,6 +2769,37 @@ const CASES = {
     checks: [['act:glu', 'Glucemia capilar'], ['drug:glucg|drug:gluc', 'Glucagón o glucosa'], ['act:iv|act:io', 'Acceso vascular'], ['perf:g10', 'Perfusión de glucosa']],
     targets: { glu: [70, 300] } }, O2),
 
+  /* v1.20 — fase 3, sesión 17: metabólico */
+  hiperosmolar: Object.assign({ lvl: 'Metabólico y ambiental', title: 'Estado hiperosmolar en una anciana', pheno: 'sano', sex: 'm', talla: 155, peso: 58, hhs: true, diur: .006, glu: 950, gluT: 950, na: 152, deficit: .4, tasAdj: -15, temp: 37.6, access: false, speed: 5, duration: 30,
+    cfg: { o2dev: 'gafas' },
+    goal: 'Mujer de 84 años con diabetes tipo 2 que lleva cuatro días con infección urinaria, bebiendo poco. Hoy, somnolienta y desorientada. Mucosas secas. TAS 93, FC 90.',
+    hint: 'Estado hiperosmolar: glucemia > 600, sin cetosis ni Kussmaul, deshidratación grave y alteración de la conciencia por la osmolaridad. El tratamiento es el volumen: suero fisiológico 1 L en la primera hora y después 0,5–1 L/h según la TA. Sin bolo de insulina: la glucemia y la osmolaridad no deben bajar deprisa (riesgo de edema cerebral y de colapso). Potasio y heparina profiláctica en el hospital.',
+    checks: [['act:glu', 'Glucemia capilar'], ['act:iv|act:io', 'Acceso vascular'], ['act:fluid|perf:cris', 'Suero fisiológico'], ['no:drug:ins', 'Sin bolo de insulina']],
+    targets: { tas: [100, 170] } }, O2),
+  crisisSuprarrenal: Object.assign({ lvl: 'Metabólico y ambiental', title: 'Shock que no responde: crisis suprarrenal', pheno: 'sano', sex: 'm', talla: 163, peso: 56, adrenal: .85, glu: 58, gluT: 60, na: 127, k: 5.9, deficit: .2, fcAdj: 28, speed: 5, duration: 25,
+    cfg: { o2dev: 'gafas' },
+    goal: 'Mujer de 61 años con artritis reumatoide en tratamiento con prednisona desde hace años; la dejó hace tres días por una gastroenteritis. Vómitos, dolor abdominal, confusa. TAS 70, FC 116.',
+    hint: 'Insuficiencia suprarrenal aguda: shock que responde mal al volumen y a la noradrenalina, hipoglucemia, hiponatremia e hiperpotasemia. Hidrocortisona 100 mg IV en bolo ya, sin esperar la confirmación (después 50 mg/6 h o 200 mg/24 h), suero fisiológico 1 L en la primera hora y glucosa. Cualquier paciente con corticoides crónicos y estrés agudo puede necesitar dosis de estrés.',
+    checks: [['drug:cort', 'Hidrocortisona'], ['act:fluid|perf:cris', 'Suero fisiológico'], ['act:glu', 'Glucemia']],
+    targets: { tas: [90, 170], glu: [70, 250] } }, O2),
+  ancianoSuelo: Object.assign({ lvl: 'Metabólico y ambiental', title: 'Dos días en el suelo: hiperpotasemia, rabdomiólisis e hipotermia', pheno: 'sano', sex: 'm', talla: 158, peso: 60, suelo: true, k: 7.2, temp: 33.8, tempRate: -.4, deficit: .3, glu: 82, speed: 5, duration: 25,
+    cfg: { o2dev: 'gafas' },
+    goal: 'Mujer de 86 años que vive sola; la encuentra su hija en el suelo del baño, donde cayó hace dos días. Fría, confusa, con la boca seca. FC 56, TAS 76.',
+    hint: 'Caída con larga permanencia: rabdomiólisis (hiperpotasemia, fracaso renal), deshidratación, hipotermia y lesiones por presión. ECG: T picudas, QRS ancho, bradicardia → cloruro cálcico 10 % 10 mL, insulina 10 UI con 25 g de glucosa y salbutamol. Suero fisiológico, calor con movilización cuidadosa (hipotermia) y busca la causa de la caída (ictus, síncope, fractura de cadera).',
+    checks: [['act:ecg12', 'ECG de 12 derivaciones'], ['drug:ca', 'Calcio'], ['drug:ins|drug:salb', 'Insulina o salbutamol'], ['act:warm', 'Calor'], ['act:fluid|perf:cris', 'Volumen']],
+    targets: { qrs: [0, 120], tas: [90, 170], temp: [34, 37.5] } }, O2),
+  cadAdulto: Object.assign({ lvl: 'Metabólico y ambiental', title: 'Cetoacidosis en un adulto: volumen y potasio antes que insulina', pheno: 'sano', sex: 'h', talla: 180, peso: 70, dka: true, hco3Off: -15, glu: 540, k: 5.6, deficit: .3, diur: .006, tasAdj: -10, pco2: 22, fcAdj: 40, access: false, speed: 5, duration: 30,
+    cfg: { o2dev: 'gafas' },
+    goal: 'Varón de 22 años con diabetes tipo 1, tres días con vómitos. Dejó de ponerse insulina porque «no comía». Respira hondo y rápido, dolor abdominal, TAS 100, FC 120.',
+    hint: 'Cetoacidosis: lo primero es el volumen (suero fisiológico 1 L en la primera hora). Potasio antes de la insulina: aunque esté normal o alto, el total corporal está bajo y la insulina lo mete en la célula; con K⁺ < 3,5 no se empieza. Insulina en perfusión a 0,1 UI/kg/h, sin bolo; sin bicarbonato salvo pH < 6,9. Busca el desencadenante. No intubes si no es imprescindible (perdería la compensación).',
+    checks: [['act:glu', 'Glucemia'], ['act:iv|act:io', 'Acceso vascular'], ['act:fluid|perf:cris', 'Suero fisiológico'], ['act:ecg12|act:gas', 'Potasio (ECG o gasometría)'], ['no:drug:bic', 'Sin bicarbonato']],
+    targets: { tas: [100, 170], k: [3.5, 6] } }, O2),
+  tormentaTiroidea: Object.assign({ lvl: 'Metabólico y ambiental', title: 'Tormenta tiroidea con FA rápida', pheno: 'sano', sex: 'm', talla: 166, peso: 58, thyro: .8, rhythm: 'fa', arrPen: 30, temp: 39.3, speed: 5, duration: 25,
+    cfg: { o2dev: 'gafas' },
+    goal: 'Mujer de 39 años con enfermedad de Graves que dejó el tiamazol hace un mes; ahora tiene una neumonía. Agitada, sudorosa, 39,3 °C, FA a 170, TAS 128.',
+    hint: 'Tormenta tiroidea: hipertermia, taquicardia o FA rápida, agitación y desencadenante (infección, abandono del tratamiento, cirugía). Betabloqueante para la FC (propranolol o, si no hay, labetalol), hidrocortisona 100 mg IV, enfriamiento y paracetamol (no AAS: desplaza la T4). Tionamidas y yodo en el hospital. Cuidado con la insuficiencia cardiaca.',
+    checks: [['drug:labet', 'Betabloqueante'], ['drug:cort', 'Hidrocortisona'], ['act:cool', 'Enfriamiento']],
+    targets: { fc: [60, 135], temp: [36.5, 38.5] } }, O2),
   /* ---------- Oxigenoterapia e intoxicaciones ---------- */
   opiaceos: Object.assign({ lvl: 'Oxigenoterapia e intoxicaciones', title: 'Intoxicación por opiáceos', pheno: 'sano', sex: 'h', talla: 178, peso: 70, opioid: 26, pco2: 60,
     cfg: Object.assign(inv({ vt: 500, fr: 14 }), { o2dev: 'gafas' }),
@@ -2804,6 +2854,43 @@ const CASES = {
     checks: [['act:iv|act:io', 'Acceso vascular'], ['act:gas', 'Natremia'], ['drug:ssh3|drug:shs', 'Salino hipertónico'], ['drug:mid', 'Tratar la convulsión']],
     targets: { naUp: [3, 10], spo2: [92, 100] } }, O2),
 
+  /* v1.20 — fase 3, sesión 17: intoxicaciones */
+  comaBenzoTca: Object.assign({ lvl: 'Oxigenoterapia e intoxicaciones', title: 'Coma por benzodiacepinas y tricíclicos: ¿flumazenilo?', pheno: 'sano', sex: 'm', talla: 160, peso: 62, bzd: .6, tca: .6, speed: 5, duration: 25,
+    cfg: { o2dev: 'gafas' },
+    goal: 'Mujer de 38 años con depresión, encontrada en la cama hace 20 min. Ronca, Glasgow 6, respiración superficial a 12, SpO₂ 95 % con gafas, TAS 97 y QRS ancho en el monitor. En la mesilla, blísteres vacíos de lorazepam y de amitriptilina.',
+    hint: 'El flumazenilo está contraindicado si hay tricíclicos (u otros proconvulsivantes) o consumo crónico de benzodiacepinas: puede desencadenar convulsiones refractarias. Vía aérea (posición, cánula, ambú si hipoventila), O₂, ECG de 12 derivaciones y monitor: si el QRS pasa de 100–120 ms, bicarbonato 1 M 1–2 mEq/kg. Si no protege la vía aérea o se deteriora, ISR.',
+    checks: [['act:ecg12', 'ECG de 12 derivaciones'], ['no:drug:flum', 'Sin flumazenilo'], ['drug:bic', 'Bicarbonato']],
+    targets: { spo2: [94, 100], qrs: [0, 120] } }, O2),
+  cianuro: Object.assign({ lvl: 'Oxigenoterapia e intoxicaciones', title: 'Intoxicación por cianuro en un taller de galvanizado', pheno: 'sano', sex: 'h', talla: 176, peso: 80, cn: .7, tasAdj: -20, speed: 5, duration: 25,
+    cfg: { o2dev: 'gafas' },
+    goal: 'Varón de 45 años que trabaja en un taller de galvanoplastia. Tras un vertido, mareo, cefalea, disnea y ahora bajo nivel de conciencia. SpO₂ 98 % con gafas, TAS 82.',
+    hint: 'Cianuro: hipoxia celular con SpO₂ normal, lactato muy alto (> 8 mmol/L), acidosis metabólica y piel rosada. Protege al equipo (ropa fuera). O₂ al 100 % y antídoto sin esperar: hidroxocobalamina 5 g IV en 15 min (repetible). Volumen y noradrenalina si sigue hipotenso; convulsiones con benzodiacepinas.',
+    checks: [['o2:reserv|act:toMask', 'O₂ al 100 %'], ['drug:hidroxo', 'Hidroxocobalamina'], ['act:gas', 'Lactato']],
+    targets: { tas: [90, 180], spo2: [94, 100] } }, O2),
+  estramonio: Object.assign({ lvl: 'Oxigenoterapia e intoxicaciones', title: 'Delirio y fiebre tras una infusión de estramonio', pheno: 'sano', sex: 'h', talla: 178, peso: 70, cocaine: .65, anticol: true, temp: 38.4, access: false, speed: 5, duration: 25,
+    cfg: { o2dev: 'gafas' },
+    goal: 'Varón de 19 años que tomó con sus amigos una infusión de «trompetas» (estramonio, Datura) en una acampada. Agitado, habla sin sentido, caliente. FC 118, TAS 175, 38,4 °C.',
+    hint: 'Síndrome anticolinérgico: «rojo como un tomate, seco como un hueso, caliente como una liebre, ciego como un murciélago, loco como una cabra». Midazolam en bolos hasta controlar la agitación (sin haloperidol), enfriamiento activo, glucemia, monitor (taquicardia, a veces QRS ancho) y sondaje si hay globo. La fisostigmina, en el hospital.',
+    checks: [['drug:mid', 'Benzodiacepina'], ['act:cool', 'Enfriamiento'], ['act:temp', 'Temperatura']],
+    targets: { temp: [36.5, 39], fc: [60, 120], tas: [100, 170] } }, O2),
+  salicilatos: Object.assign({ lvl: 'Oxigenoterapia e intoxicaciones', title: 'Intoxicación por salicilatos: no le quites la hiperventilación', pheno: 'sano', sex: 'm', talla: 165, peso: 64, salic: .7, hco3Off: -9, pco2: 26, temp: 37.9, speed: 5, duration: 25,
+    cfg: { o2dev: 'gafas' },
+    goal: 'Mujer de 42 años que lleva dos días tomando ácido acetilsalicílico «a puñados» por un dolor de muelas. Vómitos, acúfenos, taquipnea y algo desorientada.',
+    hint: 'Acidosis metabólica con alcalosis respiratoria primaria. Bicarbonato 1 M 1–2 mEq/kg en bolo y perfusión para alcalinizar la orina (pH urinario > 7,5), glucosa (aunque la glucemia sea normal, el cerebro puede estar hipoglucémico) y volumen. Evita intubar: si hay que hacerlo, hiperventilación (FR 30+) para no perder la compensación. Hemodiálisis si hay alteración neurológica o pH < 7,2.',
+    checks: [['act:gas', 'Gasometría'], ['drug:bic', 'Bicarbonato'], ['act:fluid|perf:cris', 'Volumen']],
+    targets: { ph: [7.35, 7.55], tas: [90, 170] } }, O2),
+  comaEtilico: Object.assign({ lvl: 'Oxigenoterapia e intoxicaciones', title: 'Coma «etílico»: hipoglucemia e hipotermia', pheno: 'sano', sex: 'h', talla: 172, peso: 64, etoh: .7, glu: 38, gluT: 45, temp: 34.6, tempRate: -1.5, speed: 5, duration: 30,
+    cfg: { o2dev: 'gafas' },
+    goal: 'Varón de 55 años encontrado de madrugada en un portal, mojado, con fuerte olor a alcohol. Glasgow 6. Los vecinos dicen que «siempre está borracho».',
+    hint: 'El alcohol no explica un coma hasta descartar lo demás: glucemia (el alcohol bloquea la gluconeogénesis y la hipoglucemia recurre), temperatura (ropa mojada fuera, manta y calor), TCE, intoxicaciones asociadas y vía aérea. Glucosa 10–25 g IV y perfusión de G10 %; la tiamina, con o después, sin retrasar la glucosa.',
+    checks: [['act:glu', 'Glucemia capilar'], ['drug:gluc|drug:glucg', 'Glucosa'], ['perf:g10', 'Perfusión de glucosa'], ['act:warm', 'Calor'], ['act:temp', 'Temperatura']],
+    targets: { glu: [70, 250], temp: [34.5, 37.5] } }, O2),
+  causticos: Object.assign({ lvl: 'Oxigenoterapia e intoxicaciones', title: 'Ingesta de cáustico: la vía aérea se cierra', pheno: 'sano', sex: 'h', talla: 175, peso: 72, caust: true, edAir: .25, edAirRate: .035, pain: .7, speed: 5, duration: 25,
+    cfg: { o2dev: 'gafas' },
+    goal: 'Varón de 44 años que se bebió un desatascador (sosa cáustica) hace 30 minutos. Babea, le duele al tragar y la voz empieza a sonar ronca.',
+    hint: 'Nada de provocar el vómito, neutralizar, dar agua o carbón, ni poner sonda. Analgesia, dieta absoluta y vigilancia de la vía aérea: disfonía, estridor o babeo = edema que progresa. Intubación precoz con videolaringoscopio, tubo medio número menor y cricotiroidotomía preparada; evita la mascarilla laríngea. Endoscopia en las primeras 12–24 h.',
+    checks: [['drug:fent|drug:morf|drug:ketA', 'Analgesia'], ['act:vl', 'Videolaringoscopio'], ['intub', 'Intubación precoz']],
+    targets: { spo2: [94, 100] } }, O2),
   /* ---------- tóxicos (v1.8) ---------- */
   verapamilo: Object.assign({ lvl: 'Oxigenoterapia e intoxicaciones', title: 'Intoxicación por calcioantagonistas', pheno: 'sano', sex: 'm', talla: 160, peso: 68, cv: { type: 'cca', sev: .85 }, glu: 290, speed: 5, duration: 30,
     cfg: { o2dev: 'gafas' },
@@ -3211,6 +3298,17 @@ const META = {
   hemotorax: ['t', 2, 'Hemotórax masivo: drenaje, criterios de toracotomía, tranexámico y sangre'],
   volet: ['t', 2, 'Volet costal: analgesia, descartar neumotórax y VMNI si sigue hipoxémica'],
   granQuemado: ['t', 2, 'Gran quemado: superficie, cristaloide en bomba, analgesia y evitar la hipotermia'],
+  comaBenzoTca: ['t', 2, 'Coma por benzodiacepinas con tricíclicos: sin flumazenilo, vía aérea y QRS'],
+  cianuro: ['t', 2, 'Cianuro: SpO₂ normal con lactato alto, O₂ y hidroxocobalamina'],
+  estramonio: ['t', 1, 'Síndrome anticolinérgico (estramonio): benzodiacepinas y enfriamiento'],
+  salicilatos: ['t', 3, 'Salicilatos: bicarbonato, glucosa y no perder la hiperventilación'],
+  comaEtilico: ['t', 1, 'El alcohol no lo explica todo: glucemia, temperatura y TCE'],
+  causticos: ['t', 2, 'Cáusticos: nada de vómito ni neutralizar; intubación precoz si hay edema'],
+  hiperosmolar: ['t', 2, 'Estado hiperosmolar: volumen sin bolo de insulina'],
+  crisisSuprarrenal: ['t', 2, 'Crisis suprarrenal: hidrocortisona ya en el shock que no responde'],
+  ancianoSuelo: ['t', 2, 'Larga permanencia en el suelo: hiperpotasemia, rabdomiólisis e hipotermia'],
+  cadAdulto: ['t', 2, 'Cetoacidosis del adulto: volumen y potasio antes que insulina'],
+  tormentaTiroidea: ['t', 3, 'Tormenta tiroidea: betabloqueante, hidrocortisona y enfriamiento'],
   hiperK: ['t', 2, 'Hiperpotasemia: calcio, insulina con glucosa y salbutamol'],
   hipotermia: ['t', 3, 'Hipotermia grave: movilización cuidadosa, recalentamiento y riesgo de FV'],
   hipoglucemia: ['t', 1, 'Hipoglucemia grave sin vía y recurrencia por sulfonilureas'],
@@ -3485,7 +3583,7 @@ const fmt = (x, d = 0) => (x == null || !isFinite(x)) ? '–' : x.toFixed(d).rep
 const { SPEC, PKEYS, KEYS, DEVS, KEYLAB, MONS } = window.SIM_DEV;
 const CASES = window.SIM_CASES, GROUPS = window.SIM_GROUPS;
 const N = 750, SR = .02, GAP = 12, ZN = 750, ZSR = .008, ZGAP = 20;
-const MODEL_KEYS = ['pco2', 'deficit', 'bs', 'opioid', 'rhythm', 'arrPen', 'tep', 'anaf', 'cohb', 'cn', 'icp', 'icpGrow', 'weak', 'dav', 'edAir', 'edAirRate', 'asp', 'arrest', 'arrestCause', 'comp', 'bav', 'tasAdj', 'fcAdj', 'sevFloor', 'bottleL', 'bottleBar', 'leak10', 'relCe', 'sedE', 'sedStopped', 'sev', 'ptx', 'ptxTension', 'shockMul', 'bmv', 'sgaFail', 'peso', 'k', 'kRate', 'glu', 'gluT', 'temp', 'tempRate', 'bleed', 'bleedSrc', 'tca', 'ecl', 'croup', 'postRosc', 'access', 'arrestCause2', 'hco3Off', 'stemi', 'tamp', 'tampRate', 'vaso', 'vasoRate', 'neurog', 'fluidTol', 'htx', 'flail', 'pain', 'burn', 'se', 'stroke', 'na', 'cv', 'op', 'opRate', 'cocaine', 'dka', 'neo', 'dci', 'heat', 'drown', 'edad', 'tire', 'pneu', 'cedema', 'tbi', 'witnessed', 'preg', 'tdp', 'retainer', 'hape', 'anxRate', 'anxBase', 'irritant', 'ptxRate', 'drive0', 'ptxOpen', 'crush', 'phen', 'qtl', 'dissec', 'bavN', 'pmFail'];
+const MODEL_KEYS = ['pco2', 'deficit', 'bs', 'opioid', 'rhythm', 'arrPen', 'tep', 'anaf', 'cohb', 'cn', 'icp', 'icpGrow', 'weak', 'dav', 'edAir', 'edAirRate', 'asp', 'arrest', 'arrestCause', 'comp', 'bav', 'tasAdj', 'fcAdj', 'sevFloor', 'bottleL', 'bottleBar', 'leak10', 'relCe', 'sedE', 'sedStopped', 'sev', 'ptx', 'ptxTension', 'shockMul', 'bmv', 'sgaFail', 'peso', 'k', 'kRate', 'glu', 'gluT', 'temp', 'tempRate', 'bleed', 'bleedSrc', 'tca', 'ecl', 'croup', 'postRosc', 'access', 'arrestCause2', 'hco3Off', 'stemi', 'tamp', 'tampRate', 'vaso', 'vasoRate', 'neurog', 'fluidTol', 'htx', 'flail', 'pain', 'burn', 'se', 'stroke', 'na', 'cv', 'op', 'opRate', 'cocaine', 'dka', 'neo', 'dci', 'heat', 'drown', 'edad', 'tire', 'pneu', 'cedema', 'tbi', 'witnessed', 'preg', 'tdp', 'retainer', 'hape', 'anxRate', 'anxBase', 'irritant', 'ptxRate', 'drive0', 'ptxOpen', 'crush', 'phen', 'qtl', 'dissec', 'bavN', 'pmFail', 'bzd', 'bzdChronic', 'etoh', 'anticol', 'caust', 'hhs', 'adrenal', 'thyro', 'salic', 'suelo', 'diur'];
 const O2LAB = { gafas: 'gafas nasales 2 L/min', venturi28: 'Venturi 28 %', venturi35: 'Venturi 35 %', venturi50: 'Venturi 50 %', reserv: 'mascarilla con reservorio 15 L/min' };
 const IFLAB = { tube: 'tubo endotraqueal', mask: 'mascarilla oronasal', nasal: 'cánula nasal de alto flujo', o2: 'paciente sin conectar' };
 const IFSHORT = { tube: 'intubado', mask: 'VMNI', nasal: 'alto flujo', o2: 'oxigenoterapia' };
@@ -4316,6 +4414,13 @@ function readingsMain(out) {
   if (!S.arrest && S.neurog > .2 && S.pam < 80) out.push(['bad', 'Shock neurogénico', `PAM ≈ ${fmt(S.pam)} con FC ${fmt(S.fc)} y piel caliente.`, 'Descarta la hemorragia; volumen prudente, atropina si FC < 50 y noradrenalina para PAM ≥ 80–85.']);
   if (!S.arrest && S.tamp > .35 && S.tas < 100) out.push(['bad', 'Shock obstructivo', 'Hipotensión con ingurgitación yugular y tonos apagados.', 'Ecografía clínica; si hay taponamiento, volumen y pericardiocentesis. Evita intubar y la PEEP alta.']);
   if (!S.arrest && S.dissec) { const at = S.E.aas > .2 || S.E.hnf > .2 || S.E.enox > .2 || S.E.tnk > .2; out.push([at ? 'bad' : S.tas > 130 || S.fc > 70 ? 'bad' : 'warn', at ? 'Antitrombótico en una disección' : 'Disección aórtica', `TAS ${fmt(S.tas)}, FC ${fmt(S.fc)}.`, at ? 'Aumenta el riesgo de rotura y taponamiento: no des más; traslado inmediato a cirugía cardiaca.' : 'Analgesia (fentanilo) y labetalol en bolos de 20 mg para FC < 60 y TAS 100–120; ni AAS, ni heparina, ni fibrinólisis. Traslado a un centro con cirugía cardiaca.']); } // v1.19
+  if (!S.arrest && S.bzdEff > .3) out.push(['warn', 'Coma por benzodiacepinas', `Glasgow ${fmt(S.gcs)}, FR ${fmt(S.pat.rr)}.`, S.tca > .1 || S.bzdChronic ? 'Vía aérea (posición, cánula, ambú si hipoventila) y O₂. Sin flumazenilo: hay tricíclicos (o consumo crónico) y puede desencadenar convulsiones refractarias.' : 'Vía aérea y O₂; flumazenilo 0,25–0,5 mg solo si es una sobredosis pura sin consumo crónico ni proconvulsivantes, y vigila la resedación.']); // v1.20
+  if (!S.arrest && S.etoh > 0 && (S.glu < 70 || S.temp < 35)) out.push(['bad', 'El alcohol no lo explica todo', `Glucemia ${fmt(S.glu)}, ${fmt(S.temp, 1)} °C.`, 'Glucosa IV (sin retrasarla por la tiamina), retira la ropa mojada, calor y busca el TCE; mantén la vía aérea.']);
+  if (!S.arrest && S.salic > 0) out.push([S.ph < 7.3 ? 'bad' : 'warn', 'Intoxicación por salicilatos', `pH ${fmt(S.ph, 2)}, pCO₂ ${fmt(S.pco2)}: acidosis metabólica con alcalosis respiratoria.`, 'Bicarbonato 1–2 mEq/kg y perfusión (alcalinizar la orina), glucosa y volumen; evita intubar y, si hay que hacerlo, mantén la hiperventilación (FR 30+). Hemodiálisis en el hospital.']);
+  if (!S.arrest && S.hhs) out.push(['warn', 'Estado hiperosmolar', `Glucemia ${S.glu > 600 ? '> 600' : fmt(S.glu)} mg/dL, Na⁺ ${fmt(S.na)}.`, 'Suero fisiológico 1 L en la primera hora y después 0,5–1 L/h según la TA; sin bolo de insulina (la glucemia no debe bajar más de 90 mg/dL/h); potasio y heparina profiláctica en el hospital.']);
+  if (!S.arrest && S.adrenal > 0 && S.E.cort < .3) out.push(['bad', 'Crisis suprarrenal', `TAS ${fmt(S.tas)} pese a volumen y vasopresor; Na⁺ ${fmt(S.na)}, K⁺ ${fmt(S.k, 1)}, glucemia ${fmt(S.glu)}.`, 'Hidrocortisona 100 mg IV ya (no esperes a confirmarla), suero fisiológico y glucosa; la noradrenalina sola apenas responde.']);
+  if (!S.arrest && S.thyroEff > .3) out.push(['bad', 'Tormenta tiroidea', `FC ${fmt(S.fc)}, ${fmt(S.temp, 1)} °C, agitado.`, 'Betabloqueante (labetalol o propranolol) para la FC, hidrocortisona 100 mg, enfriamiento y paracetamol (no AAS); tionamidas y yodo en el hospital.']);
+  if (!S.arrest && S.caust && S.edAir > .3 && S.iface !== 'tube') out.push(['bad', 'Edema de vía aérea por cáustico', 'Voz ronca y estridor.', 'Intubación precoz con videolaringoscopio y tubo más pequeño; prepara la cricotiroidotomía. Nada de provocar el vómito, neutralizar ni sonda.']);
   if (!S.arrest && S.tep > .3) out.push(['warn', 'Patrón de TEP', `EtCO₂ ${fmt(M.et)} frente a PaCO₂ ≈ ${fmt(S.pco2)} mmHg: espacio muerto.`, 'Noradrenalina para TAS ≥ 90, volumen prudente, PEEP baja y fibrinólisis si es de alto riesgo.']);
   if (!S.arrest && S.anaf > .2) out.push([S.tas < (isPed() ? VMI.pedNorms(S.age || 0).tasMin : 90) ? 'bad' : 'warn', 'Anafilaxia activa', `TAS ${fmt(S.tas)}, broncoespasmo y angioedema.`, `Adrenalina IM ${isPed() ? fmt(Math.min(.5, .01 * peso), 2) + ' mg (0,01 mg/kg)' : '0,5 mg'} en el muslo (repite a los 5 min), volumen${isPed() ? ' 10 mL/kg' : ''}; perfusión de adrenalina si es refractaria.`]);
   const seizing = S.clin < S.seizUntil;
@@ -4371,8 +4476,9 @@ function readingsMain(out) {
     else if (+($('#pf_atrP') || {}).value === 0 || !$('#pf_atrP')) out.push(['warn', 'Atropinizado', 'Tórax seco y FC por encima de 80.', 'Mantén la atropinización: perfusión del 10–20 % de la dosis total por hora.']);
     if (S.opN > .3 && (S.E.prali || 0) < .2) out.push(['warn', 'Debilidad nicotínica', 'La atropina no la corrige: puede acabar en parada respiratoria.', 'Pre-aviso al hospital para la pralidoxima. Si hay que intubar: rocuronio, nunca succinilcolina.']); }
   if (!S.arrest && S.cocaine > 0) {
-    if (S.cocE > .35) out.push(['bad', 'Síndrome simpaticomimético', `FC ${fmt(S.fc)} y TAS ${fmt(S.tas)}, agitado.`, `Benzodiacepinas primero y sin miedo: midazolam ${isPed() ? '0,2 mg/kg' : '5–10 mg'} IV o IM, repetible. Evita los betabloqueantes.`]);
-    if (track.ecg12At == null && S.cocE > .2) out.push(['warn', 'Dolor torácico con cocaína', 'Puede haber isquemia por vasoespasmo.', 'ECG de 12 derivaciones; AAS y nitroglicerina si hay isquemia.']); }
+    if (S.cocE > .35 && S.anticol) out.push(['bad', 'Síndrome anticolinérgico', `FC ${fmt(S.fc)}, ${fmt(S.temp, 1)} °C, piel seca y delirio.`, 'Midazolam en bolos (sin haloperidol: empeora la hipertermia y baja el umbral convulsivo), enfriamiento, sondaje vesical si hay globo y monitor; la fisostigmina, en el hospital.']); // v1.20
+    else if (S.cocE > .35) out.push(['bad', 'Síndrome simpaticomimético', `FC ${fmt(S.fc)} y TAS ${fmt(S.tas)}, agitado.`, `Benzodiacepinas primero y sin miedo: midazolam ${isPed() ? '0,2 mg/kg' : '5–10 mg'} IV o IM, repetible. Evita los betabloqueantes.`]);
+    if (track.ecg12At == null && S.cocE > .2 && !S.anticol) out.push(['warn', 'Dolor torácico con cocaína', 'Puede haber isquemia por vasoespasmo.', 'ECG de 12 derivaciones; AAS y nitroglicerina si hay isquemia.']); }
     if (!S.arrest && S.cocaine > 0 && S.ecg.qrs > .12 && S.bicKg < .5) out.push(['warn', 'QRS ancho por cocaína', `QRS ${fmt(S.ecg.qrs * 1000)} ms: bloqueo de canales de sodio.`, 'Bicarbonato 1 M 1–2 mEq/kg si sigue ancho o hay arritmias.']);
   if (!S.arrest && S.dka) {
     if (track.gasAt != null && S.ph < 7.1 && tube) out.push(['bad', 'Acidemia grave en el intubado', `pH ${fmt(S.ph, 2)} con pCO₂ ${fmt(S.pco2)} mmHg.`, `Mantén su compensación: FR 26–30 y Vt 7–8 mL/kg para una pCO₂ de 20–25 (Winter: 1,5 × HCO₃⁻ + 8 ≈ ${fmt(1.5 * S.hco3m + 8)}); vigila la auto-PEEP.`]);
@@ -5346,7 +5452,7 @@ const WHERE = [
   [/intranasal|bucal/, $d('midIN')], [/adrenalina nebulizada/, $d('adrNeb')], [/dexametasona/, $d('dexa')], [/adrenalina im\b|adrenalina im |intramuscular/, $d('adrIM')],
   [/perfusion de adrenalina|adrenalina 2.10 mcg|mcg\/min/, $p('adrI')], [/bolo de 10.20 mcg/, $d('adrP')], [/adrenalina/, $d('adr1')], [/noradrenalina/, $p('nor')],
   [/amiodarona/, $d('amio300', 'amio150')], [/lidocaina/, $d('lido100')], [/adenosina/, $d('aden6', 'aden12', 'aden18')], [/atropina/, $d('atr')], [/vagales|valsalva/, $d('vagal')], [/naloxona/, $d('nalox')],
-  [/nitroglicerina|nitratos/, $d('ntgiv', 'ntgsl')], [/salbutamol/, $d('salb')], [/furosemida/, $d('furo')], [/salino hipertonico/, $d('shs')], [/manitol/, $d('manit')], [/hidroxocobalamina/, $d('hidroxo')], [/fibrinolisis|tenecteplasa/, $d('tnk')],
+  [/nitroglicerina|nitratos/, $d('ntgiv', 'ntgsl')], [/salbutamol/, $d('salb')], [/furosemida/, $d('furo')], [/salino hipertonico/, $d('shs')], [/manitol/, $d('manit')], [/hidroxocobalamina/, $d('hidroxo')], [/hidrocortisona/, $d('hidroc')], [/flumazenilo/, $d('flum')], [/fibrinolisis|tenecteplasa/, $d('tnk')],
   [/ketamina analgesica|ketamina 0,3/, $d('ketA')], [/fentanilo/, $d('fentS', 'fentI')], [/morfina/, $d('morf')], [/ketamina/, $d('ket')], [/etomidato/, $d('eto')], [/rocuronio|relajante/, $d('roc')], [/antibiotico|ceftriaxona/, $d('ceftri', 'pipta', 'mero')], [/ecg de 12|12 derivaciones|v4r/, $a('ecg12')], [/ecografia/, $a('eco')], [/pericardiocentesis/, $a('pericardio')], [/icp primaria|codigo infarto/, $a('icp')], [/\baas\b|antiagrega/, $d('aas')], [/ticagrelor/, $d('tica')], [/clopidogrel/, $d('clopi300', 'clopi600')], [/heparina|anticoagula/, $d('hnf', 'enox')], [/enoxaparina/, $d('enox')], [/bolo de la bomba/, $d('sedB')], [/reintub/, $a('reintub')], [/via aerea definitiva/, $a('intubate')], [/broncodilatador/, $d('salb')], [/antiarritmico/, $d('amio300', 'lido100')], [/recalent/, $a('warm')], [/medir la temperatura/, $a('temp')], [/acceso vascular/, $a('iv', 'io')], [/ventilar con o2/, $a('bag')], [/reanuda/, $d('sedperf')], [/retirar? (el )?tubo|retira 2 cm/, $a('pull')], [/inductor|sedoanalgesia|sedacion|midazolam|fentanilo/, $d('fentS', 'mid')], [/corticoide|metilprednisolona/, $d('cort')], [/antihistaminico/, $d('dexclor')],
   [/sangre/, $d('blood')], [/cristaloide en bomba|ml\/h/, $p('cris')], [/cristaloide|volumen|bolos? pequenos/, $d('fluid')],
   [/ambu|bolsa/, $a('bag')], [/videolaringoscopio/, $a('vl')], [/gafas a 15|oxigenacion apneica/, $a('apox')], [/supraglotico/, $a('sga')], [/cricotiroidotomia/, $a('cric')], [/intuba/, $a('intubate')],
@@ -5624,6 +5730,12 @@ const TUT = {
   betabloq: [R, { t: 'Canaliza una vía venosa.', at: 'via venosa', ok: TU.acc }, D('drug:glucg|perf:glucgP', 'Glucagón 5 mg IV en 1–2 min.', 'Prepara un antiemético: da vómitos.', 'glucagon iv'), { t: 'Perfusión de adrenalina.', at: ['#pf_adrI'], ok: 'perf:adrI|perf:nor' }, { t: 'Perfusión de glucagón 2–5 mg/h.', at: ['#pf_glucgP'], ok: 'perf:glucgP' }, TG('tas', 'TAS ≥ 90; si no responde, insulina a dosis altas.', null, 'insulina a dosis altas'), END],
   organofosf: [R, D('act:decont', 'Protégete y descontamina: fuera la ropa y lava la piel.', 'Sigue absorbiéndose y os puede intoxicar.', 'descontamina'), { t: 'Vía intraósea o venosa.', at: 'intraosea via venosa', ok: TU.acc }, D('drug:atr', 'Atropina 2 mg IV.', 'Dobla la dosis cada 5 min: 2, 4, 8, 16…', 'atropina 2 mg'), TG('fc', 'Hasta atropinizar: tórax seco, FC > 80 y TAS > 80.', 'La miosis no es el objetivo.', 'atropina 2 mg'), { t: 'Perfusión de atropina del 10–20 % de la dosis total por hora.', at: ['#pf_atrP'], ok: 'perf:atrP' }, END],
   cocaina: [R, D('drug:mid', 'Midazolam 0,2 mg/kg (máx. 10 mg) IM o IV.', 'Benzodiacepinas primero: bajan agitación, FC, TA y temperatura.', 'midazolam (crisis)'), D('act:temp', 'Mide la temperatura.', null, 'mide la temperatura'), D('act:cool', 'Enfriamiento activo.', 'Desnudar, agua pulverizada y ventilación, hielo en ingles y axilas.', 'enfriamiento activo'), D('act:ecg12', 'ECG de 12 derivaciones.', 'Dolor torácico con cocaína: busca isquemia.', 'ecg de 12'), TG('temp', 'Retira el enfriamiento a 38,5 °C.', null, 'enfriamiento activo'), END],
+  comaBenzoTca: [R, X('Blísteres de lorazepam y de amitriptilina: no es una sobredosis pura.'), D('act:ecg12', 'ECG de 12 derivaciones: mira el QRS.', 'QRS > 100–120 ms = bloqueo de canales de sodio por el tricíclico.', 'ecg de 12'), { t: 'Sin flumazenilo: con tricíclicos puede desencadenar convulsiones refractarias.', w: 'Lo mismo en el consumidor crónico de benzodiacepinas.' }, D('drug:bic', 'Bicarbonato 1 M 1–2 mEq/kg en bolo.', 'Repite hasta QRS < 120 ms.', 'bicarbonato'), { t: 'Vía aérea: posición, cánula y ambú si hipoventila; ISR si no protege.', at: 'ambu', ok: () => S.bag || S.iface === 'tube' || S.spo2 > .94 }, TG('qrs', 'QRS < 120 ms.', null, 'bicarbonato'), END],
+  cianuro: [R, X('SpO₂ normal con bajo nivel de conciencia y TA baja: piensa en el cianuro.'), { t: 'O₂ al 100 %: mascarilla con reservorio.', at: 'reservorio', ok: () => S.cfg.o2dev === 'reserv' || S.iface !== 'o2' }, D('act:gas', 'Gasometría: lactato.', 'Lactato > 8 mmol/L sin otra causa = cianuro.', 'gasometria'), D('drug:hidroxo', 'Hidroxocobalamina 5 g IV en 15 min.', 'No esperes a confirmarlo; repetible.', 'hidroxocobalamina'), TG('tas', 'TAS ≥ 90: volumen y, si no basta, noradrenalina.', null, 'cristaloide'), END],
+  estramonio: [R, X('Piel roja y seca, midriasis y delirio: síndrome anticolinérgico.'), D('drug:mid', 'Midazolam en bolos hasta controlar la agitación.', 'Sin haloperidol: empeora la hipertermia.', 'midazolam (crisis)'), D('act:cool', 'Enfriamiento activo.', null, 'enfriamiento activo'), D('act:temp', 'Mide la temperatura.', null, 'mide la temperatura'), TG('temp', 'Temperatura < 39 °C.', 'Sonda vesical si hay globo; la fisostigmina, en el hospital.', 'enfriamiento activo'), END],
+  salicilatos: [R, D('act:gas', 'Gasometría: pH, pCO₂ y bicarbonato.', 'Acidosis metabólica con alcalosis respiratoria primaria.', 'gasometria'), D('drug:bic', 'Bicarbonato 1 M 1–2 mEq/kg y repite.', 'Alcaliniza la orina: atrapa el salicilato y lo elimina.', 'bicarbonato'), D('act:fluid|perf:cris', 'Volumen.', 'Pierde mucho por los vómitos y la hiperventilación.', 'cristaloide'), D('drug:gluc', 'Glucosa IV.', 'El cerebro puede estar hipoglucémico con glucemia normal.', 'glucosa'), TG('ph', 'pH 7,45–7,55. Evita intubar.', 'Si hay que hacerlo, FR 30+ para no perder la compensación.', 'bicarbonato'), END],
+  comaEtilico: [R, D('act:glu', 'Glucemia capilar.', 'El alcohol no explica un coma hasta descartar lo demás.', 'glucemia'), { t: 'Canaliza una vía venosa.', at: 'via venosa', ok: TU.acc }, D('drug:gluc|drug:glucg', 'Glucosa 10–25 g IV.', 'Sin retrasarla por la tiamina.', 'glucosa'), D('perf:g10', 'Perfusión de G10 %.', 'El alcohol bloquea la gluconeogénesis: la hipoglucemia vuelve.', 'perfusion de glucosa'), D('act:warm', 'Fuera la ropa mojada, manta y calor.', null, 'calor activo'), D('act:temp', 'Mide la temperatura.', null, 'mide la temperatura'), TG('temp', 'Temperatura ≥ 34,5 °C y busca el TCE.', null, 'calor activo'), END],
+  causticos: [R, X('Babeo, quemaduras en la boca y voz que se vuelve ronca.'), { t: 'Ni provocar el vómito, ni neutralizar, ni agua, ni sonda.', w: 'Volvería a quemar el esófago al subir.' }, D('drug:fent|drug:morf|drug:ketA', 'Analgesia: fentanilo.', null, 'fentanilo'), D('act:vl', 'Prepara el videolaringoscopio y un tubo medio número menor.', 'Con disfonía o estridor, el edema progresa: intubación precoz.', 'videolaringoscopio'), ...IND, ...IOT, END],
   cadIntubada: [R, D('act:gas', 'Gasometría.', 'pH, pCO₂ y potasio guían todo lo demás.', 'gasometria'), CF('fr', 26, 32, 'Sube la FR a 26–30 y confirma.', 'Tiene que mantener su compensación (pCO₂ ≈ 20).'), TG('et', 'EtCO₂ 18–25.', 'Vigila la auto-PEEP: Ti corto.', 'fr'), { t: 'Cristaloide en bomba a 500–1.000 mL/h.', at: ['#pf_cris'], ok: 'perf:cris|act:fluid' }, { t: 'Insulina en perfusión a 0,1 UI/kg/h (K⁺ ≥ 3,3).', at: ['#pf_insD'], ok: 'perf:insD' }, END],
   estatus: [R, D('drug:mid', 'Midazolam 0,2 mg/kg (máx. 10 mg) IM o IV.', 'Sin esperar a la vía: el IM funciona igual de bien.', 'midazolam (crisis)'), D('act:glu', 'Glucemia capilar.', null, 'glucemia'), { t: 'Canaliza una vía venosa.', at: 'via venosa', ok: TU.acc }, D('drug:lev|drug:vpa', 'Segunda línea: levetiracetam 60 mg/kg en 10 min.', 'No esperes a que falle del todo la primera.', 'levetiracetam'), { t: 'Si sigue convulsionando: ISR con propofol.', w: 'Estatus refractario: la anestesia es el tratamiento.', at: 'propofol intuba', ok: () => S.iface === 'tube' }, { t: 'Perfusión de propofol 2–4 mg/kg/h.', w: 'El relajante quita los movimientos, no la crisis.', at: ['#pf_prop'], ok: 'perf:prop|perf:mid' }, TG('seizFree', 'Crisis controlada.', null, 'explora'), END],
   ictusIsq: [R, X('Déficit focal: mira la escala RACE y la hora de inicio.'), D('act:glu', 'Glucemia capilar.', 'La hipoglucemia imita un ictus.', 'glucemia'), D('act:ictus', 'Activa el código ictus.', 'RACE ≥ 5: hospital con trombectomía.', 'codigo ictus'), D('drug:labet|drug:urap', 'TA > 185/110: labetalol 10–20 mg IV lento.', 'Sin bajarla más de un 15 %.', 'labetalol'), TG('tas', 'TAS 140–185.', 'Por debajo de 140 sufre la penumbra.', 'labetalol'), END],
@@ -5636,6 +5748,11 @@ const TUT = {
   eclampsia: [R, { t: 'Protege la vía aérea y O₂ con reservorio; decúbito lateral izquierdo.' }, { t: 'Canaliza una vía venosa.', at: 'via venosa', ok: TU.acc }, D('drug:mg', 'Sulfato de magnesio 4 g.', 'Trata la convulsión y previene las siguientes.', 'magnesio'), { t: 'Perfusión de magnesio a 1 g/h.', at: ['#pf_mgP'], ok: 'perf:mgP' }, D('drug:labet|drug:urap', 'TAS ≥ 160: labetalol 20 mg (o urapidilo).', null, 'labetalol'), TG('tas', 'TAS 130–160.', null, 'pni'), END],
   hpp: [R, D('act:hemo', 'Masaje uterino bimanual.', null, 'masaje uterino'), { t: 'Canaliza una vía venosa.', at: 'via venosa', ok: TU.acc }, D('drug:oxito', 'Oxitocina 10 UI.', null, 'oxitocina'), D('drug:txa', 'Ácido tranexámico 1 g.', null, 'tranexamico'), D('act:warm', 'Manta y calor activo.', null, 'calor activo'), TG('tas', 'TAS ≥ 90.', null, 'pni'), END],
   hiperK: [R, { t: 'Mira el monitor: bradicardia, QRS ancho y T picudas.', at: ['#zcv'] }, D('drug:ca', 'Cloruro cálcico 10 % 10 mL.', 'Estabiliza la membrana en minutos; no baja el potasio.', 'calcio'), D('drug:ins', 'Insulina rápida 10 UI con 25 g de glucosa.', 'Mete el potasio en la célula.', 'insulina'), D('drug:salb', 'Salbutamol nebulizado.', null, 'salbutamol'), D('act:glu|act:gas', 'Glucemia de control.', 'La insulina puede dar hipoglucemia.', 'glucemia'), TG('qrs', 'Comprueba que el QRS baja de 120 ms.', null, 'calcio'), END],
+  hiperosmolar: [R, D('act:glu', 'Glucemia capilar: «HI».', 'Sin cetosis ni Kussmaul: estado hiperosmolar.', 'glucemia'), { t: 'Canaliza una vía venosa.', at: 'via venosa', ok: TU.acc }, D('act:fluid|perf:cris', 'Suero fisiológico 1 L en la primera hora.', 'El tratamiento es el volumen.', 'cristaloide'), { t: 'Sin bolo de insulina.', w: 'La glucemia y la osmolaridad no deben bajar deprisa.' }, TG('tas', 'TAS ≥ 100: sigue con 0,5–1 L/h.', null, 'cristaloide'), END],
+  crisisSuprarrenal: [R, X('Prednisona crónica suspendida y shock con vómitos: crisis suprarrenal.'), D('drug:cort', 'Hidrocortisona 100 mg IV en bolo.', 'Sin esperar a confirmarla: la noradrenalina sola apenas responde.', 'hidrocortisona'), D('act:fluid|perf:cris', 'Suero fisiológico 1 L.', null, 'cristaloide'), D('act:glu', 'Glucemia capilar.', null, 'glucemia'), D('drug:gluc', 'Glucosa IV si < 70.', null, 'glucosa'), TG('tas', 'TAS ≥ 90.', null, 'cristaloide'), END],
+  ancianoSuelo: [R, D('act:ecg12', 'ECG de 12 derivaciones.', 'T picudas, QRS ancho y bradicardia: hiperpotasemia por rabdomiólisis.', 'ecg de 12'), D('drug:ca', 'Cloruro cálcico 10 % 10 mL.', 'Estabiliza la membrana en minutos.', 'calcio'), D('drug:ins|drug:salb', 'Insulina 10 UI con 25 g de glucosa y salbutamol.', 'Meten el potasio en la célula.', 'insulina'), D('act:fluid|perf:cris', 'Suero fisiológico.', 'Rabdomiólisis y deshidratación.', 'cristaloide'), D('act:warm', 'Calor y movilización cuidadosa.', null, 'calor activo'), TG('qrs', 'QRS < 120 ms.', null, 'calcio'), END],
+  cadAdulto: [R, D('act:glu', 'Glucemia capilar.', null, 'glucemia'), { t: 'Canaliza una vía venosa.', at: 'via venosa', ok: TU.acc }, D('act:fluid|perf:cris', 'Suero fisiológico 1 L en la primera hora.', 'Lo primero es el volumen.', 'cristaloide'), D('act:ecg12|act:gas', 'Potasio antes de la insulina: ECG o gasometría.', 'Con K⁺ < 3,5 la insulina no se empieza.', 'gasometria'), { t: 'Sin bicarbonato (salvo pH < 6,9) y sin intubar si no es imprescindible.', w: 'Perdería la compensación respiratoria.' }, TG('tas', 'TAS ≥ 100.', null, 'cristaloide'), END],
+  tormentaTiroidea: [R, X('Graves sin tratamiento, fiebre, temblor y FA rápida: tormenta tiroidea.'), D('drug:labet', 'Labetalol 20 mg IV; repite cada 5–10 min.', 'El betabloqueante controla la FC (mejor propranolol si lo tienes).', 'labetalol'), D('drug:cort', 'Hidrocortisona 100 mg IV.', 'Frena la conversión de T4 en T3.', 'hidrocortisona'), D('act:cool', 'Enfriamiento y paracetamol (no AAS).', null, 'enfriamiento activo'), TG('fc', 'FC < 135.', null, 'labetalol'), END],
   hipotermia: [R, D('act:temp', 'Mide la temperatura.', null, 'mide la temperatura'), D('act:warm', 'Manta y calor activo.', 'Quita la ropa mojada; no frotes.', 'calor activo'), { t: 'Manéjalo con mucho cuidado y en horizontal; traslado a un centro con ECMO.', w: 'Por debajo de 30 °C, moverlo bruscamente puede provocar una FV.' }, TG('spo2', 'Mantén SpO₂ ≥ 94 %.', null, 'reservorio'), END],
   hipoglucemia: [R, D('act:glu', 'Glucemia capilar.', 'Ante cualquier bajo nivel de conciencia.', 'glucemia'), D('drug:glucg|drug:gluc', 'Sin vía: glucagón 1 mg IM.', null, 'glucagon'), { t: 'Canaliza una vía (si falla, intraósea).', at: 'via venosa', ok: TU.acc }, D('drug:gluc', 'Glucosa 10–25 g IV.', null, 'glucosa'), { t: 'Repite la glucemia.', at: 'glucemia', ok: TU.used('act:glu', true) }, { t: 'Perfusión de glucosa al 10 %.', w: 'Con sulfonilureas la hipoglucemia vuelve.', at: ['#pf_g10'], ok: 'perf:g10' }, END],
   opiaceos: [R, D('act:bag', 'Ventila con ambú.', 'Primero, oxigenar y ventilar.', 'ambu'), D('drug:nalox', 'Naloxona 0,4 mg.', null, 'naloxona'), TG('rr', 'Repite cada 2–3 min hasta FR ≥ 10.', null, 'naloxona'), { t: 'Vigila la resedación hacia los 30–40 min.', w: 'La naloxona dura menos que el opiáceo.' }, END],

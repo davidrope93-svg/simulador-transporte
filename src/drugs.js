@@ -12,7 +12,7 @@ const DRUGSET = [
   { g: 'Sedoanalgesia y antídoto', items: [
     { id: 'mid', lab: 'Midazolam', k: 'mid', dose: 2, u: 'mg' }, { id: 'propS', lab: 'Propofol', k: 'prop', mgkg: .5, u: 'mg' },
     { id: 'fentS', lab: 'Fentanilo', k: 'fent', mgkg: 1, u: 'mcg' }, { id: 'morf', lab: 'Morfina', k: 'morf', dose: 3, u: 'mg' }, { id: 'ketA', lab: 'Ketamina analgésica', k: 'ket', mgkg: .3, u: 'mg', note: 'IV lenta; 0,5–1 mg/kg IM o IN' },
-    { id: 'nalox', lab: 'Naloxona', k: 'nalox', dose: .4, u: 'mg' }, { id: 'sedB', lab: 'Bolo de la bomba de sedación', k: 'sed', amt: 2, note: 'midazolam + fentanilo' },
+    { id: 'nalox', lab: 'Naloxona', k: 'nalox', dose: .4, u: 'mg' }, { id: 'flum', lab: 'Flumazenilo', k: 'flum', dose: .5, u: 'mg', note: 'solo en sobredosis pura de benzodiacepinas' }, { id: 'sedB', lab: 'Bolo de la bomba de sedación', k: 'sed', amt: 2, note: 'midazolam + fentanilo' },
     { id: 'sedperf', lab: 'Reanudar la bomba de sedación', act: 'sedperf' }] },
   { g: 'Hemodinámica y parada', items: [
     { id: 'fluid', lab: 'Cristaloide', act: 'fluid', note: '500 mL' }, { id: 'blood', lab: 'Concentrado de hematíes', act: 'blood', note: '1 unidad, si se dispone' }, { id: 'adr1', lab: 'Adrenalina', k: 'adr', dose: 1, u: 'mg', amt: 100 },
@@ -40,7 +40,7 @@ const DRUGSET = [
     { id: 'vagal', lab: 'Maniobras vagales', act: 'vagal', note: 'Valsalva modificada' }] },
   { g: 'Respiratorio y anafilaxia', items: [
     { id: 'salb', lab: 'Salbutamol + ipratropio', k: 'salb', amt: 1, note: 'nebulizado o en línea', pnote: '2,5 mg (< 20 kg) o 5 mg + ipratropio 250 mcg nebulizados, cada 20 min la 1.ª hora', route: '', noIV: true }, { id: 'mgso4', lab: 'Sulfato de magnesio', k: 'mg', dose: 2, u: 'g' },
-    { id: 'cort', lab: 'Metilprednisolona', k: 'cort', mgkg: 1, u: 'mg' }, { id: 'adrIM', lab: 'Adrenalina IM', k: 'adrIM', dose: .5, u: 'mg', amt: .5, route: ' en el muslo', noIV: true },
+    { id: 'cort', lab: 'Metilprednisolona', k: 'cort', mgkg: 1, u: 'mg' }, { id: 'hidroc', lab: 'Hidrocortisona', k: 'cort', dose: 100, u: 'mg', note: 'crisis suprarrenal, tormenta tiroidea' }, { id: 'adrIM', lab: 'Adrenalina IM', k: 'adrIM', dose: .5, u: 'mg', amt: .5, route: ' en el muslo', noIV: true },
     { id: 'dexclor', lab: 'Dexclorfeniramina', k: 'dexclor', dose: 5, u: 'mg' }, { id: 'adrNeb', lab: 'Adrenalina nebulizada', k: 'adrN', dose: 5, u: 'mg', route: ' nebulizada', noIV: true },
     { id: 'dexa', lab: 'Dexametasona', k: 'dexa', dose: 8, u: 'mg', route: ' oral o IM', noIV: true }, { id: 'nifed', lab: 'Nifedipino retard', k: 'nifed', dose: 30, u: 'mg', route: ' oral', noIV: true, note: 'edema de altura' }] },
   { g: 'Metabólico, tóxicos y obstetricia', items: [

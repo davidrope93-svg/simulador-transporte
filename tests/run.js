@@ -388,6 +388,20 @@ console.log('— Tanda de arritmias y cardiología (v1.19): FA preexcitada, QT l
   a = run('scasest', [[.5, give('tnk', 70)]], 20); check('SCASEST: la fibrinólisis no reperfunde', a.S.stemi.reperf ? 1 : 0, 0, 0);
   a = run('taquiSinusal', [], 20); b = run('taquiSinusal', [[.3, s => { s.S.access = 'iv'; }], [.5, s => s.action('fluid')], [2, s => s.action('blood')], [5, s => s.action('blood')]], 20); check('Hemorragia sin reponer: FC a 20 min', a.S.fc, 130, 180, ' lpm'); check('… con volumen y sangre la taquicardia cede sola', b.S.fc, 90, 125, ' lpm'); }
 
+console.log('— Tanda de intoxicaciones y metabólico (v1.20): flumazenilo, cianuro, salicilatos, crisis suprarrenal y más');
+{ const run = (k, acts, m, seed) => { const L = load(k, { seed: seed || 4, scale: 10 }), s = L.sim; adv(s, .05); for (const [t, f] of acts) { if (s.S.clin < t) adv(s, t - s.S.clin); f(s); } adv(s, m - s.S.clin); return s; };
+  global.window = global; require('../src/drugs.js'); const DR = global.SIM_DRUGS;
+  const give = (id, kg) => s => { const it = DR.DRUGITEMS[id]; s.drug(it.k, DR.amountOf(it, kg || 70, false)); };
+  let sz = 0; for (let sd = 1; sd <= 10; sd++) { const x = run('comaBenzoTca', [[.3, give('flum')]], 6, sd); if (x.S.log.some(l => /flumazenilo/.test(l[1]))) sz++; } check('Benzodiacepinas con tricíclicos: el flumazenilo desencadena convulsiones (de 10)', sz, 5, 10);
+  let a = run('comaBenzoTca', [], 3), b = run('comaBenzoTca', [[.3, give('bic', 62)], [.6, give('bic', 62)]], 3); check('… el bicarbonato estrecha el QRS', a.S.ecg.qrs * 1000 - b.S.ecg.qrs * 1000, 15, 80, ' ms');
+  a = run('cianuro', [], 15); b = run('cianuro', [[.3, s => s.setCfg(Object.assign({}, s.S.cfg, { o2dev: 'reserv' }))], [.5, give('hidroxo')]], 15); check('Cianuro sin antídoto: lactato a 15 min', a.S.lact, 6, 20, ' mmol/L'); check('… con hidroxocobalamina sube la TA', b.S.tas - a.S.tas, 10, 60, ' mmHg');
+  a = run('salicilatos', [], 25); b = run('salicilatos', [[.5, give('bic', 64)], [6, give('bic', 64)]], 25); check('Salicilatos sin alcalinizar: pH a 25 min', a.S.ph, 7, 7.34); check('… con bicarbonato', b.S.ph, 7.36, 7.6);
+  a = run('crisisSuprarrenal', [[.3, s => DR.PERFS.find(p => p.id === 'nor').run(s, .15, 1)], [.5, s => s.action('fluid')]], 15); b = run('crisisSuprarrenal', [[.3, give('hidroc')], [.5, s => s.action('fluid')]], 15); check('Crisis suprarrenal con noradrenalina y volumen, sin corticoide: TAS', a.S.tas, 40, 89, ' mmHg'); check('… con hidrocortisona y volumen', b.S.tas, 95, 170, ' mmHg');
+  a = run('hiperosmolar', [], 20); check('Estado hiperosmolar: la diuresis osmótica hunde la TA sin volumen', a.S.tas, 30, 90, ' mmHg'); check('… y la osmolaridad baja el Glasgow', a.S.gcs, 3, 13);
+  a = run('comaEtilico', [[.3, give('gluc')]], 25); b = run('comaEtilico', [[.3, give('gluc')], [.6, s => DR.PERFS.find(p => p.id === 'g10').run(s, 100, 1)]], 25); check('Coma etílico: tras el bolo la glucemia vuelve a caer (sin gluconeogénesis)', a.S.glu, 40, 110, ' mg/dL'); check('… la perfusión de G10 % la sostiene', b.S.glu - a.S.glu, 8, 80, ' mg/dL');
+  a = run('tormentaTiroidea', [], 15); b = run('tormentaTiroidea', [[.3, give('labet')], [.5, give('hidroc')], [3, give('labet')], [6, give('labet')], [9, give('labet')]], 15); check('Tormenta tiroidea: FA a 15 min sin tratar', a.S.fc, 160, 200, ' lpm'); check('… con labetalol e hidrocortisona', b.S.fc, 100, 135, ' lpm');
+  a = run('causticos', [], 22); check('Cáustico: el edema cierra la vía aérea (SpO₂ a 22 min)', a.S.spo2 * 100, 0, 90, ' %'); }
+
 console.log('— Instalable y sin conexión (v1.3): manifiesto, iconos y service worker');
 { const fs = require('fs'), path = require('path'), R = f => path.join(__dirname, '..', f);
   const man = JSON.parse(fs.readFileSync(R('manifest.webmanifest'), 'utf8'));
