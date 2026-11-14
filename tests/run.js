@@ -402,6 +402,19 @@ console.log('— Tanda de intoxicaciones y metabólico (v1.20): flumazenilo, cia
   a = run('tormentaTiroidea', [], 15); b = run('tormentaTiroidea', [[.3, give('labet')], [.5, give('hidroc')], [3, give('labet')], [6, give('labet')], [9, give('labet')]], 15); check('Tormenta tiroidea: FA a 15 min sin tratar', a.S.fc, 160, 200, ' lpm'); check('… con labetalol e hidrocortisona', b.S.fc, 100, 135, ' lpm');
   a = run('causticos', [], 22); check('Cáustico: el edema cierra la vía aérea (SpO₂ a 22 min)', a.S.spo2 * 100, 0, 90, ' %'); }
 
+console.log('— Tanda de pediatría y obstetricia (v1.21): OVACE, Fallot, distocia, TSV del lactante y más');
+{ const run = (k, acts, m, seed) => { const L = load(k, { seed: seed || 4, scale: 10 }), s = L.sim; adv(s, .05); for (const [t, f] of acts) { if (s.S.clin < t) adv(s, t - s.S.clin); f(s); } adv(s, m - s.S.clin); return s; };
+  global.window = global; require('../src/drugs.js'); const DR = global.SIM_DRUGS;
+  const give = (id, kg, ped) => s => { const it = DR.DRUGITEMS[id]; s.drug(it.k, DR.amountOf(it, kg, ped)); };
+  let a = run('cuerpoExtrano', [], 6); check('Atragantamiento sin desobstruir: parada a los 6 min', a.S.arrest ? 1 : 0, 1, 1);
+  let ok = 0; for (let sd = 1; sd <= 10; sd++) { const x = run('cuerpoExtrano', [[.1, s => s.action('golpes')], [.25, s => s.action('golpes')], [.4, s => s.action('golpes')], [.55, s => s.action('golpes')], [.8, s => s.action('magill')], [1, s => s.action('magill')]], 5, sd); if (!x.S.fbao && !x.S.arrest) ok++; } check('… golpes, compresiones y Magill: desobstruido y sin parada (de 10)', ok, 8, 10);
+  a = run('fallot', [], 10); let b = run('fallot', [[.2, s => s.action('kneechest')], [.4, give('midIN', 8, true)], [.6, s => { s.S.access = 'io'; }], [.8, s => s.action('fluid')]], 10); check('Crisis de Fallot sin tratar: SpO₂', a.S.spo2 * 100, 50, 80, ' %'); check('… rodillas al pecho, sedación y volumen', b.S.spo2 * 100, 82, 95, ' %');
+  a = run('distociaHombros', [], 3); check('Distocia sin maniobras: la FC fetal cae', a.S.neo.hr, 20, 100, ' lpm'); let born = 0; for (let sd = 1; sd <= 10; sd++) { const x = run('distociaHombros', [[.1, s => s.action('mcroberts')], [.4, s => s.action('suprapub')], [.7, s => s.action('woods')], [.9, s => s.action('woods')]], 1.2, sd); if (!x.S.neo.unborn) born++; } check('… McRoberts, suprapúbica y brazo posterior: nace (de 10)', born, 9, 10);
+  a = run('tsvLactante', [], 1); check('TSV del lactante: FC', a.S.fc, 240, 280, ' lpm'); let cv = 0; for (let sd = 1; sd <= 10; sd++) { const x = run('tsvLactante', [[.3, s => s.shock(5, true)]], 1, sd); if (!x.S.arr.type) cv++; } check('… cardioversión a 1 J/kg (5 J) la revierte (de 10)', cv, 7, 10);
+  a = run('metadonaNino', [[.3, give('nalox', 13, true)]], 3); b = run('metadonaNino', [[.3, give('nalox', 13, true)]], 40); check('Metadona en un niño: la naloxona lo despierta', a.S.pat.rr, 15, 60, ' rpm'); check('… pero la metadona sigue ahí: el efecto opiáceo vuelve a subir', b.S.opi - a.S.opi, .05, 1);
+  a = run('ectopico', [], 15); check('Ectópico roto sin tratar: TAS a 15 min', a.S.tas, 30, 80, ' mmHg'); check('… la ecografía muestra líquido libre', /Douglas/.test(a.eco()) ? 1 : 0, 1, 1);
+  let sz = 0, sz2 = 0; for (let sd = 1; sd <= 8; sd++) { if (run('preeclampsiaGrave', [], 20, sd).S.seizures > 0) sz++; if (run('preeclampsiaGrave', [[.5, give('mg4', 82, false)], [1.5, s => DR.PERFS.find(p => p.id === 'mgP').run(s, 1, 1)]], 20, sd).S.seizures > 0) sz2++; } check('Preeclampsia grave sin magnesio: convulsiona en 20 min (de 8)', sz, 3, 8); check('… con magnesio (de 8)', sz2, 0, 1); }
+
 console.log('— Instalable y sin conexión (v1.3): manifiesto, iconos y service worker');
 { const fs = require('fs'), path = require('path'), R = f => path.join(__dirname, '..', f);
   const man = JSON.parse(fs.readFileSync(R('manifest.webmanifest'), 'utf8'));

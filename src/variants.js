@@ -131,6 +131,7 @@ function make(baseKey, seed) {
         c.goal = rep(c.goal); c.title = rep(c.title); n++;
         lines.push(`Prematuro de ${ga} semanas (${String(c.peso).replace('.', ',')} kg): ${ga < ga0 ? 'más inmaduro' : 'algo más maduro'} que en el caso original${ga < ga0 ? ', con más tendencia al colapso alveolar' : ''}.`); }
       else if (c.neo) { let hr = Math.round(clamp(c.neo.hr / fct, 25, 110) / 5) * 5; if (hr === c.neo.hr) hr += fct > 1 ? -5 : 5; c.neo = Object.assign({}, c.neo, { m: +clamp(c.neo.m / fct, .06, .9).toFixed(3), hr }); c.goal = c.goal.replace(/FC ≈ \d+/, `FC ≈ ${hr}`); n++; // v1.9: asfixia más o menos profunda
+        if (/Peso fetal estimado/.test(c.goal)) { let pf = +(c.peso * rr(.88, 1.12)).toFixed(1); if (pf === c.peso) pf = +(pf + .2).toFixed(1); c.peso = pf; c.goal = c.goal.replace(/Peso fetal estimado [\d,]+ kg/, `Peso fetal estimado ${String(pf).replace('.', ',')} kg`); } // v1.21: distocia
         if (!c.neo.sec && R() < .5) { c.neo.obs = .55; c.neo.sec = true; lines.push('Nace con secreciones espesas: el tórax no se moverá hasta que recoloques la cabeza y aspires la boca y la nariz.'); c.checks = (c.checks || []).concat([['act:neoPos|act:neoSuct', 'Corregir la ventilación']]); }
         else lines.push(`La asfixia es ${fct > 1 ? 'más profunda' : 'algo más leve'} que en el caso original: FC al nacer ≈ ${c.neo.hr} lpm.`); }
       if (n && fct > 1.12) lines.push('Es más grave que el caso original: lo mismo, con menos margen y menos tiempo.');
