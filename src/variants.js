@@ -122,7 +122,14 @@ function make(baseKey, seed) {
     if (!c.arrest) {
       const u = R(), fct = u < .25 ? rr(.75, .9) : u < .65 ? rr(.9, 1.1) : rr(1.1, 1.35);
       let n = 0; for (const [k, [lo, hi, z]] of Object.entries(SEV)) if (typeof c[k] === 'number') { const z0 = z || 0; c[k] = +clamp(z0 + (c[k] - z0) * fct, lo, hi).toFixed(4); n++; }
-      if (c.neo) { let hr = Math.round(clamp(c.neo.hr / fct, 25, 110) / 5) * 5; if (hr === c.neo.hr) hr += fct > 1 ? -5 : 5; c.neo = Object.assign({}, c.neo, { m: +clamp(c.neo.m / fct, .06, .9).toFixed(3), hr }); c.goal = c.goal.replace(/FC ≈ \d+/, `FC ≈ ${hr}`); n++; // v1.9: asfixia más o menos profunda
+      if (c.neo && c.neo.prem) { // v1.12: prematuro más o menos inmaduro (edad gestacional, peso y pulmón)
+        const ga0 = c.neo.prem, late = (c.neo.t0 || 0) > 30, d = fct > 1.1 ? -(R() < .5 ? 1 : 2) : fct < .9 ? (R() < .5 ? 1 : 2) : (R() < .5 ? -1 : 1);
+        const ga = clamp(ga0 + d, late ? 29 : 24, late ? 34 : 31), PW = { 24: .65, 25: .75, 26: .85, 27: 1, 28: 1.1, 29: 1.25, 30: 1.4, 31: 1.55, 32: 1.7, 33: 1.9, 34: 2.1 };
+        c.neo = Object.assign({}, c.neo, { prem: ga, aer: +clamp(c.neo.aer - .04 * (ga0 - ga) * (late ? .5 : 1), .25, .9).toFixed(3) }); c.peso = PW[ga];
+        const rep = t => t.replace(new RegExp(ga0 + ' semanas', 'g'), ga + ' semanas').replace(/Peso estimado [\d,]+ kg/, `Peso estimado ${String(c.peso).replace('.', ',')} kg`);
+        c.goal = rep(c.goal); c.title = rep(c.title); n++;
+        lines.push(`Prematuro de ${ga} semanas (${String(c.peso).replace('.', ',')} kg): ${ga < ga0 ? 'más inmaduro' : 'algo más maduro'} que en el caso original${ga < ga0 ? ', con más tendencia al colapso alveolar' : ''}.`); }
+      else if (c.neo) { let hr = Math.round(clamp(c.neo.hr / fct, 25, 110) / 5) * 5; if (hr === c.neo.hr) hr += fct > 1 ? -5 : 5; c.neo = Object.assign({}, c.neo, { m: +clamp(c.neo.m / fct, .06, .9).toFixed(3), hr }); c.goal = c.goal.replace(/FC ≈ \d+/, `FC ≈ ${hr}`); n++; // v1.9: asfixia más o menos profunda
         if (!c.neo.sec && R() < .5) { c.neo.obs = .55; c.neo.sec = true; lines.push('Nace con secreciones espesas: el tórax no se moverá hasta que recoloques la cabeza y aspires la boca y la nariz.'); c.checks = (c.checks || []).concat([['act:neoPos|act:neoSuct', 'Corregir la ventilación']]); }
         else lines.push(`La asfixia es ${fct > 1 ? 'más profunda' : 'algo más leve'} que en el caso original: FC al nacer ≈ ${c.neo.hr} lpm.`); }
       if (n && fct > 1.12) lines.push('Es más grave que el caso original: lo mismo, con menos margen y menos tiempo.');

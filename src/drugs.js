@@ -70,6 +70,8 @@ const PERFS = [
   { id: 'iso', lab: 'Isoprenalina', u: 'mcg/min', d: 0, opts: [0, 1, 2, 4, 10], run: (sim, r, fW) => sim.perfSteady('iso', r) },
   { id: 'mgP', lab: 'Sulfato de magnesio', u: 'g/h', d: 0, opts: [0, 1, 2], run: (sim, r, fW) => sim.perf('mg', r / 60 * fW) },
   { id: 'g10', lab: 'Glucosa 10 %', u: 'mL/h', d: 0, opts: [0, 50, 100, 150, 250], run: (sim, r, fW) => sim.setGluPerf(r * .1 / 60 * fW) },
+  // v1.12: glucosa 10 % por peso para el recién nacido: 3 mL/kg/h ≈ 5 mg/kg/min
+  { id: 'g10kg', lab: 'Glucosa 10 % (neonatal)', u: 'mL/kg/h', d: 1, opts: [0, 2.5, 3, 3.5, 4, 5], run: (sim, r) => sim.setGluPerf(r * .1 / 60 * 75), extra: (r, peso, fmt) => r ? ` · ${fmt(r * peso, 1)} mL/h · ${fmt(r * 100 / 60, 1)} mg/kg/min` : '' },
   { id: 'cris', lab: 'Cristaloide en bomba', u: 'mL/h', d: 0, opts: [0, 125, 250, 500, 750, 1000], run: (sim, r) => sim.setFluidRate(r) },
   { id: 'glucgP', lab: 'Glucagón', u: 'mg/h', d: 0, opts: [0, 2, 3, 5], run: (sim, r, fW) => sim.perf('glucg', r / 60 * fW) },
   { id: 'insP', lab: 'Insulina a dosis altas', u: 'UI/kg/h', d: 1, opts: [0, .5, 1, 2], run: (sim, r) => sim.perf('insHD', r / 60) },
@@ -88,7 +90,7 @@ const tnkDose = p => p < 60 ? 30 : p < 70 ? 35 : p < 80 ? 40 : p < 90 ? 45 : 50;
 const fWOf = (peso, ped) => ped ? 75 / peso : clamp(75 / peso, .7, 1.4);
 /* dosis que se muestra (en la unidad del botón) y cantidad que recibe el motor */
 // v1.9: en el recién nacido (≤ 5 kg), adrenalina de la reanimación neonatal (ERC 2021: 20 mcg/kg IV)
-const PED_NEO = { adr1: { k: .02, max: .1, t: '20 mcg/kg (recién nacido)' } };
+const PED_NEO = { adr1: { k: .02, max: .1, t: '20 mcg/kg (recién nacido)' }, gluc: { k: .2, max: 1, t: '200 mg/kg: siempre diluida, 2 mL/kg de G10 % (nunca G50 %)' }, gluc10: { k: .2, max: 1, t: '2 mL/kg de G10 % (200 mg/kg) en 5–10 min' } }; // v1.12: hipoglucemia neonatal
 const pedEntry = (id, peso, ped) => ped ? (peso <= 5 && PED_NEO[id]) || PED[id] : null;
 function doseOf(it, peso, ped) { const pd = pedEntry(it.id, peso, ped); if (pd) { const x = roundDose(clamp(pd.k * peso, pd.min || 0, pd.max)); return pd.u === 'mg' && it.u === 'g' ? x / 1000 : x; } return it.tnk ? tnkDose(peso) : it.mgkg != null ? roundDose(Math.min(it.max || Infinity, it.mgkg * peso)) : it.dose; }
 function amountOf(it, peso, ped) { const ds = doseOf(it, peso, ped), pd = pedEntry(it.id, peso, ped); return (pd ? (it.amt != null ? it.amt * ds / it.dose : ds) * 75 / peso : it.amt != null ? it.amt : ds * fWOf(peso, ped)) * (it.bio || 1); }

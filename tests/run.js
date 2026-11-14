@@ -271,6 +271,26 @@ console.log('— Pediatría por edad (v1.11): normalidad, peso estimado, cinta p
   check('Niño intubado: triángulo no valorable', /no valorable/.test(tepOf('tcePed')) ? 1 : 0, 1, 1); check('Lactante: Glasgow pediátrica', /Glasgow pediátrica/.test(tepOf('bronquiolitis')) ? 1 : 0, 1, 1);
   const L = load('tcePed', { seed: 4, scale: 10 }); check('Edad del caso en el motor', L.S.age, 6, 6, ' años'); }
 
+console.log('— Prematuro y transporte neonatal (v1.12): CPAP con PEEP, bolsa de plástico, incubadora, glucosa y neumotórax');
+{ const nb = (k, acts, m) => { const L = load(k, { seed: 4, scale: 10 }), s = L.sim; adv(s, .05); for (const [t, f] of acts) { if (s.S.clin < t) adv(s, t - s.S.clin); f(s); } adv(s, m - s.S.clin); return { S: s.S, sim: s }; };
+  const fi = v => s => s.setCfg(Object.assign({}, s.S.cfg, { fio2: v }));
+  let r = nb('prematuro', [], 8); check('Prematuro de 27 semanas sin soporte: se agota y entra en apnea antes de 8 min', r.S.neo.apnea ? 1 : 0, 1, 1); check('… con SpO₂ muy baja', r.S.spo2 * 100, 15, 50, ' %');
+  check('Exploración: quejido, tiraje y Silverman', /Silverman/.test(nb('prematuro', [], .5).sim.explore().join(' ')) ? 1 : 0, 1, 1);
+  const cp = nb('prematuro', [[.5, s => s.action('cpap')], [.6, fi(30)]], 6); check('CPAP 5 y FiO₂ 30 % desde el principio: SpO₂ a los 6 min', cp.S.spo2 * 100, 85, 96, ' %'); check('… pulmón aireado', cp.S.neo.aer, .7, .9); check('… sigue respirando', cp.S.neo.apnea ? 0 : 1, 1, 1);
+  const p8 = nb('prematuro', [[.5, s => { s.setNeo({ peep: 8 }); s.action('cpap'); }], [.6, fi(30)]], 6); check('Con PEEP 8 se airea más que con 5', p8.S.neo.aer - cp.S.neo.aer, .05, .4);
+  const ff = nb('prematuro', [[.6, fi(30)]], 9); check('Solo oxígeno, sin CPAP: también se agota', ff.S.neo.apnea || ff.S.spo2 < .75 ? 1 : 0, 1, 1);
+  const T0 = nb('prematuro', [], 15).S.temp, Tw = nb('prematuro', [[.3, s => s.action('warm')]], 15).S.temp, Tb = nb('prematuro', [[.2, s => s.action('plast')], [.3, s => s.action('warm')]], 15).S.temp;
+  check('Prematuro mojado y sin calor: hipotermia a los 15 min', T0, 33, 35, ' °C'); check('Solo calor y gorro, sin bolsa: sigue enfriándose', Tw, 35.5, 36.4, ' °C'); check('Bolsa de plástico y calor: normotermia', Tb, 36.5, 37.5, ' °C');
+  const g0 = nb('prematuro', [], 15).S.glu, g1 = nb('prematuro', [[.3, s => { s.S.access = 'iv'; }], [4, s => { s.drug('gluc', .2 * 75); s.setGluPerf(3 * .1 / 60 * 75); }]], 15).S.glu;
+  check('Sin aporte, el prematuro se queda hipoglucémico', g0, 20, 40, ' mg/dL'); check('G10 % 2 mL/kg y 3 mL/kg/h: glucemia a los 15 min', g1, 55, 110, ' mg/dL');
+  global.window = global; require('../src/drugs.js'); const DR = global.SIM_DRUGS;
+  check('Glucosa en el prematuro de 1 kg: 200 mg/kg', DR.doseOf(DR.DRUGITEMS.gluc10, 1, true), .2, .2, ' g'); check('Perfusión de G10 % por peso (3 mL/kg/h ≈ 5 mg/kg/min)', 3 * 100 / 60, 5, 5, ' mg/kg/min'); check('Glucosa 10 % neonatal en las perfusiones', DR.PERFS.some(p => p.id === 'g10kg') ? 1 : 0, 1, 1);
+  const tr = (acts, m) => { const L = load('trasladoNeo', { seed: 4, scale: 10 }), s = L.sim; adv(s, .05); for (const [t, f] of acts) { if (s.S.clin < t) adv(s, t - s.S.clin); f(s); } adv(s, m - s.S.clin); return s.S; };
+  const cold = tr([], 14), warm = tr([[.3, s => s.action('warm')]], 14); check('Traslado sin encender la incubadora: hipotermia a los 14 min', cold.temp, 35.3, 36.2, ' °C'); check('Incubadora encendida: normotermia', warm.temp, 36.5, 37.5, ' °C');
+  const nod = tr([[.3, s => s.action('warm')], [2, s => s.event('ptx')]], 15), dec = tr([[.3, s => s.action('warm')], [2, s => s.event('ptx')], [4, s => s.action('decomp')]], 15);
+  check('Neumotórax a tensión en el prematuro sin descomprimir: bradicardia', nod.fc, 20, 100, ' lpm'); check('Con la punción: SpO₂', dec.spo2 * 100, 88, 97, ' %'); check('… y FC', dec.fc, 130, 175, ' lpm');
+  check('Respiraciones de 5–8 mL: el prematuro de 1 kg ventila (PaCO₂ con CPAP)', cp.S.pco2, 30, 55, ' mmHg'); }
+
 console.log('— Instalable y sin conexión (v1.3): manifiesto, iconos y service worker');
 { const fs = require('fs'), path = require('path'), R = f => path.join(__dirname, '..', f);
   const man = JSON.parse(fs.readFileSync(R('manifest.webmanifest'), 'utf8'));

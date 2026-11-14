@@ -95,6 +95,8 @@ const SOL = {
   cadIntubada: { s: [[.4, 'cfg', { vt: 'ibw8', fr: 28, ti: .8 }], [1, 'p', 'cris', 750], [3, 'p', 'insD', .1]] },
   rnApnea: { s: [[.1, 'a', 'warm'], [.2, 'a', 'infl'], [3, 'cfg', { fio2: 30 }], [7, 'cfg', { fio2: 21 }]], noAuto: true },
   rnRcp: { s: [[.1, 'a', 'warm'], [.2, 'a', 'infl'], [.6, 'a', 'neoPos'], [.7, 'a', 'neoSuct'], [.8, 'a', 'infl'], [1.4, 'cfg', { fio2: 100 }], [1.5, 'a', 'neoComp'], [1.6, 'a', 'uvc'], [3.8, 'd', 'adr1'], [5, 'a', 'neoComp'], [6.5, 'cfg', { fio2: 40 }], [9, 'cfg', { fio2: 30 }]], noAuto: true },
+  prematuro: { s: [[.2, 'a', 'plast'], [.3, 'a', 'warm'], [.5, 'a', 'cpap'], [.6, 'cfg', { fio2: 30 }], [1, 'a', 'uvc'], [3.5, 'a', 'glu'], [4, 'd', 'gluc10'], [4.2, 'p', 'g10kg', 3], [6, 'a', 'temp']], noAuto: true },
+  trasladoNeo: { s: [[.3, 'a', 'warm'], [.6, 'p', 'g10kg', 3]], noAuto: true },
   ahogVmni: { s: [[.4, 'niv', { peep: 10, ps: 6, fio2: 100 }], [.6, 'a', 'warm'], [.8, 'a', 'temp']] },
   buceoDci: { s: [[.3, 'o2', 'reserv'], [.5, 'a', 'iv'], [2, 'a', 'fluid'], [3, 'alt', 300]], noAuto: true },
   golpeCalor: { s: [[.3, 'a', 'temp'], [.4, 'a', 'cool'], [.6, 'a', 'iv'], [2.2, 'a', 'fluid'], [22, 'a', 'cool']] },

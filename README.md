@@ -27,7 +27,7 @@ Diseño propio: las pantallas siguen la lógica de manejo de cada equipo (modos,
 
 ## Casos
 
-83 casos más el modo libre, en 15 grupos: VMI en SVA, VMI en HEMS, VMNI, vía aérea, oxigenoterapia e intoxicaciones, pediatría, neonatal, trauma y obstetricia, metabólico y ambiental, shock, cardiología, neurología, arritmias, parada y modo libre. Los casos propios aparecen en «Mis casos». Cada caso arranca a la velocidad que le corresponde (×1 en parada, ×5 en arritmias, ×10 en el resto; al entrar en parada pasa a ×1) y tiene objetivos que se colorean en tiempo real, eventos programados, una solución posible y un debrief al terminar (tiempo en objetivo, parada, arritmia, vía aérea, eventos, fármacos y peores valores).
+85 casos más el modo libre, en 15 grupos: VMI en SVA, VMI en HEMS, VMNI, vía aérea, oxigenoterapia e intoxicaciones, pediatría, neonatal, trauma y obstetricia, metabólico y ambiental, shock, cardiología, neurología, arritmias, parada y modo libre. Los casos propios aparecen en «Mis casos». Cada caso arranca a la velocidad que le corresponde (×1 en parada, ×5 en arritmias, ×10 en el resto; al entrar en parada pasa a ×1) y tiene objetivos que se colorean en tiempo real, eventos programados, una solución posible y un debrief al terminar (tiempo en objetivo, parada, arritmia, vía aérea, eventos, fármacos y peores valores).
 
 ## Para no perderse
 
@@ -84,9 +84,20 @@ Además de los modos del motor, la interfaz usa modos propios de cada equipo que
 
 ## Pruebas
 
-Cada versión tiene que pasar 250 pruebas con rangos de referencia: regresión de la mecánica, tiempo de desaturación en apnea (sano preoxigenado 7–9,5 min, con aire 0,6–2 min, obeso 2,3–3,6 min) igual a ×1 que a ×20, PaCO₂ en respiración espontánea (TSV, TEP, opiáceos, EPOC con hiperoxia), SpO₂ del EPOC según FiO₂, EtCO₂ durante la RCP, tiempo de acción del relajante, tasas de RCE según se resuelva o no la causa, frecuencia mandatoria en SIMV, fracción de compresión con 30:2, vía aérea no oxigenable con bolsa y supraglótico, drenaje torácico en altitud, deterioro de la TV con pulso y sobreestimulación; y en la v0.7, hiperpotasemia con y sin calcio, hipoglucemia y su recurrencia, QRS de los tricíclicos con bicarbonato, FV en hipotermia, hemorragia con y sin hemostasia (y el coste del volumen liberal), convulsiones de la eclampsia con magnesio, crup, bronquiolitis con alto flujo, constantes de un lactante sano, nueva parada tras la RCE, parada traumática y compensación respiratoria según Winter.
+Cada versión tiene que pasar 272 pruebas con rangos de referencia: regresión de la mecánica, tiempo de desaturación en apnea (sano preoxigenado 7–9,5 min, con aire 0,6–2 min, obeso 2,3–3,6 min) igual a ×1 que a ×20, PaCO₂ en respiración espontánea (TSV, TEP, opiáceos, EPOC con hiperoxia), SpO₂ del EPOC según FiO₂, EtCO₂ durante la RCP, tiempo de acción del relajante, tasas de RCE según se resuelva o no la causa, frecuencia mandatoria en SIMV, fracción de compresión con 30:2, vía aérea no oxigenable con bolsa y supraglótico, drenaje torácico en altitud, deterioro de la TV con pulso y sobreestimulación; y en la v0.7, hiperpotasemia con y sin calcio, hipoglucemia y su recurrencia, QRS de los tricíclicos con bicarbonato, FV en hipotermia, hemorragia con y sin hemostasia (y el coste del volumen liberal), convulsiones de la eclampsia con magnesio, crup, bronquiolitis con alto flujo, constantes de un lactante sano, nueva parada tras la RCE, parada traumática y compensación respiratoria según Winter.
 
 **Validador de casos** (`node tests/validar.js`, también dentro de las pruebas): un bot juega cada caso con su solución de referencia (`src/solutions.js`) como lo haría un equipo experto (ajusta la FiO₂ y la FR a los objetivos, responde a las complicaciones, sigue el algoritmo de SVA y canaliza vía cuando hace falta) y otra vez sin hacer nada, con la misma nota que el examen. Un caso es válido si con la solución saca ≥ 7 (en la parada: ≥ 80 % de las acciones clave y RCE en ≥ 40 % de las partidas) y sin hacer nada ≤ 5. Además, la solución del original tiene que resolver ≥ 85 % de sus variantes. Con `--detalle` muestra cada objetivo; con `--variantes N`, las variantes que no se resuelven. Ningún caso nuevo entra sin pasar el validador.
+
+## Cambios en la v1.12
+
+- Prematuro en el motor (ERC 2021): edad gestacional, pulmón sin surfactante que se colapsa en cada espiración si no hay PEEP (más cuanto más inmaduro), agotamiento con apnea si respira solo con el pulmón colapsado, TA más baja y presiones de 25 cmH₂O en las insuflaciones del < 32 semanas.
+- Pieza en T completa en «Reanimación neonatal»: CPAP con mascarilla, PEEP de 4 a 8 cmH₂O y presión inspiratoria de 20, 25 o 30 cmH₂O. Sin CPAP ni ventilación, el oxígeno en flujo libre llega a medias.
+- Termorregulación del recién nacido: el < 32 semanas pierde calor por evaporación aunque se le seque; bolsa de plástico sin secar, gorro y calor radiante, e incubadora de transporte en el traslado. La hipotermia y la hipoglucemia mantenidas lo deprimen.
+- Hipoglucemia neonatal: G10 % 2 mL/kg (200 mg/kg; la glucosa al 50 % no se usa) y perfusión nueva de G10 % por peso (mL/kg/h, con mg/kg/min); en ≤ 10 kg sustituye a la de mL/h.
+- Neumotórax a tensión en el recién nacido: desaturación, shock obstructivo y bradicardia; exploración con asimetría y transiluminación; punción en el 2.º espacio intercostal.
+- Lectura neonatal ampliada: bolsa de plástico, dificultad respiratoria del prematuro (CPAP), FiO₂ inicial 30 % en < 28 semanas, más PEEP antes que más oxígeno, presión alta para un prematuro, hiperoxia (objetivo 90–95 %), glucemia, hipoglucemia y perfusión, incubadora, hipo e hipertermia y neumotórax.
+- Dos casos nuevos en «Neonatal»: prematuro de 27 semanas nacido en el domicilio y traslado interhospitalario de un prematuro de 32 semanas en CPAP con neumotórax en vuelo; con tutorial, solución y validados. Sus variantes cambian la edad gestacional y el peso.
+- Corrección: el umbral de volumen de cada respiración era fijo (30 mL) y descartaba las del recién nacido pequeño; ahora es proporcional al peso. 22 pruebas nuevas (272 en total).
 
 ## Cambios en la v1.11
 

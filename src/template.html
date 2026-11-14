@@ -434,7 +434,7 @@ body.exam #tutBtn{display:none}
 <main>
   <header class="top">
     <div class="brand">
-      <span class="eyebrow">Simulador docente · SVA terrestre y HEMS · v1.11</span>
+      <span class="eyebrow">Simulador docente · SVA terrestre y HEMS · v1.12</span>
       <h1>Ventilación, monitor y RCP</h1>
     </div>
     <div class="toolbar">
@@ -562,13 +562,17 @@ body.exam #tutBtn{display:none}
         </div>
         <div class="agroup" id="neoGrp" hidden><span class="flabel">Reanimación neonatal</span>
           <div class="abtns">
-            <button class="btn" data-act="infl">5 insuflaciones (30 cmH₂O, 2–3 s)</button>
+            <button class="btn" data-act="infl" id="inflBtn">5 insuflaciones (30 cmH₂O, 2–3 s)</button>
             <button class="btn" data-act="neoPos">Posición neutra y sellado a dos manos</button>
             <button class="btn" data-act="neoSuct">Aspirar boca y nariz</button>
             <button class="btn" data-act="neoComp" aria-pressed="false">Compresiones 3:1</button>
             <button class="btn" data-act="uvc">Catéter venoso umbilical</button>
+            <button class="btn" data-act="cpap" aria-pressed="false">CPAP con pieza en T</button>
+            <button class="btn" data-act="plast" aria-pressed="false">Bolsa de plástico sin secar</button>
           </div>
           <div class="range"><label class="small" for="neoFio2">FiO₂ de la pieza en T</label><select id="neoFio2"><option value="21">21 %</option><option value="30">30 %</option><option value="40">40 %</option><option value="60">60 %</option><option value="100">100 %</option></select></div>
+          <div class="range"><label class="small" for="neoPeep">PEEP / CPAP</label><select id="neoPeep"><option value="4">4 cmH₂O</option><option value="5">5 cmH₂O</option><option value="6">6 cmH₂O</option><option value="7">7 cmH₂O</option><option value="8">8 cmH₂O</option></select></div>
+          <div class="range"><label class="small" for="neoPip">Presión inspiratoria (PIP)</label><select id="neoPip"><option value="20">20 cmH₂O</option><option value="25">25 cmH₂O</option><option value="30">30 cmH₂O</option></select></div>
         </div>
         <div class="agroup"><span class="flabel">Circulación y exploración</span>
           <div class="abtns">
