@@ -23,6 +23,7 @@
               eventos: extub, disc, sel, obst, leak, bronco, ptx, o2, wake, anx, cough, vf, aspir, tep, anaf, tsv, fa, tvp
      targets  { clave: [mín, máx] } con claves spo2, et, tas, vtkg, pplat, dp, peepi, pco2, rr, ie, auto, leak, o2, fight, sinus
      duration minutos clínicos hasta el final automático (opcional)
+     stemi    SCACEST: { loc: 'ant' | 'inf' | 'lat', rv: afectación de VD, onset: minutos de evolución al empezar, pci: minutos hasta la ICP primaria }; tamp y tampRate, taponamiento (0–1 y por minuto)
      goal     lo que se cuenta al empezar; hint, una solución posible
      Biblioteca (al final del archivo, en META): scope ('t' terrestre, 'h' HEMS, 'i' interhospitalario), diff (1 básico, 2 intermedio,
               3 avanzado) y teach (qué enseña, una línea) */
@@ -33,7 +34,7 @@ const NIV = Object.assign({ iface: 'mask' }, AWAKE);
 const O2 = Object.assign({ iface: 'o2' }, AWAKE);
 const inv = (o) => Object.assign({ mode: 'VCV', vt: 480, fr: 16, ti: 1.0, tplat: 0, peep: 5, fio2: 100, pmax: 40, flow: 50 }, o || {});
 
-const GROUPS = ['VMI · SVA', 'VMI · HEMS', 'VMNI', 'Vía aérea', 'Oxigenoterapia e intoxicaciones', 'Pediatría', 'Trauma y obstetricia', 'Metabólico y ambiental', 'Arritmias', 'Parada', 'Libre'];
+const GROUPS = ['VMI · SVA', 'VMI · HEMS', 'VMNI', 'Vía aérea', 'Oxigenoterapia e intoxicaciones', 'Pediatría', 'Trauma y obstetricia', 'Metabólico y ambiental', 'Cardiología', 'Arritmias', 'Parada', 'Libre'];
 
 const CASES = {
   /* ---------- VMI · SVA ---------- */
@@ -309,6 +310,32 @@ const CASES = {
     hint: 'EtCO₂ mucho más baja que la pCO₂ (espacio muerto). Evita intubar si puedes: la inducción y la presión positiva pueden hundir el VD; si hay que hacerlo, PEEP baja y noradrenalina antes. Noradrenalina para TAS ≥ 90, volumen prudente y fibrinólisis (tenecteplasa) en el TEP de alto riesgo.',
     targets: { tas: [90, 200], spo2: [90, 100] } }, O2),
 
+  /* ---------- Cardiología (v1.4) ---------- */
+  scaAnt: Object.assign({ lvl: 'Cardiología', title: 'SCACEST anterior con hemodinámica cerca', pheno: 'sano', sex: 'h', talla: 174, peso: 86, stemi: { loc: 'ant', onset: 60, pci: 20 }, tasAdj: -10, speed: 5, duration: 20,
+    cfg: { o2dev: 'gafas' },
+    goal: 'Varón de 58 años, fumador. Dolor torácico opresivo irradiado al brazo izquierdo desde hace una hora, sudoroso. Estáis en Santa Cruz de Tenerife: el hospital con hemodinámica está a 20 minutos.',
+    hint: 'ECG de 12 derivaciones en menos de 10 min: SCACEST anterior. Con la ICP primaria a menos de 120 min, la estrategia es ICP primaria: activa el código infarto y traslado directo a la sala de hemodinámica, sin pasar por urgencias. AAS 150–300 mg y heparina sódica 70–100 UI/kg; el segundo antiagregante, según el protocolo del centro. O₂ solo si la SpO₂ < 90 %. Morfina o fentanilo para el dolor. Parches puestos: la FV primaria es más frecuente en las primeras horas. No fibrinolices si la ICP llega a tiempo.',
+    checks: [['act:ecg12', 'ECG de 12 derivaciones'], ['drug:aas', 'AAS'], ['drug:hnf|drug:enox', 'Anticoagulación'], ['act:icp', 'Activar la ICP primaria']],
+    targets: { tas: [90, 180], spo2: [90, 100], reperf: [1, 1] } }, O2),
+  scaGomera: Object.assign({ lvl: 'Cardiología', title: 'SCACEST en La Gomera: fibrinólisis', pheno: 'sano', sex: 'h', talla: 170, peso: 78, stemi: { loc: 'inf', onset: 90, pci: 200 }, speed: 5, duration: 30,
+    cfg: { o2dev: 'gafas' },
+    goal: 'Varón de 64 años en San Sebastián de La Gomera. Dolor torácico opresivo desde hace hora y media, náuseas. La isla no tiene hemodinámica: el traslado a Tenerife supera con mucho los 120 minutos.',
+    hint: 'SCACEST inferior sin acceso a ICP primaria en 120 min: fibrinólisis en menos de 10 min desde el diagnóstico (tenecteplasa por peso; mitad de dosis a partir de 75 años), con AAS, clopidogrel 300 mg (75 mg si > 75 años) y enoxaparina 30 mg IV más 1 mg/kg SC. Después, traslado a un centro con ICP para coronariografía en 2–24 h (estrategia farmacoinvasiva), o de rescate si no reperfunde: a los 60–90 min el ST debe bajar más de un 50 %. En el inferior, la bradicardia responde a atropina; vigila también V4R.',
+    checks: [['act:ecg12', 'ECG de 12 derivaciones'], ['drug:aas', 'AAS'], ['drug:clopi', 'Clopidogrel'], ['drug:enox|drug:hnf', 'Anticoagulación'], ['drug:tnk', 'Fibrinólisis']],
+    targets: { tas: [90, 180], reperf: [1, 1] } }, O2),
+  scaVD: Object.assign({ lvl: 'Cardiología', title: 'Infarto inferior con afectación del VD', pheno: 'sano', sex: 'm', talla: 160, peso: 70, stemi: { loc: 'inf', rv: true, onset: 120, pci: 30 }, deficit: .18, tasAdj: -18, speed: 5, duration: 20,
+    cfg: { o2dev: 'gafas' },
+    goal: 'Mujer de 71 años, hipertensa. Dolor epigástrico y torácico desde hace dos horas, mareo y sudoración. TAS 95. El hospital con hemodinámica está a 30 minutos.',
+    hint: 'SCACEST inferior: pide V4R. Con afectación del VD el gasto depende de la precarga: nada de nitratos ni diuréticos (la TA se hunde), cristaloide en bolos de 250–500 mL hasta TAS ≥ 90 y, si no basta, noradrenalina. AAS, heparina e ICP primaria. Cuidado con la bradicardia y el BAV: atropina o marcapasos.',
+    checks: [['act:ecg12', 'ECG de 12 derivaciones'], ['act:fluid', 'Volumen'], ['drug:aas', 'AAS'], ['act:icp', 'Activar la ICP primaria']],
+    targets: { tas: [90, 180], reperf: [1, 1] } }, O2),
+  taponamiento: Object.assign({ lvl: 'Cardiología', title: 'Taponamiento cardiaco', pheno: 'sano', sex: 'm', talla: 163, peso: 58, tamp: .62, tampRate: .012, speed: 5, duration: 20,
+    cfg: { o2dev: 'reserv' },
+    goal: 'Mujer de 62 años con un cáncer de pulmón en tratamiento. Disnea que empeora desde hace días; hoy casi no se tiene en pie. Pálida, sudorosa, TAS 85 y taquicárdica.',
+    hint: 'Tríada de Beck (hipotensión, ingurgitación yugular, tonos apagados), pulso paradójico, bajo voltaje y alternancia eléctrica. La ecografía clínica confirma el derrame con colapso del VD. Volumen (500 mL) para ganar tiempo y pericardiocentesis ecoguiada: sacar 50–100 mL ya mejora la TA. Evita intubar y la PEEP: la presión positiva reduce aún más el llenado. Si se para: AESP, pericardiocentesis durante la RCP.',
+    checks: [['act:eco', 'Ecografía clínica'], ['act:fluid', 'Volumen'], ['act:pericardio', 'Pericardiocentesis']],
+    targets: { tas: [90, 180] } }, O2),
+
   /* ---------- Arritmias ---------- */
   tsvInestable: Object.assign({ lvl: 'Arritmias', title: 'TSV mal tolerada', pheno: 'sano', sex: 'm', talla: 160, peso: 60, rhythm: 'tsv', arrPen: 60,
     cfg: Object.assign(inv(), { o2dev: 'gafas' }),
@@ -452,7 +479,11 @@ const META = {
   asistolia: ['t', 2, 'Parada hipóxica pediátrica: ventilar primero, 15:2 y adrenalina por peso'],
   pcrTep: ['t', 3, 'PCR por TEP: fibrinólisis y RCP prolongada'],
   pcrPedFv: ['t', 2, 'FV pediátrica: 4 J/kg, intraósea y dosis por peso'],
-  rceInestable: ['t', 2, 'RCE inestable: volumen, noradrenalina y evitar una nueva parada']
+  rceInestable: ['t', 2, 'RCE inestable: volumen, noradrenalina y evitar una nueva parada'],
+  scaAnt: ['t', 1, 'SCACEST con ICP primaria a tiempo: ECG, antiagregación, heparina y código infarto'],
+  scaGomera: ['t', 2, 'SCACEST sin ICP en 120 min: fibrinólisis en menos de 10 min y estrategia farmacoinvasiva'],
+  scaVD: ['t', 2, 'Infarto de VD: V4R, sin nitratos y volumen'],
+  taponamiento: ['t', 2, 'Taponamiento: ecografía, volumen, pericardiocentesis y sin presión positiva']
 };
 for (const [k, m] of Object.entries(META)) if (CASES[k]) Object.assign(CASES[k], { scope: m[0], diff: m[1], teach: m[2] });
 

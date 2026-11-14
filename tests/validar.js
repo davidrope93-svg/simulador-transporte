@@ -8,7 +8,7 @@ const DR = global.SIM_DRUGS, SOL = global.SIM_SOL;
 const r10 = x => Math.round(x / 10) * 10;
 const O2LAD = ['gafas', 'venturi28', 'venturi35', 'venturi50', 'reserv'];
 const NOR = [0, .05, .1, .15, .2, .3, .5], ADRI = [0, 2, 5, 10, 20];
-const RND = { spo2: 0, et: 0, tas: 0, vtkg: 1, pplat: 0, dp: 0, peepi: 0, pco2: 0, rr: 0, ie: 2, auto: 2, leak: 0, o2: 0, fight: 2, sinus: 0, glu: 0, qrs: 0, fio2: 0, spco: 0 };
+const RND = { spo2: 0, et: 0, tas: 0, vtkg: 1, pplat: 0, dp: 0, peepi: 0, pco2: 0, rr: 0, ie: 2, auto: 2, leak: 0, o2: 0, fight: 2, sinus: 0, glu: 0, qrs: 0, fio2: 0, spco: 0, reperf: 0 };
 
 function play(key, { seed = 1, idle = false } = {}) {
   const c = CASES[key], sol = SOL[c.vbase || key] || { s: [] }, L = load(key, { scale: 10, seed });
@@ -41,7 +41,7 @@ function play(key, { seed = 1, idle = false } = {}) {
     if (k === 'fluid' || k === 'blood' || k === 'sedperf') return give(k);
     if (k === 'iv' || k === 'io') { if (!hasAcc() && !S.accessPend) { mark('act:' + k); sim.action(k); accTries++; } return; }
     mark('act:' + k);
-    if (k === 'explore') sim.explore(); else if (k === 'glu') sim.glucemia(); else if (k === 'temp') sim.temperatura();
+    if (k === 'explore') sim.explore(); else if (k === 'glu') sim.glucemia(); else if (k === 'temp') sim.temperatura(); else if (k === 'ecg12') sim.ecg12(); else if (k === 'eco') sim.eco();
     else if (k === 'gas') { if (hasAcc()) sim.gas(); else { used.delete('act:gas'); access(() => act('gas')); } }
     else if (k === 'intubate') intubate(); else if (k === 'compMech') sim.compress('mech');
     else sim.action(k);
@@ -61,7 +61,7 @@ function play(key, { seed = 1, idle = false } = {}) {
   /* variante de parada con otra causa: el tratamiento de esa causa, como haría el equipo al leer la pista */
   const CAUSE_TX = { hyperk: [[.5, 'd', 'ca'], [.8, 'd', 'ins'], [1, 'd', 'bic']], tca: [[.5, 'd', 'bic'], [.8, 'd', 'bic']], ptx: [[.4, 'a', 'decomp'], [.8, 'a', 'drain']],
     tep: [[.4, 'mech'], [.6, 'd', 'tnk']], hypo: [[.5, 'a', 'fluid'], [.7, 'a', 'fluid'], [1, 'a', 'blood'], [1.2, 'a', 'blood']], opi: [[.6, 'd', 'nalox']],
-    anaf: [[.5, 'a', 'fluid'], [.7, 'a', 'fluid'], [1, 'a', 'fluid']], hypoT: [[.4, 'a', 'temp'], [.5, 'a', 'warm'], [.6, 'mech']] };
+    anaf: [[.5, 'a', 'fluid'], [.7, 'a', 'fluid'], [1, 'a', 'fluid']], tamp: [[.4, 'a', 'pericardio'], [.6, 'a', 'fluid']], hypoT: [[.4, 'a', 'temp'], [.5, 'a', 'warm'], [.6, 'mech']] };
   const steps = c.vcause ? (CAUSE_TX[c.vcause] || []) : sol.s;
   if (!idle) for (const st of steps) { const [t, op, ...args] = st; if (!OPS[op]) throw new Error(`${key}: orden desconocida «${op}»`); at(t, () => OPS[op](...args)); }
 
@@ -99,6 +99,7 @@ function play(key, { seed = 1, idle = false } = {}) {
     if (sol.labet && S.clin >= tNext.labet) { tNext.labet += 4; if (S.tas > 160) give('labet'); }
     if (sol.bicQrs && S.clin >= tNext.bic) { tNext.bic += 3; if (S.ecg.qrs * 1000 > 120) give('bic'); }
     if (sol.nalox && S.clin >= tNext.nalox) { tNext.nalox += 2.5; if ((M.effN >= 2 ? M.effRR : 0) < 10) give('nalox'); }
+    if (sol.atr && S.clin >= (tNext.atr || 0) && S.arr.type === 'sbrady' && S.tas < 90) { tNext.atr = S.clin + 3; give('atr'); }
     if (sol.permissive && S.clin >= tNext.perm) { tNext.perm += 2; if (S.tas < 80) give('blood'); }
   }
   function arrestTick() {
@@ -139,7 +140,7 @@ function val(k, S, M) {
     case 'pplat': return M.pplat; case 'dp': return M.dp; case 'peepi': return M.peepi; case 'pco2': return S.pco2;
     case 'rr': return S.arrest ? null : (M.effN >= 2 ? M.effRR : 0); case 'ie': return M.effN >= 4 ? M.ies / M.effN : null;
     case 'auto': return M.nB >= 4 ? M.auto / M.nB : null; case 'leak': return M.leak; case 'o2': return S.o2.supply ? 1 : 0;
-    case 'fight': return S.fight || 0; case 'sinus': return S.arr.type || S.arrest ? 0 : 1; case 'glu': return S.glu; case 'spco': return S.cohb * 100;
+    case 'fight': return S.fight || 0; case 'sinus': return S.arr.type || S.arrest ? 0 : 1; case 'glu': return S.glu; case 'spco': return S.cohb * 100; case 'reperf': { const m = S.stemi; return m && (m.pci <= 120 ? m.icp != null : m.tnkAt != null) ? 1 : 0; }
     case 'qrs': return S.arrest ? null : S.ecg.qrs * 1000; case 'fio2': return (S.iface === 'tube' || S.iface === 'mask') && !S.standby ? S.cfg.fio2 : null;
   }
   return null;

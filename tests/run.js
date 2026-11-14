@@ -137,6 +137,21 @@ console.log('— Variantes (v1.0): reproducibles, sin valores imposibles y cada 
     check(`Parada por ${ck} (variante): RCE tratando la causa`, g * 10, 50, 100, ' %'); check(`Parada por ${ck} (variante): RCE sin tratarla`, b * 10, 0, 25, ' %'); }
   delete CASES.v_t; }
 
+console.log('— Cardiología (v1.4): SCACEST, infarto de VD y taponamiento');
+{ const mk = o => { const s = VMI.create(Object.assign({ pheno: 'sano', seed: 3, scale: 10, iface: 'o2', relCe: 0, sedE: 0, sedStopped: true, cfg: { mode: 'VCV', vt: 450, fr: 14, peep: 5, fio2: 50, o2dev: 'reserv' } }, o)); s.warm(12); return s; };
+  let s = mk({ stemi: { loc: 'inf', onset: 90 } }); adv(s, 1); check('SCACEST inferior: ST en II', s.S.ecg.st, 2.5, 3.5, ' mm');
+  s = mk({ stemi: { loc: 'ant', onset: 90 } }); adv(s, 1); check('SCACEST anterior: descenso especular en II', s.S.ecg.st, -1.5, -.5, ' mm');
+  let r = 0, r0 = 0; for (let k = 1; k <= 30; k++) { const a = mk({ seed: k, stemi: { loc: 'inf', onset: 90 } }); adv(a, .5); a.drug('tnk', 1); adv(a, 45); if (a.S.stemi.reperf) r++; const b = mk({ seed: k, stemi: { loc: 'inf', onset: 90 } }); adv(b, 45.5); if (b.S.stemi.reperf) r0++; }
+  check('Tenecteplasa a los 90 min de evolución: reperfusión en 45 min', r / 30 * 100, 55, 90, ' %'); check('Sin fibrinólisis: reperfusión', r0 / 30 * 100, 0, 0, ' %');
+  const ntgDrop = rv => { const a = mk({ seed: 5, stemi: { loc: 'inf', rv, onset: 90 } }); adv(a, 1); const t0 = a.S.tas; a.drug('ntg', 900); adv(a, 4); return t0 - a.S.tas; };
+  const dRv = ntgDrop(true), dNo = ntgDrop(false); check('Nitroglicerina con infarto de VD: caída de la TAS', dRv, 35, 80, ' mmHg'); check('Sin afectación del VD: caída menor', dRv - dNo, 15, 60, ' mmHg');
+  s = mk({ tamp: .62, tampRate: .012 }); check('Taponamiento: TAS al empezar', s.S.tas, 75, 92, ' mmHg'); adv(s, 10); check('Taponamiento sin tratar: TAS a 10 min', s.S.arrest ? 0 : s.S.tas, 0, 80, ' mmHg');
+  let arr = 0; for (let k = 1; k <= 20; k++) { const a = mk({ seed: k, tamp: .62, tampRate: .012 }); adv(a, 25); if (a.S.arrest) arr++; } check('Taponamiento sin tratar: AESP en 25 min', arr / 20 * 100, 50, 100, ' %');
+  s = mk({ tamp: .62, tampRate: .012 }); adv(s, .5); s.action('fluid', 7); adv(s, .3); s.action('pericardio'); adv(s, 8); check('Volumen y pericardiocentesis: TAS a 9 min', s.S.tas, 105, 150, ' mmHg');
+  const peepDrop = () => { const a = mk({ seed: 4, tamp: .62, iface: 'tube', relCe: 9, sedE: 3, sedStopped: false, cfg: { mode: 'VCV', vt: 400, fr: 14, peep: 5, fio2: 50 } }); adv(a, 2); const t5 = a.S.tas; a.setCfg(Object.assign({}, a.S.cfg, { peep: 12 })); adv(a, 2); return t5 - a.S.tas; };
+  check('Taponamiento: subir la PEEP de 5 a 12 baja la TAS', peepDrop(), 10, 60, ' mmHg');
+  s = mk({ tamp: .62 }); check('Ecografía clínica: ve el taponamiento', /taponamiento/.test(s.eco()) ? 1 : 0, 1, 1); s = mk({ stemi: { loc: 'inf', rv: true } }); check('ECG de 12 derivaciones: SCACEST inferior con VD', /inferior/.test(s.ecg12()) && /V4R, elevaci/.test(s.ecg12()) ? 1 : 0, 1, 1); }
+
 console.log('— Instalable y sin conexión (v1.3): manifiesto, iconos y service worker');
 { const fs = require('fs'), path = require('path'), R = f => path.join(__dirname, '..', f);
   const man = JSON.parse(fs.readFileSync(R('manifest.webmanifest'), 'utf8'));

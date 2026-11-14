@@ -14,7 +14,7 @@ const codeOf = seed => (seed >>> 0).toString(36).toUpperCase().slice(-4).padStar
 
 /* gravedad: [mínimo, máximo, valor sin enfermedad] de los parámetros que escalan la patología */
 const SEV = { deficit: [0, .55], bs: [1, 4, 1], opioid: [0, 30], tep: [0, .95], anaf: [0, .95], cohb: [0, .5], cn: [0, 1], icp: [10, 45, 10], icpGrow: [0, .6],
-  weak: [0, .95], edAir: [0, .95], edAirRate: [0, .2], asp: [0, .9], kRate: [0, .6], bleed: [0, .012], tca: [0, 1], croup: [0, 1], sevFloor: [0, .9], arrPen: [0, 60], sev: [0, 1] };
+  weak: [0, .95], edAir: [0, .95], edAirRate: [0, .2], asp: [0, .9], kRate: [0, .6], bleed: [0, .012], tca: [0, 1], croup: [0, 1], sevFloor: [0, .9], arrPen: [0, 60], sev: [0, 1], tampRate: [0, .04] };
 
 /* complicaciones que se pueden añadir: evento del motor, acción clave, texto del registro y explicación para la solución */
 const EV = {
@@ -54,13 +54,15 @@ const CAUSE = {
     chk: [['drug:bic', 'Bicarbonato']], why: 'Tricíclicos: bicarbonato 1 mEq/kg en bolos hasta estrechar el QRS (pH 7,45–7,55) y RCP prolongada.' },
   hypoT: { r: ['vf'], p: { arrestCause: 'hypoT', temp: 27, tempRate: 0 }, clue: f => `${f ? 'Encontrada' : 'Encontrado'} de madrugada en el monte tras perderse; la piel está helada.`,
     chk: [['act:temp', 'Medir la temperatura'], ['act:warm', 'Recalentamiento'], ['act:compMech', 'Compresor mecánico']], why: 'Hipotermia por debajo de 30 °C: mide la temperatura, máximo 3 descargas y sin adrenalina hasta los 30 °C; recalentamiento, compresor mecánico y traslado a un centro con ECMO.' },
+  tamp: { r: ['aesp'], p: { arrestCause: 'tamp', tamp: .93, tampRate: .005 }, clue: f => `${f ? 'Herida' : 'Herido'} por arma blanca en el hemitórax izquierdo hace 20 minutos; antes de pararse tenía las yugulares ingurgitadas.`,
+    chk: [['act:pericardio', 'Pericardiocentesis']], why: 'Taponamiento cardiaco: pericardiocentesis ecoguiada durante la RCP (en el traumático, toracotomía si hay equipo) y volumen.' },
   anaf: { r: ['aesp'], p: { arrestCause: 'anaf', anaf: .9, deficit: .3 }, clue: () => 'Le picó una avispa en el jardín; en minutos, habones, ronquera y colapso.',
     chk: [['act:fluid', 'Volumen']], why: 'Anafilaxia: adrenalina IV según el algoritmo de parada y volumen agresivo (2–3 L).' }
 };
 const RHY = { vf: 'En el monitor, FV.', aesp: 'En el monitor, un ritmo organizado sin pulso (AESP).', asys: 'En el monitor, asistolia.' };
 const ALS = { vf: 'Ritmo desfibrilable: carga mientras se comprime, descarga 150–200 J y reanuda las compresiones sin comprobar el pulso; adrenalina 1 mg y amiodarona 300 mg tras la 3.ª descarga, adrenalina cada 3–5 min y amiodarona 150 mg tras la 5.ª.',
   nf: 'Ritmo no desfibrilable: compresiones de calidad, adrenalina 1 mg cuanto antes y cada 3–5 min, análisis cada 2 min; busca y trata la causa (4H y 4T).' };
-const ARREST_KEYS = ['arrestCause', 'arrestCause2', 'ptx', 'ptxTension', 'tep', 'deficit', 'shockMul', 'bleed', 'bleedSrc', 'anaf', 'cohb', 'opioid', 'k', 'kRate', 'hco3Off', 'tca', 'temp', 'tempRate', 'glu', 'gluT', 'asp'];
+const ARREST_KEYS = ['tamp', 'tampRate', 'arrestCause', 'arrestCause2', 'ptx', 'ptxTension', 'tep', 'deficit', 'shockMul', 'bleed', 'bleedSrc', 'anaf', 'cohb', 'opioid', 'k', 'kRate', 'hco3Off', 'tca', 'temp', 'tempRate', 'glu', 'gluT', 'asp'];
 const pio2 = alt => (760 * Math.pow(1 - 2.25577e-5 * alt, 5.25588) - 47) * .21;
 
 function make(baseKey, seed) {
