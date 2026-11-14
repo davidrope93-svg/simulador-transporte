@@ -1482,6 +1482,56 @@ const META = {
 };
 for (const [k, m] of Object.entries(META)) if (CASES[k]) Object.assign(CASES[k], { scope: m[0], diff: m[1], teach: m[2] });
 
+/* ---------- Itinerarios (v1.26): rutas por perfil con etapas que se desbloquean, progresión y nota ----------
+   Un caso cuenta como superado con nota ≥ 7 (sus variantes cuentan para él). Cada etapa se supera con «need» casos;
+   la siguiente se abre al superar la anterior. La evaluación final solo cuenta intentos en modo examen (variante nueva). */
+const PATHS = {
+  residente: { t: 'Residente', title: 'Residente de urgencias, intensivos o anestesia', who: 'Del manejo inicial a la ventilación mecánica, la vía aérea difícil y la parada, con el razonamiento fisiológico detrás de cada ajuste.', pass: 7, stages: [
+    { t: 'Fundamentos', need: 5, k: ['pcrFv', 'scaAnt', 'sepsisUrin', 'epocIni', 'opiaceos', 'tsvEstable'] },
+    { t: 'Ventilación mecánica', need: 5, k: ['tce', 'pcr', 'neumo', 'asma', 'dopeTraslado', 'despierta', 'obesoVmi'] },
+    { t: 'Vía aérea', need: 4, k: ['isrTce', 'isrSeptico', 'isrAsma', 'viaDificil', 'planB', 'isrHemorragico'] },
+    { t: 'Shock, cardiología y neurología', need: 5, k: ['sepsisIC', 'scaGomera', 'taponamiento', 'tvPulso', 'bav', 'ictusIsq', 'estatus'] },
+    { t: 'Parada y situaciones especiales', need: 4, k: ['fvRefractaria', 'pcrTep', 'aespPtx', 'pcrHiperK', 'hiperK', 'triciclicos'] },
+    { t: 'Evaluación final', exam: true, need: 3, k: ['asma', 'isrHemorragico', 'pcrTep', 'taponamiento'] }] },
+  enfermeria: { t: 'Enfermería', title: 'Enfermería de SVA', who: 'Oxigenoterapia, VMNI, el paciente ventilado y sus alarmas, RCP de calidad, fármacos y perfusiones, y el niño.', pass: 7, stages: [
+    { t: 'Oxígeno y monitorización', need: 4, k: ['epocO2', 'co', 'anafilaxia', 'hipoglucemia', 'opiaceos'] },
+    { t: 'VMNI y alto flujo', need: 4, k: ['epocIni', 'eap', 'fuga', 'fracaso', 'hfnc'] },
+    { t: 'El paciente ventilado: alarmas y traslado', need: 5, k: ['dopeTraslado', 'despierta', 'movil', 'traslado', 'extubVuelo', 'coIntubado'] },
+    { t: 'RCP y arritmias', need: 5, k: ['pcrFv', 'asistolia', 'fvMonitorizada', 'tsvInestable', 'bradiSinusal', 'pcrPedFv'] },
+    { t: 'Fármacos y perfusiones', need: 4, k: ['sepsisUrin', 'septicoFerry', 'bav', 'hiperK', 'convulsionFebril'] },
+    { t: 'Pediatría', need: 3, k: ['bronquiolitis', 'crup', 'anafPed', 'deshidratacion'] },
+    { t: 'Evaluación final', exam: true, need: 3, k: ['eap', 'dopeTraslado', 'pcrFv', 'sepsisUrin'] }] },
+  hems: { t: 'HEMS', title: 'HEMS y traslados interinsulares', who: 'Fisiología del vuelo, complicaciones en cabina, traslados desde las islas sin hospital de referencia, rescate y el niño en el aire.', pass: 7, stages: [
+    { t: 'Fisiología del vuelo', need: 4, k: ['hemsApv', 'epocHems', 'ptxAltitud', 'vmniVuelo', 'sdraPalma'] },
+    { t: 'Complicaciones en vuelo', need: 4, k: ['movil', 'extubVuelo', 'drenajePinzado', 'tceGomera', 'bavHierro'] },
+    { t: 'Traslados interinsulares', need: 4, k: ['ictusHierro', 'hdaPalma', 'septicoFerry', 'politraumaFrio', 'hemCerebral'] },
+    { t: 'Rescate y ambiente', need: 3, k: ['buceoDci', 'hapeTeide', 'femurBarranco', 'ahogVmni'] },
+    { t: 'El niño en el aire', need: 3, k: ['bronquiolitisHierro', 'meningococoGomera', 'trasladoNeo', 'lactanteIntubado'] },
+    { t: 'Evaluación final', exam: true, need: 3, k: ['ptxAltitud', 'tceGomera', 'hdaPalma', 'sdraPalma'] }] }
+};
+/* progreso de un alumno en un itinerario a partir del historial (intentos con su nota, modo y caso base);
+   un intento terminado antes de tiempo no cuenta: al menos el 30 % de la duración del caso (máx. 5 min de caso) */
+const pathMin = k => { const c = CASES[k]; return Math.min(5, .3 * ((c && c.duration) || 20)); };
+function pathProgress(pk, hist, name) {
+  const P = PATHS[pk]; if (!P) return null;
+  const mine = (hist || []).filter(a => (a.name || '') === (name || '') && !(isFinite(a.min) && a.min < pathMin(a.base || a.key)));
+  const best = (k, ex) => { let b = null; for (const a of mine) if ((a.key === k || a.base === k) && (!ex || a.exam) && isFinite(a.score)) b = b == null ? a.score : Math.max(b, a.score); return b; };
+  let open = true, done = 0, tot = 0, sum = 0, n = 0, exS = 0, exN = 0;
+  const stages = P.stages.map((s, i) => {
+    const cases = s.k.map(k => ({ k, best: best(k, s.exam) })), ok = cases.filter(c => c.best != null && c.best >= P.pass).length, need = Math.min(s.need || Math.ceil(s.k.length * .7), s.k.length);
+    const st = { i, t: s.t, exam: !!s.exam, cases, ok, need, open, passed: ok >= need };
+    tot += need; done += Math.min(ok, need);
+    for (const c of cases) if (c.best != null) { if (s.exam) { exS += c.best; exN++; } else { sum += c.best; n++; } }
+    open = open && st.passed; return st;
+  });
+  const cur = stages.find(s => s.open && !s.passed) || null;
+  const nx = cur ? (cur.cases.find(c => c.best == null) || cur.cases.slice().sort((a, b) => a.best - b.best).find(c => c.best < P.pass) || null) : null;
+  return { stages, done, tot, pct: Math.round(done / tot * 100), avg: n ? sum / n : null, examAvg: exN ? exS / exN : null, finished: !cur, cur: cur ? cur.i : null, next: nx ? nx.k : null, nextExam: !!(cur && cur.exam) };
+}
+
 root.SIM_CASES = CASES;
 root.SIM_GROUPS = GROUPS;
+root.SIM_PATHS = PATHS;
+root.SIM_PATHPROG = pathProgress;
+root.SIM_PATHMIN = pathMin;
 })(typeof window !== 'undefined' ? window : globalThis);

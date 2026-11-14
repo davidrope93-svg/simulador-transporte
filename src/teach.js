@@ -92,6 +92,7 @@ function teachDebrief(reason) {
   const hist = LS.get('simvmi.hist', []); hist.push(att); while (hist.length > 500) hist.shift(); LS.set('simvmi.hist', hist);
   const idx = hist.length - 1;
   $('#dbName').addEventListener('change', e => { student = e.target.value.trim().slice(0, 60); LS.set('simvmi.name', student); $('#stuName').value = student; const h = LS.get('simvmi.hist', []); if (h[idx] && h[idx].d === att.d) { h[idx].name = student; LS.set('simvmi.hist', h); } });
+  pathDebrief(c);
   linkSend({ t: 'debrief', sid: SID, key: caseKey, vcode: c.vcode || null, exam, min: Math.round(S.clin * 10) / 10, title: c.title, reason: reason || '', score: sc.total, parts: sc.parts.map(p => [p.lab, Math.round(p.v * 100), p.det]), name: student });
 }
 
@@ -144,7 +145,7 @@ function sendState(force) {
   stateAt = now;
   const c = CASES[caseKey];
   linkSend({ t: 'state', sid: SID, key: caseKey, base: c.vbase || null, vcode: c.vcode || null, ended, title: c.title, lvl: c.lvl, clin: S.clin, scale, paused, exam, name: student,
-    sched: (sched || []).map((e, i) => ({ i, at: Math.round(e.at * 10) / 10, txt: e.txt || (e.alt != null ? 'Altitud ' + e.alt + ' m' : EVLAB[e.k] || e.k), fired: !!e.fired, cancel: !!e.cancel, instr: !!e.instr })),
+    path: pathSummary(), sched: (sched || []).map((e, i) => ({ i, at: Math.round(e.at * 10) / 10, txt: e.txt || (e.alt != null ? 'Altitud ' + e.alt + ' m' : EVLAB[e.k] || e.k), fired: !!e.fired, cancel: !!e.cancel, instr: !!e.instr })),
     dev: DEVS[S.dev.vent].short, mon: MONS[$('#monSel').value].short, iface: IFSHORT[S.iface], mode: S.iface === 'o2' ? O2LAB[S.cfg.o2dev] : modeLabel(uMode(S.cfg)) + (S.standby ? ' (en espera)' : ''),
     v: { spo2: S.spo2 * 100, tas: S.arrest ? null : S.tas, pni: pni && pni.sys ? pni.sys : null, fc: S.arrest ? null : S.fc, et: M.et, rr: M.effN >= 2 ? M.effRR : 0, rhy: rhyLab(S.rhythm) + (S.arrest ? ' · sin pulso' : ''), arrest: S.arrest, gcs: S.relTot > .6 ? null : S.gcs, comp: S.cpr.comp },
     truth: truthRows(), reads: lastReads, log: [...document.querySelectorAll('#log span')].slice(0, 40).map(x => x.textContent),
@@ -227,7 +228,7 @@ function startInstructor() {
     $('#iRoster').innerHTML = list.map(({ st: m, at }) => { const v = m.v || {}, off = performance.now() - at > 6000, tg = (m.tg || []).filter(x => x[1] != null), avg = tg.length ? Math.round(tg.reduce((a, x) => a + x[1], 0) / tg.length) : null, bad = (m.reads || []).filter(r => r[0] === 'bad').length;
       return `<button class="stu${m.sid === sel ? ' on' : ''}${off ? ' off' : ''}${v.arrest ? ' arr' : ''}" data-sid="${esc(m.sid)}" aria-pressed="${m.sid === sel}"><b>${esc(nameOf(m))}</b><span class="small">${esc(m.title)}${m.vcode && !String(m.title).includes(m.vcode) ? ' · ' + esc(m.vcode) : ''}</span>
         <span class="stv">SpO₂ ${v.spo2 == null ? '–' : fmt(v.spo2)} · TAS ${v.tas == null ? '–' : fmt(v.tas)} · FC ${v.fc == null ? '–' : fmt(v.fc)}</span>
-        <span class="small">${off ? 'desconectado' : `min ${fmt(m.clin, 1)}${m.paused ? ' · pausa' : ''}${m.exam ? ' · examen' : ''}${m.ended ? ' · terminado' : ''}`}${avg != null ? ` · objetivos ${avg} %` : ''}${bad ? ` · ${bad} alerta${bad > 1 ? 's' : ''}` : ''}${v.arrest ? ' · PARADA' : ''}</span></button>`; }).join('');
+        ${m.path ? `<span class="small">Itinerario ${esc(m.path.t)}: ${m.path.done ? 'superado' : m.path.pct + ' % · etapa ' + m.path.st + '/' + m.path.n}</span>` : ''}<span class="small">${off ? 'desconectado' : `min ${fmt(m.clin, 1)}${m.paused ? ' · pausa' : ''}${m.exam ? ' · examen' : ''}${m.ended ? ' · terminado' : ''}`}${avg != null ? ` · objetivos ${avg} %` : ''}${bad ? ` · ${bad} alerta${bad > 1 ? 's' : ''}` : ''}${v.arrest ? ' · PARADA' : ''}</span></button>`; }).join('');
   }
   function render(m) {
     $('#iTitle').textContent = nameOf(m) + ' · ' + m.title; $('#iSub').textContent = `${m.lvl}${m.vcode && !String(m.title).includes(m.vcode) ? ' · variante ' + m.vcode : ''} · ${m.dev} · ${m.mon} · ${m.iface} · ${m.mode} · min ${fmt(m.clin, 1)} · ×${m.scale}${m.paused ? ' · en pausa' : ''}${m.exam ? ' · examen' : ''}`;

@@ -437,6 +437,19 @@ body.proj .coach{display:none}
 .lbs{font:12px/1.2 var(--mono);white-space:nowrap;padding:2px 8px;border-radius:999px;border:1px solid var(--line)}
 .lbs.ok{color:var(--ok);border-color:currentColor}.lbs.mid{color:var(--warn);border-color:currentColor}.lbs.low{color:var(--bad);border-color:currentColor}.lbs.new{color:var(--muted)}
 @media (max-width:720px){.libbar select{flex-basis:40%}.sheet.lib{height:100%}.lbv{margin-left:0;flex-basis:100%}}
+/* ===== v1.26: itinerarios ===== */
+.ptabs{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.ptc{display:flex;flex-direction:column;gap:5px;text-align:left;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--surface2);color:var(--ink);font:inherit;cursor:pointer;min-height:44px}
+.ptc b{font-family:var(--display);font-size:1.05rem}
+.ptc.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
+.ptbar{display:block;height:6px;border-radius:99px;background:var(--line);overflow:hidden}.ptbar span{display:block;height:100%;background:var(--ok)}
+.ptsum p{margin:0 0 4px}.ptok{color:var(--ok);font-weight:600}
+.ptst{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.ptst h4{margin:4px 0 0;font-family:var(--display);font-size:1.05rem;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ptst.lock .lbi{opacity:.55;cursor:not-allowed}
+.ptdb{margin:8px 0;padding:10px 12px;border:1px solid var(--accent);border-radius:10px;background:color-mix(in srgb,var(--accent) 8%,transparent)}
+.ptdb .inrow{margin-top:6px}
+@media (max-width:520px){.caserow{flex-wrap:wrap}.caserow select{flex-basis:100%}.caserow .btn{flex:1}}
 
 /* ===== v0.9: tutorial por caso ===== */
 .caseact{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline}
@@ -458,11 +471,11 @@ body.exam #tutBtn{display:none}
 <main>
   <header class="top">
     <div class="brand">
-      <span class="eyebrow">Simulador docente · SVA terrestre y HEMS · v1.25</span>
+      <span class="eyebrow">Simulador docente · SVA terrestre y HEMS · v1.26</span>
       <h1>Ventilación, monitor y RCP</h1>
     </div>
     <div class="toolbar">
-      <div class="field"><label for="caseSel">Caso</label><div class="caserow"><select id="caseSel"></select><button class="btn" id="libBtn" title="Todos los casos con buscador, filtros y caso aleatorio">Biblioteca</button></div></div>
+      <div class="field"><label for="caseSel">Caso</label><div class="caserow"><select id="caseSel"></select><button class="btn" id="libBtn" title="Todos los casos con buscador, filtros y caso aleatorio">Biblioteca</button><button class="btn" id="pathBtn" title="Rutas de casos para residente, enfermería y HEMS, con progresión y nota">Itinerarios</button></div></div>
       <div class="field" id="phenoField" hidden><label for="phenoSel">Paciente</label><select id="phenoSel"></select></div>
       <div class="field" id="ifaceField" hidden><label for="ifaceSel">Interfaz</label><select id="ifaceSel"><option value="tube">Tubo endotraqueal</option><option value="mask">Mascarilla (VMNI)</option><option value="nasal">Alto flujo</option><option value="o2">Oxigenoterapia</option></select></div>
       <div class="field" data-tabsec="case"><label for="ventSel">Ventilador</label><select id="ventSel"><option value="monnal">Monnal T60</option><option value="medumat">Medumat Standard²</option><option value="t1">Hamilton T1</option></select></div>
@@ -700,6 +713,16 @@ body.exam #tutBtn{display:none}
       </div></details>
       <div class="inrow"><span class="small" id="lbN"></span><label class="small lbv"><input type="checkbox" id="lbVar"> Cargar como variante nueva</label><button class="btn" id="lbClear">Quitar filtros</button><button class="btn primary" id="lbRand">Caso aleatorio</button><button class="btn" id="lbClose">Cerrar</button></div>
       <div id="lbList" class="lblist"></div>
+    </div>
+  </div>
+
+  <div class="modal" id="pathModal" hidden role="dialog" aria-modal="true" aria-labelledby="ptH">
+    <div class="sheet lib">
+      <span class="eyebrow" id="ptWho"></span>
+      <h3 id="ptH" style="font-size:1.4rem">Itinerarios</h3>
+      <div class="ptabs" id="ptTabs" role="group" aria-label="Itinerario"></div>
+      <div id="ptBody" class="lblist"></div>
+      <div class="inrow"><button class="btn" id="ptReport">Informe del itinerario</button><button class="btn" id="ptClose">Cerrar</button><button class="btn primary" id="ptNext">Continuar</button></div>
     </div>
   </div>
 
@@ -3786,8 +3809,58 @@ const META = {
 };
 for (const [k, m] of Object.entries(META)) if (CASES[k]) Object.assign(CASES[k], { scope: m[0], diff: m[1], teach: m[2] });
 
+/* ---------- Itinerarios (v1.26): rutas por perfil con etapas que se desbloquean, progresión y nota ----------
+   Un caso cuenta como superado con nota ≥ 7 (sus variantes cuentan para él). Cada etapa se supera con «need» casos;
+   la siguiente se abre al superar la anterior. La evaluación final solo cuenta intentos en modo examen (variante nueva). */
+const PATHS = {
+  residente: { t: 'Residente', title: 'Residente de urgencias, intensivos o anestesia', who: 'Del manejo inicial a la ventilación mecánica, la vía aérea difícil y la parada, con el razonamiento fisiológico detrás de cada ajuste.', pass: 7, stages: [
+    { t: 'Fundamentos', need: 5, k: ['pcrFv', 'scaAnt', 'sepsisUrin', 'epocIni', 'opiaceos', 'tsvEstable'] },
+    { t: 'Ventilación mecánica', need: 5, k: ['tce', 'pcr', 'neumo', 'asma', 'dopeTraslado', 'despierta', 'obesoVmi'] },
+    { t: 'Vía aérea', need: 4, k: ['isrTce', 'isrSeptico', 'isrAsma', 'viaDificil', 'planB', 'isrHemorragico'] },
+    { t: 'Shock, cardiología y neurología', need: 5, k: ['sepsisIC', 'scaGomera', 'taponamiento', 'tvPulso', 'bav', 'ictusIsq', 'estatus'] },
+    { t: 'Parada y situaciones especiales', need: 4, k: ['fvRefractaria', 'pcrTep', 'aespPtx', 'pcrHiperK', 'hiperK', 'triciclicos'] },
+    { t: 'Evaluación final', exam: true, need: 3, k: ['asma', 'isrHemorragico', 'pcrTep', 'taponamiento'] }] },
+  enfermeria: { t: 'Enfermería', title: 'Enfermería de SVA', who: 'Oxigenoterapia, VMNI, el paciente ventilado y sus alarmas, RCP de calidad, fármacos y perfusiones, y el niño.', pass: 7, stages: [
+    { t: 'Oxígeno y monitorización', need: 4, k: ['epocO2', 'co', 'anafilaxia', 'hipoglucemia', 'opiaceos'] },
+    { t: 'VMNI y alto flujo', need: 4, k: ['epocIni', 'eap', 'fuga', 'fracaso', 'hfnc'] },
+    { t: 'El paciente ventilado: alarmas y traslado', need: 5, k: ['dopeTraslado', 'despierta', 'movil', 'traslado', 'extubVuelo', 'coIntubado'] },
+    { t: 'RCP y arritmias', need: 5, k: ['pcrFv', 'asistolia', 'fvMonitorizada', 'tsvInestable', 'bradiSinusal', 'pcrPedFv'] },
+    { t: 'Fármacos y perfusiones', need: 4, k: ['sepsisUrin', 'septicoFerry', 'bav', 'hiperK', 'convulsionFebril'] },
+    { t: 'Pediatría', need: 3, k: ['bronquiolitis', 'crup', 'anafPed', 'deshidratacion'] },
+    { t: 'Evaluación final', exam: true, need: 3, k: ['eap', 'dopeTraslado', 'pcrFv', 'sepsisUrin'] }] },
+  hems: { t: 'HEMS', title: 'HEMS y traslados interinsulares', who: 'Fisiología del vuelo, complicaciones en cabina, traslados desde las islas sin hospital de referencia, rescate y el niño en el aire.', pass: 7, stages: [
+    { t: 'Fisiología del vuelo', need: 4, k: ['hemsApv', 'epocHems', 'ptxAltitud', 'vmniVuelo', 'sdraPalma'] },
+    { t: 'Complicaciones en vuelo', need: 4, k: ['movil', 'extubVuelo', 'drenajePinzado', 'tceGomera', 'bavHierro'] },
+    { t: 'Traslados interinsulares', need: 4, k: ['ictusHierro', 'hdaPalma', 'septicoFerry', 'politraumaFrio', 'hemCerebral'] },
+    { t: 'Rescate y ambiente', need: 3, k: ['buceoDci', 'hapeTeide', 'femurBarranco', 'ahogVmni'] },
+    { t: 'El niño en el aire', need: 3, k: ['bronquiolitisHierro', 'meningococoGomera', 'trasladoNeo', 'lactanteIntubado'] },
+    { t: 'Evaluación final', exam: true, need: 3, k: ['ptxAltitud', 'tceGomera', 'hdaPalma', 'sdraPalma'] }] }
+};
+/* progreso de un alumno en un itinerario a partir del historial (intentos con su nota, modo y caso base);
+   un intento terminado antes de tiempo no cuenta: al menos el 30 % de la duración del caso (máx. 5 min de caso) */
+const pathMin = k => { const c = CASES[k]; return Math.min(5, .3 * ((c && c.duration) || 20)); };
+function pathProgress(pk, hist, name) {
+  const P = PATHS[pk]; if (!P) return null;
+  const mine = (hist || []).filter(a => (a.name || '') === (name || '') && !(isFinite(a.min) && a.min < pathMin(a.base || a.key)));
+  const best = (k, ex) => { let b = null; for (const a of mine) if ((a.key === k || a.base === k) && (!ex || a.exam) && isFinite(a.score)) b = b == null ? a.score : Math.max(b, a.score); return b; };
+  let open = true, done = 0, tot = 0, sum = 0, n = 0, exS = 0, exN = 0;
+  const stages = P.stages.map((s, i) => {
+    const cases = s.k.map(k => ({ k, best: best(k, s.exam) })), ok = cases.filter(c => c.best != null && c.best >= P.pass).length, need = Math.min(s.need || Math.ceil(s.k.length * .7), s.k.length);
+    const st = { i, t: s.t, exam: !!s.exam, cases, ok, need, open, passed: ok >= need };
+    tot += need; done += Math.min(ok, need);
+    for (const c of cases) if (c.best != null) { if (s.exam) { exS += c.best; exN++; } else { sum += c.best; n++; } }
+    open = open && st.passed; return st;
+  });
+  const cur = stages.find(s => s.open && !s.passed) || null;
+  const nx = cur ? (cur.cases.find(c => c.best == null) || cur.cases.slice().sort((a, b) => a.best - b.best).find(c => c.best < P.pass) || null) : null;
+  return { stages, done, tot, pct: Math.round(done / tot * 100), avg: n ? sum / n : null, examAvg: exN ? exS / exN : null, finished: !cur, cur: cur ? cur.i : null, next: nx ? nx.k : null, nextExam: !!(cur && cur.exam) };
+}
+
 root.SIM_CASES = CASES;
 root.SIM_GROUPS = GROUPS;
+root.SIM_PATHS = PATHS;
+root.SIM_PATHPROG = pathProgress;
+root.SIM_PATHMIN = pathMin;
 })(typeof window !== 'undefined' ? window : globalThis);
 
 /* Variantes de un caso (v1.0). A partir de un caso y una semilla crea otro caso, siempre el mismo para la misma semilla, que cambia
@@ -5567,6 +5640,7 @@ function teachDebrief(reason) {
   const hist = LS.get('simvmi.hist', []); hist.push(att); while (hist.length > 500) hist.shift(); LS.set('simvmi.hist', hist);
   const idx = hist.length - 1;
   $('#dbName').addEventListener('change', e => { student = e.target.value.trim().slice(0, 60); LS.set('simvmi.name', student); $('#stuName').value = student; const h = LS.get('simvmi.hist', []); if (h[idx] && h[idx].d === att.d) { h[idx].name = student; LS.set('simvmi.hist', h); } });
+  pathDebrief(c);
   linkSend({ t: 'debrief', sid: SID, key: caseKey, vcode: c.vcode || null, exam, min: Math.round(S.clin * 10) / 10, title: c.title, reason: reason || '', score: sc.total, parts: sc.parts.map(p => [p.lab, Math.round(p.v * 100), p.det]), name: student });
 }
 
@@ -5619,7 +5693,7 @@ function sendState(force) {
   stateAt = now;
   const c = CASES[caseKey];
   linkSend({ t: 'state', sid: SID, key: caseKey, base: c.vbase || null, vcode: c.vcode || null, ended, title: c.title, lvl: c.lvl, clin: S.clin, scale, paused, exam, name: student,
-    sched: (sched || []).map((e, i) => ({ i, at: Math.round(e.at * 10) / 10, txt: e.txt || (e.alt != null ? 'Altitud ' + e.alt + ' m' : EVLAB[e.k] || e.k), fired: !!e.fired, cancel: !!e.cancel, instr: !!e.instr })),
+    path: pathSummary(), sched: (sched || []).map((e, i) => ({ i, at: Math.round(e.at * 10) / 10, txt: e.txt || (e.alt != null ? 'Altitud ' + e.alt + ' m' : EVLAB[e.k] || e.k), fired: !!e.fired, cancel: !!e.cancel, instr: !!e.instr })),
     dev: DEVS[S.dev.vent].short, mon: MONS[$('#monSel').value].short, iface: IFSHORT[S.iface], mode: S.iface === 'o2' ? O2LAB[S.cfg.o2dev] : modeLabel(uMode(S.cfg)) + (S.standby ? ' (en espera)' : ''),
     v: { spo2: S.spo2 * 100, tas: S.arrest ? null : S.tas, pni: pni && pni.sys ? pni.sys : null, fc: S.arrest ? null : S.fc, et: M.et, rr: M.effN >= 2 ? M.effRR : 0, rhy: rhyLab(S.rhythm) + (S.arrest ? ' · sin pulso' : ''), arrest: S.arrest, gcs: S.relTot > .6 ? null : S.gcs, comp: S.cpr.comp },
     truth: truthRows(), reads: lastReads, log: [...document.querySelectorAll('#log span')].slice(0, 40).map(x => x.textContent),
@@ -5702,7 +5776,7 @@ function startInstructor() {
     $('#iRoster').innerHTML = list.map(({ st: m, at }) => { const v = m.v || {}, off = performance.now() - at > 6000, tg = (m.tg || []).filter(x => x[1] != null), avg = tg.length ? Math.round(tg.reduce((a, x) => a + x[1], 0) / tg.length) : null, bad = (m.reads || []).filter(r => r[0] === 'bad').length;
       return `<button class="stu${m.sid === sel ? ' on' : ''}${off ? ' off' : ''}${v.arrest ? ' arr' : ''}" data-sid="${esc(m.sid)}" aria-pressed="${m.sid === sel}"><b>${esc(nameOf(m))}</b><span class="small">${esc(m.title)}${m.vcode && !String(m.title).includes(m.vcode) ? ' · ' + esc(m.vcode) : ''}</span>
         <span class="stv">SpO₂ ${v.spo2 == null ? '–' : fmt(v.spo2)} · TAS ${v.tas == null ? '–' : fmt(v.tas)} · FC ${v.fc == null ? '–' : fmt(v.fc)}</span>
-        <span class="small">${off ? 'desconectado' : `min ${fmt(m.clin, 1)}${m.paused ? ' · pausa' : ''}${m.exam ? ' · examen' : ''}${m.ended ? ' · terminado' : ''}`}${avg != null ? ` · objetivos ${avg} %` : ''}${bad ? ` · ${bad} alerta${bad > 1 ? 's' : ''}` : ''}${v.arrest ? ' · PARADA' : ''}</span></button>`; }).join('');
+        ${m.path ? `<span class="small">Itinerario ${esc(m.path.t)}: ${m.path.done ? 'superado' : m.path.pct + ' % · etapa ' + m.path.st + '/' + m.path.n}</span>` : ''}<span class="small">${off ? 'desconectado' : `min ${fmt(m.clin, 1)}${m.paused ? ' · pausa' : ''}${m.exam ? ' · examen' : ''}${m.ended ? ' · terminado' : ''}`}${avg != null ? ` · objetivos ${avg} %` : ''}${bad ? ` · ${bad} alerta${bad > 1 ? 's' : ''}` : ''}${v.arrest ? ' · PARADA' : ''}</span></button>`; }).join('');
   }
   function render(m) {
     $('#iTitle').textContent = nameOf(m) + ' · ' + m.title; $('#iSub').textContent = `${m.lvl}${m.vcode && !String(m.title).includes(m.vcode) ? ' · variante ' + m.vcode : ''} · ${m.dev} · ${m.mon} · ${m.iface} · ${m.mode} · min ${fmt(m.clin, 1)} · ×${m.scale}${m.paused ? ' · en pausa' : ''}${m.exam ? ' · examen' : ''}`;
@@ -6525,6 +6599,63 @@ function libInit() {
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#libModal').hidden) libClose(); });
 }
 
+/* ===== Itinerarios (v1.26): rutas para residente, enfermería y HEMS con etapas, progresión y nota ===== */
+const PATHS = window.SIM_PATHS || {}, pathProg = window.SIM_PATHPROG;
+let pathSel = LS.get('simvmi.path', 'residente'); if (!PATHS[pathSel]) pathSel = Object.keys(PATHS)[0];
+const pathOf = pk => pathProg(pk, LS.get('simvmi.hist', []), student);
+const scoreBadge = (b, pass) => b == null ? '<span class="lbs new">sin hacer</span>' : `<span class="lbs ${b >= pass ? 'ok' : b >= 5 ? 'mid' : 'low'}">${b >= pass ? '✓ ' : ''}${fmt(b, 1)}</span>`;
+function pathRender() {
+  const P = PATHS[pathSel], pr = pathOf(pathSel);
+  $('#ptWho').textContent = (student ? 'Alumno: ' + student : 'Sin nombre: escribe el tuyo en «Alumno» para llevar tu progreso') + ' · guardado en este dispositivo';
+  $('#ptTabs').innerHTML = Object.entries(PATHS).map(([k, p]) => { const g = pathOf(k); return `<button class="ptc${k === pathSel ? ' on' : ''}" data-p="${k}" aria-pressed="${k === pathSel}"><b>${esc(p.t)}</b><span class="ptbar"><span style="width:${g.pct}%"></span></span><span class="small">${g.finished ? 'Superado' : g.pct + ' %'}${g.avg != null ? ' · media ' + fmt(g.avg, 1) : ''}</span></button>`; }).join('');
+  const head = `<div class="ptsum"><p>${esc(P.who)}</p><p class="small">Progreso <b>${pr.pct} %</b> (${pr.done} de ${pr.tot} casos necesarios)${pr.avg != null ? ` · media de lo hecho <b>${fmt(pr.avg, 1)}</b>` : ''}${pr.examAvg != null ? ` · evaluación final <b>${fmt(pr.examAvg, 1)}</b>` : ''} · un caso cuenta con nota ≥ ${P.pass} (también sus variantes).</p>${pr.finished ? '<p class="ptok">Itinerario superado. Descarga el informe para tu portafolio.</p>' : ''}</div>`;
+  $('#ptBody').innerHTML = head + pr.stages.map(s => {
+    const state = s.passed ? '<span class="lbs ok">superada</span>' : s.open ? '<span class="lbs mid">en curso</span>' : '<span class="lbs new">bloqueada</span>';
+    return `<section class="ptst${s.open ? '' : ' lock'}"><h4>Etapa ${s.i + 1} · ${esc(s.t)} ${state}</h4><p class="small">${s.ok} de ${s.need} superados${s.exam ? ' · en modo examen y con una variante nueva: el paciente cambia en cada intento' : ''}${s.open ? '' : ' · se abre al superar la etapa anterior'}</p>
+      ${s.cases.map(c => { const x = CASES[c.k]; return `<button class="lbi${c.k === pr.next && s.i === pr.cur ? ' cur' : ''}" data-k="${esc(c.k)}" data-ex="${s.exam ? 1 : 0}"${s.open ? '' : ' disabled'}><span class="lbh"><b>${esc(x.title)}</b>${scoreBadge(c.best, P.pass)}</span><span class="lbd">${esc(x.teach || '')}</span></button>`; }).join('')}</section>`;
+  }).join('');
+  $('#ptNext').disabled = !pr.next; $('#ptNext').textContent = pr.next ? (pr.nextExam ? 'Siguiente examen' : 'Continuar') + ': ' + CASES[pr.next].title : pr.finished ? 'Itinerario superado' : 'Continuar';
+}
+function pathOpen() { pathRender(); $('#pathModal').hidden = false; const cur = $('#ptBody .lbi.cur'); if (cur) cur.scrollIntoView({ block: 'center' }); }
+function pathLaunch(k, ex) {
+  $('#pathModal').hidden = true; if (!CASES[k]) return;
+  LS.set('simvmi.path', pathSel);
+  if (ex) { setExam(true, true); loadVariant(k, Math.floor(Math.random() * 1679616)); } else { $('#caseSel').value = k; loadCase(k); }
+  const pr = pathOf(pathSel), st = pr.stages.find(s => s.cases.some(c => c.k === k) && (s.exam === !!ex));
+  toast(`Itinerario ${PATHS[pathSel].t}${st ? ' · etapa ' + (st.i + 1) + ': ' + st.t : ''}${ex ? ' · examen' : ''}`);
+}
+/* bloque del debrief: cómo va el itinerario activo y el siguiente caso */
+function pathDebrief(c) {
+  const pk = LS.get('simvmi.path', null), P = PATHS[pk]; if (!P) return;
+  const key = c.vbase || caseKey; if (!P.stages.some(s => s.k.includes(key))) return;
+  const pr = pathOf(pk), st = pr.cur != null ? pr.stages[pr.cur] : null;
+  const html = `<div class="ptdb"><b>Itinerario ${esc(P.t)}</b> · progreso ${pr.pct} %${st ? ` · etapa ${st.i + 1} de ${pr.stages.length} (${esc(st.t)}): ${st.ok} de ${st.need}` : ' · superado'}<br><span class="small">${(() => { const b = pr.stages.flatMap(s => s.cases).filter(x => x.k === key).map(x => x.best).filter(x => x != null); const m = b.length ? Math.max(...b) : null; const mn = window.SIM_PATHMIN ? SIM_PATHMIN(key) : 0; if (S.clin < mn) return `Intento demasiado corto para el itinerario: cuenta a partir de ${fmt(mn, 1)} min de caso.`; return m != null && m >= P.pass ? 'Este caso ya cuenta como superado.' : `Para que cuente necesitas una nota ≥ ${P.pass}.`; })()}</span>${pr.next ? `<div class="inrow"><button class="btn primary" id="dbPathNext" data-k="${esc(pr.next)}" data-ex="${pr.nextExam ? 1 : 0}">Siguiente del itinerario: ${esc(CASES[pr.next].title)}</button><button class="btn" id="dbPathOpen">Ver el itinerario</button></div>` : ''}</div>`;
+  const t = $('#dbBody .dtable'); if (t) t.insertAdjacentHTML('afterend', html); else $('#dbBody').insertAdjacentHTML('afterbegin', html);
+}
+function pathSummary() { const pk = LS.get('simvmi.path', null); if (!PATHS[pk]) return null; const pr = pathOf(pk); return { t: PATHS[pk].t, pct: pr.pct, st: pr.cur != null ? pr.cur + 1 : null, n: pr.stages.length, done: pr.finished }; }
+function pathReport() {
+  const P = PATHS[pathSel], pr = pathOf(pathSel), d = new Date();
+  const rows = pr.stages.map(s => `<h2>Etapa ${s.i + 1} · ${esc(s.t)}${s.exam ? ' (examen)' : ''} — ${s.passed ? 'superada' : s.open ? 'en curso' : 'bloqueada'} · ${s.ok}/${s.need}</h2><table class="dtable">${s.cases.map(c => `<tr><td>${esc(CASES[c.k].title)}<br><span class="small">${esc(CASES[c.k].teach || '')}</span></td><td class="n">${c.best == null ? '—' : fmt(c.best, 1)}${c.best != null && c.best >= P.pass ? ' ✓' : ''}</td></tr>`).join('')}</table>`).join('');
+  const css = [...document.querySelectorAll('style')].map(x => x.textContent).join('\n');
+  download('itinerario-' + pathSel + '-' + (student || 'alumno').toLowerCase().replace(/[^a-z0-9áéíóúñü]+/gi, '-') + '-' + d.toISOString().slice(0, 10) + '.html',
+    `<!doctype html><html lang="es" data-theme="light"><head><meta charset="utf-8"><title>Itinerario ${esc(P.t)} · ${esc(student || 'Alumno')}</title><style>${css}</style></head><body><main><div class="sheet" style="max-width:820px;margin:20px auto"><span class="eyebrow">Simulador docente · itinerario</span><h1 style="font-size:1.8rem">${esc(P.title)}</h1><p><b>${esc(student || 'Sin nombre')}</b> · ${d.toLocaleDateString('es-ES', { dateStyle: 'long' })}</p><p>Progreso <b>${pr.pct} %</b>${pr.avg != null ? ` · media de los casos <b>${fmt(pr.avg, 1)}</b>` : ''}${pr.examAvg != null ? ` · evaluación final <b>${fmt(pr.examAvg, 1)}</b>` : ''} · ${pr.finished ? '<b>itinerario superado</b>' : 'en curso'}</p><p class="small">${esc(P.who)} Un caso cuenta como superado con nota ≥ ${P.pass}; la evaluación final se hace en modo examen con variantes nuevas.</p>${rows}</div></main><script>window.onload=()=>print()<\/script></body></html>`, 'text/html');
+}
+function pathInit() {
+  $('#pathBtn').addEventListener('click', pathOpen);
+  $('#ptClose').addEventListener('click', () => { $('#pathModal').hidden = true; });
+  $('#ptReport').addEventListener('click', pathReport);
+  $('#ptNext').addEventListener('click', () => { const pr = pathOf(pathSel); if (pr.next) pathLaunch(pr.next, pr.nextExam); });
+  $('#ptTabs').addEventListener('click', e => { const b = e.target.closest('.ptc'); if (b) { pathSel = b.dataset.p; LS.set('simvmi.path', pathSel); pathRender(); } });
+  $('#ptBody').addEventListener('click', e => { const b = e.target.closest('.lbi'); if (b && !b.disabled) pathLaunch(b.dataset.k, b.dataset.ex === '1'); });
+  $('#pathModal').addEventListener('click', e => { if (e.target.id === 'pathModal') $('#pathModal').hidden = true; });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#pathModal').hidden) $('#pathModal').hidden = true; });
+  $('#dbBody').addEventListener('click', e => {
+    const b = e.target.closest('#dbPathNext, #dbPathOpen'); if (!b) return;
+    $('#debrief').hidden = true; paused = false; setPauseBtn();
+    if (b.id === 'dbPathOpen') { pathSel = LS.get('simvmi.path', pathSel); pathOpen(); } else { pathSel = LS.get('simvmi.path', pathSel); pathLaunch(b.dataset.k, b.dataset.ex === '1'); }
+  });
+}
+
 
 /* ---------- arranque ---------- */
 $('#caseSel').innerHTML = GROUPS.map(g => `<optgroup label="${g}">` + Object.entries(CASES).filter(([, c]) => c.lvl === g).map(([k, c]) => `<option value="${k}">${c.title}</option>`).join('') + '</optgroup>').join('');
@@ -6541,7 +6672,7 @@ $('#speedSeg').addEventListener('click', e => { const b = e.target.closest('butt
 $('#truthBox').addEventListener('toggle', () => { if ($('#truthBox').open) renderTruth(); });
 window.__sim = () => ({ sim, S, M, track, pend, lim, exam, LINK, tut, tutSteps, tutWhere });
 if (INSTR) startInstructor();
-else { teachInit(); guideInit(); tutInit(); libInit(); const k0 = loadSharedFromHash(); if (k0) $('#caseSel').value = k0; loadCase(k0 || 'tce'); requestAnimationFrame(frame); }
+else { teachInit(); guideInit(); tutInit(); libInit(); pathInit(); const k0 = loadSharedFromHash(); if (k0) $('#caseSel').value = k0; loadCase(k0 || 'tce'); requestAnimationFrame(frame); }
 })();
 
 </script>

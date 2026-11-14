@@ -477,6 +477,26 @@ console.log('— Instructor 2.0 (v1.25): varios alumnos, órdenes con destinatar
   check('El alumno atiende variantes, eventos programados (lanzar ya y cancelar) y se identifica en el estado y el debrief', ["case 'variant'", "case 'eventAt'", "case 'schedFire'", "case 'schedCancel'", "t: 'state', sid: SID", "t: 'debrief', sid: SID"].every(x => src.includes(x)) ? 1 : 0, 1, 1);
   check('Aula: el instructor la abre con código y el alumno se une (también por enlace #aula=)', ["'simvmi-aula-' + code"].every(x => src.split(x).length >= 3) && /#aula=/.test(src) ? 1 : 0, 1, 1); }
 
+console.log('— Itinerarios (v1.26): rutas por perfil, etapas que se desbloquean, progresión y nota');
+{ require('./validar'); const P = global.SIM_PATHS, prog = global.SIM_PATHPROG, ks = Object.keys(P);
+  check('Itinerarios para residente, enfermería y HEMS', ['residente', 'enfermeria', 'hems'].every(k => P[k]) ? 1 : 0, 1, 1);
+  const bad = []; for (const k of ks) { const st = P[k].stages, prac = st.filter(s => !s.exam).flatMap(s => s.k), fin = st.filter(s => s.exam);
+    for (const c of st.flatMap(s => s.k)) if (!CASES[c] || !global.SIM_SOL[c]) bad.push(k + ':' + c);
+    if (new Set(prac).size !== prac.length) bad.push(k + ': casos repetidos');
+    if (fin.length !== 1 || st[st.length - 1] !== fin[0]) bad.push(k + ': la evaluación final no es la última etapa');
+    for (const s of st) if (s.need > s.k.length || s.need < 1) bad.push(k + ': etapa ' + s.t);
+    for (const c of fin[0] ? fin[0].k : []) if (!prac.includes(c)) bad.push(k + ': examen de un caso no practicado ' + c); }
+  if (bad.length) console.log('   ', bad.join(' · ')); check('Casos de los itinerarios: existen, tienen solución, sin repetir y examen de lo practicado', bad.length, 0, 0);
+  const A = (key, score, o) => Object.assign({ d: '2026-11-14', name: 'Ana', key, base: null, exam: false, score, min: 10 }, o || {});
+  const R = P.residente, s1 = R.stages[0].k, s2 = R.stages[1].k;
+  let r = prog('residente', [], 'Ana'); check('Sin intentos: etapa 1 abierta, la 2 cerrada y el siguiente es el primero', r.stages[0].open && !r.stages[1].open && r.next === s1[0] && r.pct === 0 ? 1 : 0, 1, 1);
+  r = prog('residente', s1.slice(0, R.stages[0].need).map(k => A(k, 8)), 'Ana'); check('Al superar la etapa 1 se abre la 2 y propone su primer caso', r.stages[0].passed && r.stages[1].open && r.next === s2[0] ? 1 : 0, 1, 1);
+  r = prog('residente', [A(s1[0], 6.9), A(s1[1], 9, { min: .2 }), A(s1[2], 8, { name: 'Beto' }), A('u_var', 7.4, { base: s1[3] })], 'Ana');
+  check('Cuentan la nota ≥ 7 y las variantes; no la de 6,9, el intento de 12 s ni el de otro alumno', r.stages[0].ok, 1, 1);
+  const allPrac = R.stages.filter(s => !s.exam).flatMap(s => s.k).map(k => A(k, 8.5)), fin = R.stages[R.stages.length - 1].k;
+  r = prog('residente', allPrac.concat(fin.map(k => A(k, 9))), 'Ana'); check('La evaluación final no se supera con intentos en práctica', !r.finished && r.nextExam ? 1 : 0, 1, 1);
+  r = prog('residente', allPrac.concat(fin.slice(0, 3).map(k => A('u_var', 8, { base: k, exam: true }))), 'Ana'); check('… sí con variantes en modo examen ≥ 7: itinerario superado al 100 %', r.finished && r.pct === 100 && r.examAvg === 8 ? 1 : 0, 1, 1); }
+
 console.log('— Instalable y sin conexión (v1.3): manifiesto, iconos y service worker');
 { const fs = require('fs'), path = require('path'), R = f => path.join(__dirname, '..', f);
   const man = JSON.parse(fs.readFileSync(R('manifest.webmanifest'), 'utf8'));

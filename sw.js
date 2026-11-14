@@ -1,6 +1,6 @@
 /* Service worker del simulador (v1.3): guarda la página para que funcione sin conexión (helicóptero, zonas sin cobertura).
    VERSION cambia con cada build: así el navegador detecta la versión nueva y la página ofrece «Actualizar». */
-const VERSION = 'c81c23fb902e';
+const VERSION = 'db6e05428397';
 const CORE = 'simsva-' + VERSION, RUNTIME = 'simsva-externos';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png', './icons/apple-touch-icon.png', './icons/favicon-32.png'];
 
