@@ -137,6 +137,18 @@ console.log('— Variantes (v1.0): reproducibles, sin valores imposibles y cada 
     check(`Parada por ${ck} (variante): RCE tratando la causa`, g * 10, 50, 100, ' %'); check(`Parada por ${ck} (variante): RCE sin tratarla`, b * 10, 0, 25, ' %'); }
   delete CASES.v_t; }
 
+console.log('— Instalable y sin conexión (v1.3): manifiesto, iconos y service worker');
+{ const fs = require('fs'), path = require('path'), R = f => path.join(__dirname, '..', f);
+  const man = JSON.parse(fs.readFileSync(R('manifest.webmanifest'), 'utf8'));
+  const okMan = man.name && man.short_name && man.start_url && man.display === 'standalone' && man.icons.some(i => i.sizes === '192x192') && man.icons.some(i => i.sizes === '512x512' && i.purpose === 'maskable');
+  check('Manifiesto completo (nombre, inicio, standalone, iconos 192 y 512 maskable)', okMan ? 1 : 0, 1, 1);
+  const badIcon = man.icons.filter(i => { const b = fs.readFileSync(R(i.src)); return b.readUInt32BE(16) + 'x' + b.readUInt32BE(20) !== i.sizes; }).length;
+  check('Iconos con el tamaño que declara el manifiesto', badIcon, 0, 0);
+  const sw = fs.readFileSync(R('sw.js'), 'utf8'), assets = JSON.parse(sw.match(/const ASSETS = (\[[^\]]*\])/)[1].replace(/'/g, '"'));
+  check('Archivos del service worker que no existen', assets.filter(a => a !== './' && !fs.existsSync(R(a))).length, 0, 0);
+  const html = fs.readFileSync(R('index.html'), 'utf8');
+  check('La página enlaza el manifiesto y registra el service worker', /rel="manifest"/.test(html) && /serviceWorker\.register\('sw\.js'\)/.test(html) && !/__VERSION__/.test(sw) ? 1 : 0, 1, 1); }
+
 console.log('— Validador (v1.2): cada caso se resuelve con su solución de referencia y no se aprueba sin hacer nada');
 { const { validate, play } = require('./validar'); const keys = Object.keys(CASES).filter(k => k !== 'libre' && CASES[k].pheno);
   const noSol = keys.filter(k => !global.SIM_SOL[k]); if (noSol.length) console.log('   sin solución:', noSol.join(', ')); check('Casos sin solución de referencia', noSol.length, 0, 0);

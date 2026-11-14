@@ -11,4 +11,4 @@ jobs:
       - name: Fisiología, parada y casos
         run: node tests/run.js
       - name: index.html al día con src/
-        run: python3 build.py && git diff --exit-code index.html
+        run: python3 build.py && git diff --exit-code index.html sw.js manifest.webmanifest

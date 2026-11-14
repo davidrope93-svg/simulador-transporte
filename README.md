@@ -4,7 +4,13 @@ Simulador docente para SVA terrestre y HEMS: ventilación mecánica invasiva y n
 
 **Abrir el simulador:** https://davidrope93-svg.github.io/simulador-transporte/
 
-Funciona en el navegador del ordenador, la tablet o el móvil, sin instalar nada y sin conexión una vez cargado.
+Funciona en el navegador del ordenador, la tablet o el móvil, sin instalar nada.
+
+**Instalarlo como app (funciona sin conexión):** al abrir la página por primera vez se guarda en el dispositivo y avisa «Listo: el simulador ya funciona sin conexión».
+- Android (Chrome) y ordenador (Chrome o Edge): botón «Instalar app» de la barra superior, o en el menú del navegador «Instalar app».
+- iPhone y iPad: abrir la página en Safari, Compartir y «Añadir a pantalla de inicio».
+
+Instalado, se abre desde su icono a pantalla completa y funciona en el helicóptero o sin cobertura. Lo único que necesita red es enlazar al instructor desde otro dispositivo. Cuando se publica una versión nueva, la app avisa «Hay una versión nueva» con un botón para actualizar; mientras no se pulsa, sigue con la que tiene.
 
 ## Equipos
 
@@ -62,6 +68,8 @@ Además de los modos del motor, la interfaz usa modos propios de cada equipo que
 | `src/devices.js` | Definición de cada ventilador y monitor: modos, mandos, rangos, teclas, preajustes y nombres de alarma. |
 | `src/cases.js` | Casos clínicos. |
 | `src/ui.js` | Interfaz: pantallas, mandos, alarmas, acciones, fármacos, lectura y debrief. |
+| `src/pwa.js`, `src/sw.js`, `src/manifest.webmanifest` | Instalable y sin conexión: registro del service worker, botón «Instalar app» y aviso de versión nueva; el service worker guarda la página, los iconos y las tipografías. `build.py` genera `sw.js` (con la huella de cada versión) y `manifest.webmanifest` en la raíz. Solo van en la versión publicada, no en el artefacto. |
+| `src/icon.svg`, `tools/iconos.js` | Icono de la app y el script que genera los PNG de `icons/`. |
 | `src/drugs.js` | Fármacos y perfusiones con su cálculo de dosis (adulto y por peso), sin DOM: los comparten la interfaz y el validador. |
 | `src/solutions.js` | Solución de referencia de cada caso, en pasos (minuto, orden): la usa el validador y servirá para el informe comparado. |
 | `tests/validar.js` | Validador de casos: juega cada caso con su solución y sin hacer nada. |
@@ -76,9 +84,13 @@ Además de los modos del motor, la interfaz usa modos propios de cada equipo que
 
 ## Pruebas
 
-Cada versión tiene que pasar 95 pruebas con rangos de referencia: regresión de la mecánica, tiempo de desaturación en apnea (sano preoxigenado 7–9,5 min, con aire 0,6–2 min, obeso 2,3–3,6 min) igual a ×1 que a ×20, PaCO₂ en respiración espontánea (TSV, TEP, opiáceos, EPOC con hiperoxia), SpO₂ del EPOC según FiO₂, EtCO₂ durante la RCP, tiempo de acción del relajante, tasas de RCE según se resuelva o no la causa, frecuencia mandatoria en SIMV, fracción de compresión con 30:2, vía aérea no oxigenable con bolsa y supraglótico, drenaje torácico en altitud, deterioro de la TV con pulso y sobreestimulación; y en la v0.7, hiperpotasemia con y sin calcio, hipoglucemia y su recurrencia, QRS de los tricíclicos con bicarbonato, FV en hipotermia, hemorragia con y sin hemostasia (y el coste del volumen liberal), convulsiones de la eclampsia con magnesio, crup, bronquiolitis con alto flujo, constantes de un lactante sano, nueva parada tras la RCE, parada traumática y compensación respiratoria según Winter.
+Cada versión tiene que pasar 99 pruebas con rangos de referencia: regresión de la mecánica, tiempo de desaturación en apnea (sano preoxigenado 7–9,5 min, con aire 0,6–2 min, obeso 2,3–3,6 min) igual a ×1 que a ×20, PaCO₂ en respiración espontánea (TSV, TEP, opiáceos, EPOC con hiperoxia), SpO₂ del EPOC según FiO₂, EtCO₂ durante la RCP, tiempo de acción del relajante, tasas de RCE según se resuelva o no la causa, frecuencia mandatoria en SIMV, fracción de compresión con 30:2, vía aérea no oxigenable con bolsa y supraglótico, drenaje torácico en altitud, deterioro de la TV con pulso y sobreestimulación; y en la v0.7, hiperpotasemia con y sin calcio, hipoglucemia y su recurrencia, QRS de los tricíclicos con bicarbonato, FV en hipotermia, hemorragia con y sin hemostasia (y el coste del volumen liberal), convulsiones de la eclampsia con magnesio, crup, bronquiolitis con alto flujo, constantes de un lactante sano, nueva parada tras la RCE, parada traumática y compensación respiratoria según Winter.
 
 **Validador de casos** (`node tests/validar.js`, también dentro de las pruebas): un bot juega cada caso con su solución de referencia (`src/solutions.js`) como lo haría un equipo experto (ajusta la FiO₂ y la FR a los objetivos, responde a las complicaciones, sigue el algoritmo de SVA y canaliza vía cuando hace falta) y otra vez sin hacer nada, con la misma nota que el examen. Un caso es válido si con la solución saca ≥ 7 (en la parada: ≥ 80 % de las acciones clave y RCE en ≥ 40 % de las partidas) y sin hacer nada ≤ 5. Además, la solución del original tiene que resolver ≥ 85 % de sus variantes. Con `--detalle` muestra cada objetivo; con `--variantes N`, las variantes que no se resuelven. Ningún caso nuevo entra sin pasar el validador.
+
+## Cambios en la v1.3
+
+- Instalable como app y sin conexión: manifiesto, iconos, service worker con caché de la página y de las tipografías, botón «Instalar app» (con instrucciones en el iPhone), aviso al perder la red y aviso de versión nueva con «Actualizar». 4 pruebas nuevas (99 en total) y la integración continua comprueba que `sw.js` y el manifiesto están al día.
 
 ## Cambios en la v1.2
 

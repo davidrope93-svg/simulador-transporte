@@ -394,6 +394,10 @@ body.proj .coach{display:none}
 .tour-card{position:fixed;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:12px 14px;box-shadow:0 10px 30px rgba(0,0,0,.3);display:flex;flex-direction:column;gap:8px}
 .tour-card b{font-family:var(--display);text-transform:uppercase;letter-spacing:.05em}
 
+/* ===== v1.3: instalable ===== */
+.pwanote{display:flex;gap:10px;align-items:center;flex-wrap:wrap;z-index:70}.pwanote span{flex:1 1 200px}
+.pwanote .btn{background:transparent;color:var(--bg);border-color:currentColor}.pwanote .btn.primary{background:var(--accent);color:#fff;border-color:transparent}
+
 /* ===== v1.1: biblioteca de casos ===== */
 .caserow{display:flex;gap:6px;align-items:center}.caserow select{flex:1;min-width:0}
 .sheet.lib{max-width:880px;height:min(88vh,900px);overflow:hidden}
@@ -428,7 +432,7 @@ body.exam #tutBtn{display:none}
 <main>
   <header class="top">
     <div class="brand">
-      <span class="eyebrow">Simulador docente · SVA terrestre y HEMS · v1.2</span>
+      <span class="eyebrow">Simulador docente · SVA terrestre y HEMS · v1.3</span>
       <h1>Ventilación, monitor y RCP</h1>
     </div>
     <div class="toolbar">
@@ -441,6 +445,7 @@ body.exam #tutBtn{display:none}
       <button class="btn" id="soundBtn" aria-pressed="true" data-tabsec="case">Sonido</button>
       <button class="btn" id="qBtn" title="Buscar una acción, un fármaco o un mando (tecla /)">Buscar</button>
       <button class="btn" id="guideBtn">Guía</button>
+      <button class="btn" id="installBtn" hidden title="Instalar como app: icono propio y funciona sin conexión">Instalar app</button>
       <button class="btn" id="pauseBtn" aria-pressed="false">Pausa</button>
       <button class="btn" id="resetBtn" data-tabsec="case">Reiniciar</button>
       <button class="btn primary" id="endBtn">Terminar caso</button>
