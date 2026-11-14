@@ -115,7 +115,9 @@ function create(opts) {
     // v1.8: tóxicos — betabloqueante o calcioantagonista (tipo y gravedad 0–1), organofosforado (0–1 y absorción por minuto hasta descontaminar), cocaína (0–1), cetoacidosis
     cv: o.cv ? { type: o.cv.type || 'cca', sev: o.cv.sev != null ? o.cv.sev : .7 } : null, cvT: 0, op: o.op || 0, opRate: o.opRate || 0, opM: 0, opN: 0, decont: false, cocaine: o.cocaine || 0, cocE: 0, cool: false, dka: !!o.dka,
     // v1.9: recién nacido — miocardio (0–1, reserva tras la asfixia), pulmón aireado (0–1), apnea, obstrucción de la vía aérea (0–1) y secreciones
-    neo: o.neo ? { m: o.neo.m != null ? o.neo.m : .5, aer: o.neo.aer != null ? o.neo.aer : .15, apnea: o.neo.apnea !== false, obs: o.neo.obs || 0, sec: !!o.neo.sec, inflUntil: -1, infl: 0, comp: false, compT: 0, oxyT: 0, hr: o.neo.hr || 70, m0: o.neo.m != null ? o.neo.m : .5, firstBreath: null, hr60: null, hr100: null } : null
+    neo: o.neo ? { m: o.neo.m != null ? o.neo.m : .5, aer: o.neo.aer != null ? o.neo.aer : .15, apnea: o.neo.apnea !== false, obs: o.neo.obs || 0, sec: !!o.neo.sec, inflUntil: -1, infl: 0, comp: false, compT: 0, oxyT: 0, hr: o.neo.hr || 70, m0: o.neo.m != null ? o.neo.m : .5, firstBreath: null, hr60: null, hr100: null } : null,
+    // v1.10: ambiental — enfermedad descompresiva (carga de burbujas 0–1, afectación neurológica y pulmonar) y golpe de calor
+    dci: o.dci ? { sev: o.dci.sev != null ? o.dci.sev : .6, neuro: o.dci.neuro != null ? o.dci.neuro : 1, chokes: o.dci.chokes || 0, sev0: o.dci.sev != null ? o.dci.sev : .6 } : null, dciE: 0, heat: !!o.heat, drown: o.drown || 0 // ahogamiento: agua en el alveolo, sin surfactante, muy reclutable con PEEP
   };
   S.naMin = S.na; S.na0 = S.na;
   if (S.se) { S.seizUntil = 1e9; S.seizures = 1; }
@@ -179,11 +181,11 @@ function create(opts) {
     const hx = clamp(S.htx / 1.8, 0, 1); // hemotórax: 1,8 L ocupa el hemitórax; la contusión del volet suma shunt que recluta algo con PEEP
     const b = .6 + .4 * S.bs, a = S.air, sv = Math.min(1, S.sev), pe = (S.iface === 'tube' || S.iface === 'mask') ? S.cfg.peep : (S.iface === 'nasal' ? hfPaw() : 0);
     S.mech = {
-      C: P.C * (S.neo ? .25 + .75 * S.neo.aer : 1) * (a.sel ? .55 : 1) * (1 - .5 * ptxEff) * (1 - .5 * sv) * (1 - .4 * S.asp) * (1 - .2 * S.derec) * (1 - .35 * hx) * (1 - .15 * S.flail),
+      C: P.C * (S.neo ? .25 + .75 * S.neo.aer : 1) * (1 - .35 * S.drown) * (a.sel ? .55 : 1) * (1 - .5 * ptxEff) * (1 - .5 * sv) * (1 - .4 * S.asp) * (1 - .2 * S.derec) * (1 - .35 * hx) * (1 - .15 * S.flail),
       Ri: P.Ri * b + 18 * S.opM + (a.obst ? 25 : 0) + (a.sel ? 2 : 0) + (S.iface === 'o2' || S.iface === 'nasal' ? -3 : 0) + (S.iface !== 'tube' ? croupR : 0),
       Re: P.Re * b + 18 * S.opM + (a.obst ? 25 : 0) + (S.iface !== 'tube' ? .3 * croupR : 0),
       Pcrit: P.Pcrit * b + 6 * Math.max(0, S.bs - 1),
-      shunt: clamp(P.shunt0 - P.shuntPeep * (pe - 5), P.shuntMin, .5) + (a.sel ? .22 : 0) + .25 * ptxEff + (P.edema ? clamp(.3 * S.sev - .025 * (pe - 5) * Math.min(1, S.sev + .2), 0, .4) : 0) + clamp(.33 * S.asp - .015 * (pe - 5) * S.asp, 0, .38) + clamp(.009 * Math.max(0, (S.fluidKg || 0) - S.fluidTol), 0, .2) + .14 * S.derec + .06 * S.tep + (S.neo ? .55 * (1 - S.neo.aer) + .3 * clamp(1 - S.clin / 8, 0, 1) : 0) + .18 * clamp((121 - S.na) / 5, 0, 1) + .45 * S.opM + (S.se && S.clin < S.seizUntil && S.relTot < .6 ? .26 : 0) + .26 * hx + clamp(.16 * S.flail - .012 * (pe - 5) * S.flail, 0, .22),
+      shunt: clamp(P.shunt0 - P.shuntPeep * (pe - 5), P.shuntMin, .5) + (a.sel ? .22 : 0) + .25 * ptxEff + (P.edema ? clamp(.3 * S.sev - .025 * (pe - 5) * Math.min(1, S.sev + .2), 0, .4) : 0) + clamp(.33 * S.asp - .015 * (pe - 5) * S.asp, 0, .38) + clamp(.009 * Math.max(0, (S.fluidKg || 0) - S.fluidTol), 0, .2) + .14 * S.derec + .06 * S.tep + (S.dci ? .3 * S.dci.chokes * S.dciE : 0) + clamp(.42 * S.drown - .03 * (pe - 5) * S.drown, 0, .45) + (S.neo ? .55 * (1 - S.neo.aer) + .3 * clamp(1 - S.clin / 8, 0, 1) : 0) + .18 * clamp((121 - S.na) / 5, 0, 1) + .45 * S.opM + (S.se && S.clin < S.seizUntil && S.relTot < .6 ? .26 : 0) + .26 * hx + clamp(.16 * S.flail - .012 * (pe - 5) * S.flail, 0, .22),
       frc: P.frc * (S.neo ? .25 + .75 * S.neo.aer : 1) * (a.sel ? .6 : 1) * (1 - .4 * ptxEff) * (1 - .4 * sv) * (1 - .35 * hx),
       ptxEff, hx
     };
@@ -457,6 +459,7 @@ function create(opts) {
     if (S.cocE > 0) { tas += 70 * S.cocE; fc += 62 * S.cocE; }
     if (S.ph < 7.1) tas -= 30 * clamp((7.1 - S.ph) / .25, 0, 1.3); // la acidemia grave deprime el miocardio y anula los vasopresores
     if (S.temp > 38.5) fc += 6 * (S.temp - 38.5);
+    if (S.heat) tas -= 25 * clamp((S.temp - 39.5) / 2, 0, 1.2); // vasodilatación cutánea del golpe de calor
     // v1.5: vasoplejia séptica (taquicardia) y neurogénica (sin taquicardia refleja y con bradicardia)
     if (S.vaso > 0) { tas -= 62 * S.vaso - 30 * E.nor * S.vaso; fc += 40 * S.vaso; } // la noradrenalina rinde más en la vasoplejia
     if (S.neurog > 0) { tas -= 55 * S.neurog - 45 * E.nor * S.neurog; fc -= S.neurog * (22 * clamp((100 - S.tas) / 40, 0, 1) + 38); }
@@ -483,7 +486,7 @@ function create(opts) {
   function metab(dtc) {
     const E = S.E, peso = S.peso || S.ibw * 1.1;
     if (dtc > 0) {
-      S.temp = clamp(S.temp + (S.warm ? (S.neo ? .1 * S.tempRate + .5 : .3 * S.tempRate + 1) : S.tempRate) * dtc / 60 + (S.clin < S.seizUntil ? .03 * dtc : 0), 20, 42); // la crisis mantenida calienta
+      S.temp = clamp(S.temp + (S.warm ? (S.neo ? .1 * S.tempRate + .5 : .3 * S.tempRate + 1) : S.tempRate) * dtc / 60 + (S.clin < S.seizUntil ? .03 * dtc : 0), 20, 43.5); // la crisis mantenida calienta
       S.glu += (S.gluT - (S.dka ? 240 : 55) * E.ins - 170 * E.insHD - S.glu) * Math.min(1, dtc / 25) + 3 * E.glucg * dtc;
       if (S.dka && E.ins > .3) S.hco3Off = Math.min(0, S.hco3Off + .03 * E.ins * dtc); // la insulina frena la cetogénesis (horas)
       if (S.op > 0 && !S.decont) S.op = clamp(S.op + S.opRate * dtc, 0, 1); // sigue absorbiéndose por la piel y la ropa
@@ -506,6 +509,10 @@ function create(opts) {
       } else S.bleedNow = 0;
       strokeStep(dtc);
       if (S.neo) neoStep(dtc);
+      if (S.dci) { const boyle = 760 / S.pbar, wash = clamp((S.fiEff - .3) / .6, 0, 1); // el O₂ al 100 % lava el nitrógeno; la altitud expande las burbujas (Boyle)
+        S.dci.sev = clamp(S.dci.sev + (-.012 * wash - .004 * clamp((.2 - S.deficit) / .2, 0, 1) + .012 * Math.max(0, boyle - 1.05) + .002) * dtc, 0, 1);
+        S.dciE = clamp(S.dci.sev * boyle, 0, 1.3); }
+      if (S.heat && S.temp > 39) S.deficit = Math.min(.6, S.deficit + .002 * (S.temp - 39) * dtc); // golpe de calor: sudoración y vasodilatación
       if (S.burn > 0 && !S.arrest) S.deficit = Math.min(.7, S.deficit + .00007 * S.burn * dtc); // gran quemado: fuga capilar (≈ 550 mL/h con un 36 % en el adulto)
       if (S.fluidRate > 0) { const mlkg = S.fluidRate / 60 * dtc / (S.peso || 75); S.fluidPend += .15 * mlkg / 7; S.fluidKg += mlkg; S.fluidPerfMl = (S.fluidPerfMl || 0) + S.fluidRate / 60 * dtc; addNa(140, S.fluidRate / 60 * dtc / 1000); }
       if (S.naPend) { const d = S.naPend * Math.min(1, dtc / 5); S.na += d; S.naPend -= d; S.naMin = Math.min(S.naMin, S.na); } // el sodio sube a medida que pasa el bolo
@@ -655,7 +662,7 @@ function create(opts) {
     if (S.cohb > 0) { const th = 300 / (1 + 3 * clamp((S.fiEff - .21) / .79, 0, 1)) * clamp(4.5 / Math.max(vaE, .5), .8, 1.6); S.cohb = Math.max(0, S.cohb - S.cohb * Math.LN2 / th * dtc); }
     S.oxEff = S.spo2 * (1 - S.cohb) - .25 * S.cn; // el pulsioxímetro no distingue la COHb
     // lactato (hipoperfusión, hipoxia tisular, sepsis, cianuro, CO, anafilaxia, parada) y equilibrio ácido-base con tampón agudo
-    const lt = 1 + 4 * clamp((90 - S.tas) / 40, 0, 1.2) + 4 * clamp((.85 - S.oxEff) / .25, 0, 1.2) + (S.pk === 'sepsis' ? 3 : 0) + 5 * S.vaso + 8 * S.cn + 6 * S.cohb + 3 * S.anaf + (S.clin < S.seizUntil && S.relTot < .6 ? 5 : 0);
+    const lt = 1 + 4 * clamp((90 - S.tas) / 40, 0, 1.2) + 4 * clamp((.85 - S.oxEff) / .25, 0, 1.2) + (S.pk === 'sepsis' ? 3 : 0) + 5 * S.vaso + 8 * S.cn + 6 * S.cohb + 3 * S.anaf + (S.clin < S.seizUntil && S.relTot < .6 ? 5 : 0) + (S.heat ? 2.5 * clamp((S.temp - 40) / 2, 0, 1.2) : 0);
     if (!S.lactInit) { S.lactInit = true; S.lact = S.lact0 = S.arrest ? 2 : lt; }
     if (S.arrest) S.lact += (S.cpr.comp !== 'off' ? .25 : .6) * dtc; else S.lact += (lt - S.lact) * Math.min(1, dtc / (lt > S.lact ? 6 : 40));
     S.hco3m = P.hco3 - .9 * (S.lact - S.lact0) + S.bicKg / .4 + (S.hco3Off || 0);
@@ -1061,6 +1068,9 @@ function create(opts) {
       if (S.cocaine > 0) f.push(S.cocE > .35 ? 'Muy agitado, sudoroso, con midriasis y dolor torácico opresivo; no se deja explorar.' : 'Más tranquilo tras la sedación; menos sudoroso.');
       if (S.temp > 40) f.push('Piel muy caliente al tacto' + (S.cool ? '; enfriándose con agua pulverizada y ventilación.' : '.'));
       if (S.dka) f.push('Aliento afrutado (cetósico), mucosas muy secas y signo del pliegue.');
+      if (S.dci) { const d = S.dciE * S.dci.neuro; f.push(d > .55 ? 'Paraparesia (fuerza 2/5 en ambas piernas), hipoestesia desde el ombligo y globo vesical; piel marmórea en el tronco.' : d > .3 ? 'Debilidad en ambas piernas (fuerza 4/5) y hormigueo; dolor lumbar; piel marmórea en el tronco.' : d > .12 ? 'Hormigueo en las piernas y dolor en los hombros; la fuerza se ha recuperado.' : 'Sin déficit neurológico; persiste algo de dolor articular.');
+        if (S.dci.chokes > 0 && S.dciE > .3) f.push('Tos seca, dolor retroesternal y disnea (afectación pulmonar).'); }
+      if (S.heat && S.temp > 39.5) f.push('Piel caliente y enrojecida; ' + (S.temp > 41 ? 'agitado y confuso, con lenguaje incoherente.' : 'confuso.'));
       if (naEff() > .25) f.push('Cefalea, náuseas y vómitos repetidos; ' + (naEff() > .6 ? 'confusa y desorientada; ' : '') + 'manos y cara hinchadas, los anillos le aprietan.');
       if (S.icp) f.push(S.icp.v > 30 ? 'Pupila derecha midriática y arreactiva; la izquierda, reactiva.' : S.icp.v > 22 ? 'Pupilas isocóricas pero perezosas.' : 'Pupilas isocóricas y reactivas.');
       if (S.arr.type && S.arr.type !== 'sbrady') f.push(S.tas < 90 ? 'Pulso rápido y débil; sudoroso, pálido, con mareo.' : 'Palpitaciones; pulso rápido y bien tolerado.');

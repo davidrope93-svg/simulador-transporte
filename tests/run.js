@@ -250,6 +250,16 @@ console.log('— Reanimación neonatal (v1.9): insuflaciones, ventilación, comp
   const wet = nb('rnApnea', [], 10), dry = nb('rnApnea', [[.1, s => s.action('warm')]], 10); check('Mojado y sin calor: hipotermia a los 10 min', wet.S.temp, 35, 35.8, ' °C'); check('Secado y abrigado: normotermia', dry.S.temp, 36.5, 37.2, ' °C');
   global.window = global; require('../src/drugs.js'); const DR = global.SIM_DRUGS; check('Adrenalina en el recién nacido de 3,1 kg: 20 mcg/kg', DR.doseOf(DR.DRUGITEMS.adr1, 3.1, true) * 1000, 60, 64, ' mcg'); check('En un niño de 26 kg sigue siendo 10 mcg/kg', DR.doseOf(DR.DRUGITEMS.adr1, 26, true) * 1000, 255, 265, ' mcg'); }
 
+console.log('— Ambiental de Canarias (v1.10): ahogamiento, enfermedad descompresiva y golpe de calor');
+{ const dci = (o2, alt, vol) => { const L = load('buceoDci', { seed: 4, scale: 10 }), s = L.sim; if (o2) s.setCfg(Object.assign({}, s.S.cfg, { o2dev: 'reserv' })); if (vol) s.action('fluid', 1000 / 84); adv(s, 2.5); s.setAltitude(alt); adv(s, 30); return s.S.dciE; };
+  let L = load('buceoDci', { seed: 4, scale: 10 }); adv(L.sim, .5); check('Descompresiva: exploración con paraparesia', /Paraparesia/.test(L.sim.explore().join(' ')) ? 1 : 0, 1, 1);
+  const a = dci(false, 1500, false), b = dci(true, 1500, false), c2 = dci(true, 300, false), d = dci(true, 300, true);
+  check('Sin O₂ y a 1.500 m, empeora en 30 min', a - .65 * 760 / VMI.pbarAt(0), .05, .4); check('El O₂ al 100 % reduce la carga de burbujas', a - b, .2, .5); check('Volar a 300 m en vez de 1.500 m', b - c2, .08, .25); check('El volumen ayuda', c2 - d, .05, .2);
+  L = load('golpeCalor', { seed: 4, scale: 10 }); adv(L.sim, .5); const t0 = L.S.temp; check('Golpe de calor: GCS', L.S.gcs, 3, 13); adv(L.sim, 15); check('Sin enfriar, sigue subiendo', L.S.temp - t0, .1, .6, ' °C'); check('… y cae la TAS', L.S.tas, 60, 92, ' mmHg');
+  L = load('golpeCalor', { seed: 4, scale: 10 }); adv(L.sim, .5); L.sim.action('cool'); adv(L.sim, 10); check('Enfriamiento activo: −1,3 °C en 10 min', t0 - L.S.temp, 1, 1.8, ' °C'); adv(L.sim, 40); check('El enfriamiento no baja de 37 °C', L.S.temp, 37, 37.4, ' °C');
+  const dr = niv => { const a = load('ahogVmni', { seed: 4, scale: 10 }), s = a.sim; adv(s, .3); if (niv) { s.setIface('mask'); s.S.mask.leak10 = 15; s.setCfg(Object.assign({}, s.S.cfg, { mode: 'PSV', ps: 6, peep: 10, fio2: 100, trigI: 2, trigE: 40, rise: .15, timax: 1.2, pmax: 30, fr: 12 })); s.setStandby(false); } adv(s, 6); return s.S.spo2 * 100; };
+  check('Ahogamiento: VMNI con PEEP 10 frente a reservorio', dr(true) - dr(false), 5, 14, ' puntos de SpO₂'); }
+
 console.log('— Instalable y sin conexión (v1.3): manifiesto, iconos y service worker');
 { const fs = require('fs'), path = require('path'), R = f => path.join(__dirname, '..', f);
   const man = JSON.parse(fs.readFileSync(R('manifest.webmanifest'), 'utf8'));
