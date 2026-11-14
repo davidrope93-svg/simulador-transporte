@@ -8,7 +8,7 @@ const DR = global.SIM_DRUGS, SOL = global.SIM_SOL;
 const r10 = x => Math.round(x / 10) * 10;
 const O2LAD = ['gafas', 'venturi28', 'venturi35', 'venturi50', 'reserv'];
 const NOR = [0, .05, .1, .15, .2, .3, .5], ADRI = [0, 2, 5, 10, 20];
-const RND = { spo2: 0, et: 0, tas: 0, pam: 0, vtkg: 1, pplat: 0, dp: 0, peepi: 0, pco2: 0, rr: 0, ie: 2, auto: 2, leak: 0, o2: 0, fight: 2, sinus: 0, glu: 0, qrs: 0, fio2: 0, spco: 0, reperf: 0, temp: 1, fluidRate: 0, na: 0, naUp: 1, seizFree: 0, fc: 0, k: 1, alt: 0, gcs: 0, ph: 2 };
+const RND = { cuff: 0, spo2: 0, et: 0, tas: 0, pam: 0, vtkg: 1, pplat: 0, dp: 0, peepi: 0, pco2: 0, rr: 0, ie: 2, auto: 2, leak: 0, o2: 0, fight: 2, sinus: 0, glu: 0, qrs: 0, fio2: 0, spco: 0, reperf: 0, temp: 1, fluidRate: 0, na: 0, naUp: 1, seizFree: 0, fc: 0, k: 1, alt: 0, gcs: 0, ph: 2 };
 
 function play(key, { seed = 1, idle = false } = {}) {
   const c = CASES[key], sol = SOL[c.vbase || key] || { s: [] }, L = load(key, { scale: 10, seed });
@@ -29,7 +29,7 @@ function play(key, { seed = 1, idle = false } = {}) {
     if (it.act) { mark('act:' + it.act); if (it.act === 'fluid') sim.action('fluid', (ped ? 10 * peso : 500) / peso); else if (it.act === 'blood') sim.action('blood', ped ? peso * 10 / 300 : 1); else sim.action(it.act); return; }
     mark('drug:' + it.k); mark('drug:' + it.id); sim.drug(it.k, DR.amountOf(it, peso, ped));
   }
-  const perfNow = {};
+  const perfNow = {}; if (c.norPre) perfNow.nor = c.norPre;
   function perf(id, r) {
     const p = DR.PERFS.find(x => x.id === id); if (!p) throw new Error(`${key}: perfusión desconocida «${id}»`);
     if (!hasAcc()) { access(() => perf(id, r)); return; }
@@ -76,7 +76,8 @@ function play(key, { seed = 1, idle = false } = {}) {
     ptx: () => { act('decomp'); at(S.clin + .4, () => act('drain')); }, wake: () => { give('sedperf'); give('sedB'); },
     leak: () => act(S.iface === 'mask' ? 'mask' : 'cuff'), rebleed: () => { act('hemo'); give('blood'); },
     aspir: () => { if (S.iface === 'tube') { act('suction'); cfg({ peep: Math.max(S.cfg.peep || 5, 10) }); } else if (S.iface === 'mask') OPS.isr({ ind: 'ket' }); },
-    seiz: () => give(c.ecl ? 'mg4' : 'mid')
+    seiz: () => give(c.ecl ? 'mg4' : 'mid'),
+    pumpNor: () => perf('nor', perfNow.nor || .1), paceLoss: () => OPS.pace(S.pace.rate, Math.min(200, S.pace.mA + 40)), drainClamp: () => act('unclamp'), hemat: () => give('blood') // v1.24
   };
   function tick(Lx, M) {
     for (const q of queue) if (!q.done && S.clin >= q.t) { q.done = true; q.fn(); }
@@ -143,7 +144,7 @@ function val(k, S, M) {
     case 'pplat': return M.pplat; case 'dp': return M.dp; case 'peepi': return M.peepi; case 'pco2': return S.pco2;
     case 'rr': return S.arrest ? null : (M.effN >= 2 ? M.effRR : 0); case 'ie': return M.effN >= 4 ? M.ies / M.effN : null;
     case 'auto': return M.nB >= 4 ? M.auto / M.nB : null; case 'leak': return M.leak; case 'o2': return S.o2.supply ? 1 : 0;
-    case 'fight': return S.fight || 0; case 'sinus': return S.arr.type || S.arrest ? 0 : 1; case 'glu': return S.glu; case 'spco': return S.cohb * 100; case 'temp': return S.temp; case 'fluidRate': return S.fluidRate || 0; case 'na': return S.na; case 'fc': return S.arrest ? null : S.fc; case 'gcs': return S.arrest ? null : S.gcs; case 'alt': return S.altitude; case 'k': return S.k; case 'naUp': return S.na - S.na0; case 'seizFree': return S.arrest ? null : (S.clin >= S.seizUntil ? 1 : 0); case 'reperf': { const m = S.stemi; return m && (m.pci <= 120 || m.nste || m.noTnk || m.failed ? m.icp != null : m.tnkAt != null) ? 1 : 0; }
+    case 'fight': return S.fight || 0; case 'sinus': return S.arr.type || S.arrest ? 0 : 1; case 'glu': return S.glu; case 'spco': return S.cohb * 100; case 'cuff': return S.cuffP; case 'temp': return S.temp; case 'fluidRate': return S.fluidRate || 0; case 'na': return S.na; case 'fc': return S.arrest ? null : S.fc; case 'gcs': return S.arrest ? null : S.gcs; case 'alt': return S.altitude; case 'k': return S.k; case 'naUp': return S.na - S.na0; case 'seizFree': return S.arrest ? null : (S.clin >= S.seizUntil ? 1 : 0); case 'reperf': { const m = S.stemi; return m && (m.pci <= 120 || m.nste || m.noTnk || m.failed ? m.icp != null : m.tnkAt != null) ? 1 : 0; }
     case 'ph': return S.ph; case 'qrs': return S.arrest ? null : S.ecg.qrs * 1000; case 'fio2': return (S.iface === 'tube' || S.iface === 'mask') && !S.standby ? S.cfg.fio2 : null;
   }
   return null;

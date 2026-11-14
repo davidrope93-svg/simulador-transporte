@@ -449,6 +449,26 @@ console.log('— Tanda de vía aérea (v1.23): laringectomizado, laringoespasmo,
   let rip0 = 0, rip1 = 0; for (let sd = 1; sd <= 6; sd++) { const x = run('secuenciaRetrasada', [[.3, s => s.setIface('mask')]], 4, sd), y = run('secuenciaRetrasada', [[.2, give('ket', 80)], [.3, s => s.setIface('mask')]], 4, sd); rip0 += x.S.log.filter(l => /agobia/.test(l[1])).length; rip1 += y.S.log.filter(l => /agobia/.test(l[1])).length; }
   check('Secuencia retrasada: se arranca la mascarilla sin ketamina (episodios, 6 semillas)', rip0, 3, 99); check('… con ketamina disociativa', rip1, 0, 1); }
 
+console.log('— HEMS e interhospitalario (v1.24): balón y altitud, trombólisis, varices, perfusiones, marcapasos y drenaje');
+{ const run = (k, acts, m, seed) => { const L = load(k, { seed: seed || 4, scale: 10 }), s = L.sim; adv(s, .05); for (const [t, f] of acts) { if (s.S.clin < t) adv(s, t - s.S.clin); f(s); } adv(s, m - s.S.clin); return s; };
+  global.window = global; require('../src/drugs.js'); const DR = global.SIM_DRUGS;
+  const give = (id, kg) => s => { const it = DR.DRUGITEMS[id]; s.drug(it.k, DR.amountOf(it, kg || 70, false)); };
+  let a = run('tceGomera', [[.5, s => s.setAltitude(1500)]], 1.5); check('Balón inflado con aire en tierra: presión a 1.500 m', a.S.cuffP, 40, 60, ' cmH₂O');
+  a.action('cuffP'); adv(a, .2); check('… tras el manómetro', a.S.cuffP, 24, 26, ' cmH₂O'); a.setAltitude(0); adv(a, .3); check('… al aterrizar: flácido y con fuga', a.S.cuffP < 17 && a.S.air.leak > 0 ? 1 : 0, 1, 1);
+  let tr0 = 0, tr1 = 0; for (let sd = 1; sd <= 10; sd++) { if (run('ictusHierro', [], 28, sd).S.stroke.hemT) tr0++; if (run('ictusHierro', [[.4, give('labet')], [4, give('labet')], [8, give('labet')]], 28, sd).S.stroke.hemT) tr1++; }
+  check('Ictus tras trombólisis con TAS 200: transformación hemorrágica (de 10)', tr0, 3, 10); check('… con TAS < 180', tr1, 0, 2);
+  a = run('hdaPalma', [], 15); let b = run('hdaPalma', [[.3, s => { s.S.access = 'iv'; }], [.5, give('terli')]], 15); check('Varices: sangre perdida en 15 min (sin / con terlipresina)', a.S.lost / Math.max(b.S.lost, 1e-6), 1.4, 5, ' veces');
+  a = run('hdaPalma', [[9, s => s.event('hemat')]], 12); b = run('hdaPalma', [[.3, s => { s.S.access = 'iv'; }], [.5, give('ket', 80)], [.6, give('roc', 80)], [1.8, s => s.intubate()], [9, s => s.event('hemat')]], 12);
+  check('Hematemesis masiva en vuelo sin intubar: broncoaspiración', a.S.aspT, .5, 1); check('… intubado', b.S.aspT || 0, 0, .1);
+  a = run('septicoFerry', [], 4.9); const pam0 = a.S.pam; adv(a, .05); a.event('pumpNor'); adv(a, 8); check('Se acaba la noradrenalina: caída de la PAM en 8 min', pam0 - a.S.pam, 8, 80, ' mmHg');
+  a = run('bavHierro', [[.5, s => s.pace(true, 70, 90, 'demand')]], 5); let cap = 0; for (let i = 0; i < 20; i++) { adv(a, .1); if (a.S.pace.capture) cap++; } check('Marcapasos a demanda en el BAV: captura estable (de 20)', cap, 20, 20);
+  a.event('paceLoss'); adv(a, .5); check('… pérdida de captura con la vibración', a.S.pace.capture ? 1 : 0, 0, 0); a.pace(true, 70, 140, 'demand'); adv(a, .5); check('… se recupera subiendo los mA', a.S.pace.capture ? 1 : 0, 1, 1);
+  let tens = 0; for (let sd = 1; sd <= 8; sd++) if (run('drenajePinzado', [[2.5, s => s.event('drainClamp')]], 14, sd).S.ptxActive) tens++; check('Drenaje con fuga pinzado: neumotórax a tensión en 12 min (de 8)', tens, 5, 8);
+  a = run('drenajePinzado', [[2.5, s => s.event('drainClamp')], [3.5, s => s.action('unclamp')]], 14); check('… despinzado: sin neumotórax', a.S.ptxActive || a.S.ptx > .05 ? 1 : 0, 0, 0);
+  a = run('sdraPalma', [], 2.5); const sp0 = a.S.spo2 * 100; a.setAltitude(1500); adv(a, 3); check('SDRA: la SpO₂ cae al subir a 1.500 m', sp0 - a.S.spo2 * 100, 2, 15, ' puntos');
+  a = run('politraumaFrio', [], 32); b = run('politraumaFrio', [[.2, s => s.action('warm')]], 32); check('Politrauma en vuelo largo sin calor: temperatura', a.S.temp, 30, 34.6, ' °C'); check('… con calor activo', b.S.temp, 35.5, 38, ' °C');
+  a = run('bronquiolitisHierro', [], 20); check('Lactante en alto flujo que se agota: pCO₂ a 20 min', a.S.pco2, 62, 150, ' mmHg'); }
+
 console.log('— Instalable y sin conexión (v1.3): manifiesto, iconos y service worker');
 { const fs = require('fs'), path = require('path'), R = f => path.join(__dirname, '..', f);
   const man = JSON.parse(fs.readFileSync(R('manifest.webmanifest'), 'utf8'));

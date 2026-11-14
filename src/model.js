@@ -44,6 +44,7 @@ const DRUGS = {
   ca: { h: 30, on: .5, ec50: .5 }, ins: { h: 120, on: 15, ec50: .5 }, txa: { h: 120, on: 3, ec50: .3 }, iso: { h: 2.5, on: 1, ec50: 2 },
   urap: { h: 180, on: 2, ec50: 25 }, labet: { h: 300, on: 5, ec50: 40 }, oxito: { h: 15, on: 3, ec50: 3 }, adrN: { h: 60, on: 4, ec50: 12 },
   dexa: { h: 600, on: 60, ec50: 15 }, glucg: { h: 20, on: 8, ec50: .5 },
+  terli: { h: 50, on: 4, ec50: 1 }, // v1.24: terlipresina (mg)
   // v1.7: antiepilépticos de 2.ª línea (mg normalizados a 75 kg; en 10 min)
   lev: { h: 420, on: 8, ec50: 1500 }, vpa: { h: 600, on: 8, ec50: 1000 },
   // v1.8: insulina a dosis altas (UI/kg), emulsión lipídica 20 % (mL, 75 kg) y pralidoxima (mg, 75 kg)
@@ -122,7 +123,8 @@ function create(opts) {
     access: o.access !== false, accessPend: null, ecg: { qrs: .08, t: 1, p: 1, j: 0, st: 0, amp: 1 }, gcs: 15,
     // v1.4: SCACEST (localización, VD, minutos de evolución al empezar, minutos hasta la ICP primaria) y taponamiento (0–1 y crecimiento por minuto)
     stemi: o.stemi ? { loc: o.stemi.loc || 'ant', rv: !!o.stemi.rv, onset: o.stemi.onset || 60, pci: o.stemi.pci != null ? o.stemi.pci : 30, reperf: false, reperfAt: null, tnkAt: o.stemi.failed ? -70 : null, icp: null, noTnk: !!o.stemi.noTnk, nste: !!o.stemi.nste, failed: !!o.stemi.failed, ich: false } : null,
-    qtl: o.qtl ? { qtc: o.qtl.qtc || 600, n: 0, until: -1 } : null, bzd: o.bzd || 0, bzdEff: 0, diur: o.diur || 0, bzdChronic: !!o.bzdChronic, flumSeizAt: null, etoh: o.etoh || 0, anticol: !!o.anticol, caust: !!o.caust, hhs: !!o.hhs, adrenal: o.adrenal || 0, thyro: o.thyro || 0, thyroEff: 0, salic: o.salic || 0, suelo: !!o.suelo, fbao: o.fbao || 0, lspasm: o.lspasm || 0, trach: o.trach ? { lar: !!o.trach.lar, obs: o.trach.obs != null ? o.trach.obs : .9, inner: o.trach.inner !== false } : null, weakRate: o.weakRate || 0, eclRisk: o.eclRisk != null ? o.eclRisk : null, fallot: o.fallot ? { base: o.fallot, spell: o.fallot, kc: false } : null, flags: Object.assign({}, o.flags || {}), dissec: o.dissec ? { prog: 0, done: false } : null, bavN: !!o.bavN, pmFail: !!o.pmFail, // v1.19–v1.20: tóxicos, metabólico, QT largo, disección aórtica, BAV nodal y fallo de marcapasos
+    qtl: o.qtl ? { qtc: o.qtl.qtc || 600, n: 0, until: -1 } : null, bzd: o.bzd || 0, bzdEff: 0, diur: o.diur || 0, bzdChronic: !!o.bzdChronic, flumSeizAt: null, etoh: o.etoh || 0, anticol: !!o.anticol, caust: !!o.caust, hhs: !!o.hhs, adrenal: o.adrenal || 0, thyro: o.thyro || 0, thyroEff: 0, salic: o.salic || 0, suelo: !!o.suelo, fbao: o.fbao || 0, lspasm: o.lspasm || 0, trach: o.trach ? { lar: !!o.trach.lar, obs: o.trach.obs != null ? o.trach.obs : .9, inner: o.trach.inner !== false } : null, weakRate: o.weakRate || 0, cuff: o.cuffAlt ? { p0: 25, pb0: pbarAt(o.altitude || 0) } : null, cuffP: null, drainClamp: false, // v1.24: balón con la altitud y drenaje pinzado
+    eclRisk: o.eclRisk != null ? o.eclRisk : null, fallot: o.fallot ? { base: o.fallot, spell: o.fallot, kc: false } : null, flags: Object.assign({}, o.flags || {}), dissec: o.dissec ? { prog: 0, done: false } : null, bavN: !!o.bavN, pmFail: !!o.pmFail, // v1.19–v1.20: tóxicos, metabólico, QT largo, disección aórtica, BAV nodal y fallo de marcapasos
     tamp: o.tamp || 0, tampRate: o.tampRate || 0, pericPend: null,
     // v1.5: shock distributivo — vasoplejia séptica (0–1 y progresión por minuto hasta el antibiótico), neurogénico (0–1) y volumen que tolera el pulmón (mL/kg)
     tire: !!o.tire, pneu: o.pneu || 0, tbi: o.tbi || 0, tbi0: o.tbi || 0, preg: o.preg || 0, lud: false, tdp: !!o.tdp, ptxOpen: !!o.ptxOpen, crush: o.crush || 0, released: false, drive0: o.drive0 || 1, ptxRate: o.ptxRate || 0, irritant: !!o.irritant, hape: o.hape || 0, anxRate: o.anxRate || 0, anxBase: o.anxBase || 0, calmAt: null, retainer: !!o.retainer, ced: o.cedema ? { at: o.cedema.at || 15, risk: o.cedema.risk || .3, on: false, bic: false, insB: false, pRef: o.pco2 || 40 } : null, vaso: o.vaso || 0, vasoRate: o.vasoRate || 0, neurog: o.neurog || 0, fluidTol: o.fluidTol || 35, atbAt: null, tad: 70, pam: 90,
@@ -149,6 +151,9 @@ function create(opts) {
   if (o.ntgPre) S.drug.ntg.cp = S.drug.ntg.ce = o.ntgPre;
   if (o.opioid) S.drug.morf.cp = S.drug.morf.ce = o.opioid;
   if (o.ketPre) S.drug.ket.cp = S.drug.ket.ce = o.ketPre; // v1.23: sedación con ketamina ya en curso
+  if (o.norPre) { S.drug.nor.cp = S.drug.nor.ce = o.norPre; S.drug.nor.R = o.norPre * Math.LN2 / DRUGS.nor.h; S.norRate = o.norPre; } // v1.24: noradrenalina ya en perfusión estable
+  if (o.drained) S.drained = true;
+  if (o.atbPre) { S.drug.atb.cp = S.drug.atb.ce = 1; S.atbAt = -60; } // antibiótico ya puesto en el hospital de origen
   S.V = Math.max(o.iface === 'tube' || o.iface === 'mask' ? S.cfg.peep : 0, P.Pcrit) * P.C;
   if (o.arrest) { S.arrest = true; S.rhythm = o.arrest; S.cpr.cause = o.arrestCause || (o.arrest === 'vf' ? 'vf' : 'primary'); S.cpr.cause2 = o.arrestCause2 || null; S.cpr.comp = o.comp || 'off'; S.tas = 0; }
   if (o.postRosc) S.cpr.roscAt = 0;
@@ -198,6 +203,7 @@ function create(opts) {
     }
     S.pbar = pbarAt(S.altitude);
     const boyle = 760 / S.pbar;
+    if (S.cuff) { S.cuffP = S.iface === 'tube' ? S.cuff.p0 * Math.pow(S.cuff.pb0 / S.pbar, 3.5) : null; if (S.cuffP != null && S.cuffP < 17 && !S.air.leak) { S.air.leak = .3; S.cuff.low = true; } } // v1.24: el aire del balón se expande al subir y se contrae al bajar
     const ptxEff = S.ptxActive ? S.ptx : Math.min(1, S.ptx * boyle);
     S.croupEff = S.croup * (1 - .65 * E.adrN) * (S.clin < S.anxUntil ? 1.3 : 1);
     const croupR = 62 * Math.pow(1 / S.kW, .5) * S.croupEff + 55 * clamp((S.edAir - .45) / .4, 0, 1); // crup o edema de la vía aérea (humo, angioedema): obstrucción si no hay tubo
@@ -484,6 +490,7 @@ function create(opts) {
     if (S.op > 0) { tas -= 45 * S.opM; fc += -58 * S.opM + 15 * S.opN; } // bradicardia muscarínica, taquicardia nicotínica
     if (S.cocE > 0) { tas += 70 * S.cocE; fc += 62 * S.cocE; }
     if (S.thyroEff > 0) { tas += 30 * S.thyroEff; fc += 45 * S.thyroEff; }
+    if (E.terli > .05) { tas += 14 * E.terli; fc -= 8 * E.terli; } // v1.24: terlipresina: vasoconstricción esplácnica y sistémica
     if (S.flags.disrefl) { const on = S.flags.sondaAt == null ? 1 : clamp(1 - (S.clin - S.flags.sondaAt) / 3, 0, 1); tas += 95 * on - 38 * E.ntg * on; fc -= 28 * on; } // v1.22: disreflexia autonómica — se resuelve al vaciar la vejiga
     if (S.flags.gbs) tas += 16 * Math.sin(S.clin * 1.1); // disautonomía del Guillain-Barré
     if (S.adrenal > 0) { const ok = clamp(E.cort / .3, 0, 1); tas -= S.adrenal * (60 + 45 * E.nor + 50 * E.adr) * (1 - .85 * ok); } // la falta de cortisol anula la respuesta a las catecolaminas // v1.20: crisis suprarrenal — la noradrenalina sola apenas responde
@@ -494,12 +501,12 @@ function create(opts) {
     if (S.vaso > 0) { tas -= 62 * S.vaso - 30 * E.nor * S.vaso; fc += 40 * S.vaso; } // la noradrenalina rinde más en la vasoplejia
     if (S.neurog > 0) { tas -= 55 * S.neurog - 45 * E.nor * S.neurog; fc -= S.neurog * (22 * clamp((100 - S.tas) / 40, 0, 1) + 38); }
     const ar = S.arr.type;
-    if (ar && !S.pace.capture) {
+    if (ar) { // v1.24: la frecuencia intrínseca se calcula también con captura (si no, el modo demanda se inhibe y oscila)
       fc = ar === 'tsv' ? (S.ped ? 270 - 12 * Math.min(S.age || 0, 8) : 186) : ar === 'flutter' ? 150 - 20 * E.amio : ar === 'fa' ? (S.thyro ? 150 + 30 * S.thyroEff : 158) - 45 * E.amio - 40 * E.labet : ar === 'tvp' ? 178 - 15 * E.amio : ar === 'fapre' ? 225 - 10 * E.amio : ar === 'tdp' ? 240 : 36 + 55 * E.atr + 40 * E.adr + 45 * E.iso;
       if (S.t < S.slowUntil) fc *= .55;
-      tas -= S.arr.pen * (ar === 'sbrady' ? clamp((62 - fc) / 26, 0, 1) : clamp((fc - 120) / 60, 0, 1.3));
+      if (!S.pace.capture) tas -= S.arr.pen * (ar === 'sbrady' ? clamp((62 - fc) / 26, 0, 1) : clamp((fc - 120) / 60, 0, 1.3));
     }
-    if (S.bav && !S.pace.capture) { if (S.bavN) { fc = 40 + 40 * E.atr + 30 * E.adr + 35 * E.iso; tas -= 40 - 30 * clamp(E.atr, 0, 1) - 25 * E.adr - 20 * E.iso; } else { fc = 32 + 8 * E.atr + 30 * E.adr + 35 * E.iso; tas -= 45 - 25 * E.adr - 20 * E.iso; } } // v1.19: BAV nodal (escape estrecho, responde a la atropina)
+    if (S.bav) { const pc = S.pace.capture ? 0 : 1; if (S.bavN) { fc = 40 + 40 * E.atr + 30 * E.adr + 35 * E.iso; tas -= pc * (40 - 30 * clamp(E.atr, 0, 1) - 25 * E.adr - 20 * E.iso); } else { fc = 32 + 8 * E.atr + 30 * E.adr + 35 * E.iso; tas -= pc * (45 - 25 * E.adr - 20 * E.iso); } } // v1.19: BAV nodal (escape estrecho, responde a la atropina)
     if (S.hypoxT > 1.5) fc = 38 + 30 * E.atr + 25 * E.adr;
     if (S.neo) { const ox = clamp((S.spo2 - .45) / .4, 0, 1); fc = S.neo.hr; tas = (30 + 32 * S.neo.m * (.4 + .6 * ox) + (S.neo.comp ? 8 : 0) + 15 * E.adr) * (S.neo.prem ? clamp(.5 + (S.neo.prem - 22) / 30, .6, 1) : 1) * (1 - (S.ptxActive ? .4 * S.ptx : 0)); } // el prematuro tiene TA más baja // recién nacido: la FC sigue a la oxigenación y al miocardio
     S.fcIntr = fc;
@@ -550,7 +557,7 @@ function create(opts) {
         const pf = Math.pow(clamp(S.tas / 100, .3, 1.6), 1.5), src = S.bleedSrc;
         const hem = S.hemo ? (src === 'ext' ? .1 : src === 'pelv' ? .55 : src === 'uter' ? .6 : src === 'femur' ? .5 : 1) : 1;
         const coag = 1 + .08 * clamp(35.5 - S.temp, 0, 6) + .3 * clamp((S.fluidKg - 20) / 40, 0, 1.5) + .4 * clamp((7.2 - (S.ph || 7.4)) / .2, 0, 1);
-        S.bleedNow = S.bleed * pf * (1 - (src === 'dig' ? 0 : .3) * E.txa) * hem * (src === 'uter' ? 1 - .6 * E.oxito : 1) * coag;
+        S.bleedNow = S.bleed * pf * (1 - (src === 'dig' ? 0 : .3) * E.txa) * hem * (src === 'uter' ? 1 - .6 * E.oxito : 1) * (src === 'dig' && S.flags.varices ? 1 - .75 * (E.terli || 0) : 1) * coag;
         S.deficit = Math.min(.7, S.deficit + S.bleedNow * dtc); S.lost = (S.lost || 0) + S.bleedNow * dtc;
         if (src === 'thor') { const ml = S.bleedNow * dtc * 4000; if (S.drained) S.htxOut += ml; else S.htx += ml / 1000; } // la sangre del hemotórax se queda en la pleura o sale por el drenaje
       } else S.bleedNow = 0;
@@ -614,7 +621,7 @@ function create(opts) {
     else if (S.temp > 42.3 && rnd() < dtc * .1) enterArrest('primary');
     // escala de Glasgow aproximada
     const tLow = S.ped ? pedNorms(S.age || 0).tasMin - 8 : 70; // en el niño, la hipotensión que altera la conciencia depende de la edad
-    let g = 15 - 12 * S.sedTot - 3 * S.opi - 9 * gluN - 1.3 * clamp(32 - S.temp, 0, 8) - (S.pco2 > (S.retainer ? 66 : 80) ? (S.pco2 - (S.retainer ? 66 : 80)) / 5 : 0) - (S.oxEff < .75 ? (.75 - S.oxEff) * 30 : 0) - (S.tas < tLow ? (tLow - S.tas) / 5 : 0) - (S.cohb > .2 ? (S.cohb - .2) * 25 : 0) - (S.icp && S.icp.v > 22 ? (S.icp.v - 20) / 3 : 0) - 6 * naEff() - strokeGcs() - 5 * S.op - 9 * S.bzdEff - 5 * S.etoh - (S.flags.mening && S.vaso > 0 ? 3 : 0) - 7 * S.cn - clamp((2 * S.na + S.glu / 18 - 320) / 8, 0, 8) - 1 * S.cocE - 1.5 * clamp(S.temp - 40.5, 0, 2.5) - 3 * clamp((7.1 - (S.ph || 7.4)) / .2, 0, 1) - S.tbi;
+    let g = 15 - 12 * S.sedTot - 3 * S.opi - 9 * gluN - 1.3 * clamp(32 - S.temp, 0, 8) - (S.pco2 > (S.retainer ? 66 : 80) ? (S.pco2 - (S.retainer ? 66 : 80)) / 5 : 0) - (S.oxEff < .75 ? (.75 - S.oxEff) * 30 : 0) - (S.tas < tLow ? (tLow - S.tas) / 5 : 0) - (S.cohb > .2 ? (S.cohb - .2) * 25 : 0) - (S.icp && S.icp.v > 22 ? (S.icp.v - 20) / 3 : 0) - 6 * naEff() - strokeGcs() - 5 * S.op - 9 * S.bzdEff - 5 * S.etoh - (S.flags.varices ? 2 : 0) - ((S.flags.mening || S.flags.purpura) && S.vaso > 0 ? 3 : 0) - 7 * S.cn - clamp((2 * S.na + S.glu / 18 - 320) / 8, 0, 8) - 1 * S.cocE - 1.5 * clamp(S.temp - 40.5, 0, 2.5) - 3 * clamp((7.1 - (S.ph || 7.4)) / .2, 0, 1) - S.tbi;
     if (S.tbi > 0 && dtc > 0) S.tbi = Math.min(S.tbi0 + 6, S.tbi + (.35 * clamp((tLow + 16 - S.tas) / 20, 0, 1.5) + .2 * clamp((.92 - S.spo2) / .1, 0, 1.5) + .05 * clamp(35 - S.temp, 0, 2)) * dtc); // v1.14: lesión cerebral secundaria por hipotensión, hipoxia o frío
     if (seiz) g = Math.min(g, 5); else if (S.clin < S.postIctUntil) g -= 4;
     S.gcs = Math.round(clamp(g, 3, 15));
@@ -627,7 +634,8 @@ function create(opts) {
     const k = S.stroke; if (!k || dtc <= 0) return;
     if (k.type === 'hsa') { if (!k.rebled && rnd() < dtc * (.004 + .035 * clamp((S.tas - 150) / 40, 0, 1.5))) { k.rebled = true; k.hsaG = (k.hsaG || 2) + 5; S.icp = S.icp || { base: 24, grow: .3, v: 24 }; S.log.push([S.clin, 'Resangrado: cefalea brutal, vómitos y caída del Glasgow']); } return; } // v1.22
     if (k.type === 'hem') { const dv = (.3 * clamp((S.tas - 145) / 50, 0, 1.5) + .015) * dtc; k.vol += dv; if (k.vol > 40 && !k.vom) { k.vom = true; S.log.push([S.clin, 'Vómito en escopetazo']); if (S.iface !== 'tube' && S.gcs <= 10) S.aspT = Math.max(S.aspT || 0, .3); } } // sin la vía aérea protegida, broncoaspira // la TAS alta hace crecer el hematoma
-    else { k.tas0 = Math.max(k.tas0 || 0, S.tas); k.worse = clamp(k.worse + (.08 * clamp(((k.tas0 - S.tas) / k.tas0 - .2) / .15, 0, 1) + .1 * clamp((130 - S.tas) / 30, 0, 1) + .1 * clamp((.92 - S.spo2) / .06, 0, 1) + .06 * (S.glu > 200 || S.glu < 60 ? 1 : 0)) * dtc, 0, 3); } // la penumbra sufre si la TA cae más de un 20 %, con hipotensión, hipoxia o disglucemia
+    else { if (k.lysis && !k.hemT && rnd() < dtc * (.002 + .05 * clamp((S.tas - 180) / 30, 0, 1.5) + (S.E.aas > .2 || S.E.hnf > .2 || S.E.enox > .2 ? .03 : 0))) { k.hemT = true; k.type = 'hem'; k.vol = 26; S.log.push([S.clin, 'Transformación hemorrágica: cefalea, vómitos y caída del Glasgow']); return; } // v1.24: tras la trombólisis, la TAS > 180 y los antitrombóticos la provocan
+      k.tas0 = Math.max(k.tas0 || 0, S.tas); k.worse = clamp(k.worse + (.08 * clamp(((k.tas0 - S.tas) / k.tas0 - .2) / .15, 0, 1) + .1 * clamp((130 - S.tas) / 30, 0, 1) + .1 * clamp((.92 - S.spo2) / .06, 0, 1) + .06 * (S.glu > 200 || S.glu < 60 ? 1 : 0)) * dtc, 0, 3); } // la penumbra sufre si la TA cae más de un 20 %, con hipotensión, hipoxia o disglucemia
   }
   function seLogic(dtc) {
     const E = S.E, se = S.se, seiz = S.clin < S.seizUntil;
@@ -914,6 +922,10 @@ function create(opts) {
       if (k === 'asys' && S.arrest) S.rhythm = 'asys';
       if (k === 'seiz' && !S.arrest && S.clin >= S.seizUntil) startSeizure();
       if (k === 'move' && !S.arrest && S.temp < 30 && rnd() < .3) enterArrest('hypoT'); // movilización brusca en hipotermia grave
+      if (k === 'pumpNor' && S.norRate > 0) { S.drug.nor.R = 0; S.norRate = 0; } // v1.24: se acaba la jeringa de noradrenalina
+      if (k === 'paceLoss' && S.pace.on) S.pace.thr = Math.min(190, Math.max(S.pace.thr + 35, S.pace.mA + 12)); // los parches se despegan con el sudor y la vibración
+      if (k === 'drainClamp' && S.drained) { S.drained = false; S.drainClamp = true; S.ptx = Math.max(S.ptx, .12); S.ptxRate = Math.max(S.ptxRate, .06); } // drenaje pinzado con fuga aérea activa
+      if (k === 'hemat' && S.bleed > 0) { S.bleed *= 1.5; S.deficit = Math.min(.7, S.deficit + .05); if (S.iface !== 'tube' && S.gcs < 14) S.aspT = Math.max(S.aspT || 0, .6); S.log.push([S.clin, S.iface === 'tube' ? 'Hematemesis masiva por la boca y la sonda: la vía aérea está protegida' : 'Hematemesis masiva: vomita sangre y broncoaspira']); }
       if (k === 'rebleed') { S.bleed = Math.max(S.bleed, .006) * 1.8; S.hemo = false; if (!S.bleedSrc) S.bleedSrc = 'int'; }
       updateMech(0);
     },
@@ -933,10 +945,12 @@ function create(opts) {
         case 'sonda': if (S.flags.disrefl && S.flags.sondaAt == null) { S.flags.sondaAt = S.clin; S.log.push([S.clin, 'Sonda vesical cambiada: salen 900 mL de orina']); } break; // v1.22
         case 'mcroberts': case 'suprapub': case 'woods': if (S.neo && S.neo.unborn) { const nn = S.neo; nn.tries++; nn[k] = true; const p = k === 'mcroberts' ? .4 : k === 'suprapub' ? (nn.mcroberts ? .6 : .3) : .85; if (rnd() < p) { nn.unborn = false; nn.bornAt = S.clin; nn.apnea = true; nn.aer = .12; S.log.push([S.clin, 'Salen los hombros: nace un niño hipotónico y cianótico, sin respirar']); } } break;
         case 'suction': a.obst = false; break;
-        case 'cuff': a.leak = 0; break;
+        case 'cuff': a.leak = 0; if (S.cuff) { S.cuff.p0 = 25; S.cuff.pb0 = S.pbar; S.cuff.low = false; } break;
+        case 'cuffP': if (S.cuff && S.iface === 'tube') { S.cuff.p0 = 25; S.cuff.pb0 = S.pbar; if (S.cuff.low) { a.leak = 0; S.cuff.low = false; } S.log.push([S.clin, 'Manómetro: balón ajustado a 25 cmH₂O']); } break; // v1.24
+        case 'unclamp': if (S.drainClamp) { S.drainClamp = false; S.drained = true; S.ptxActive = false; S.ptx = 0; S.ptxRate = 0; S.log.push([S.clin, 'Despinzas el drenaje: sale aire a borbotones y el pulmón se reexpande']); } break;
         case 'mask': S.mask.leak10 = 12; break;
         case 'decomp': if (S.ptxActive) { S.ptxActive = false; S.ptx = .12; } break;
-        case 'drain': S.ptxActive = false; S.ptx = 0; S.drained = true; if (S.htx > .05) { const ml = Math.round(S.htx * 20) * 50; S.htxFirst = ml; S.htxOut = ml; S.log.push([S.clin, `Drenaje torácico: salen ${ml} mL de sangre${ml >= 1500 ? ' (≥ 1.500 mL: criterio de toracotomía)' : ''}`]); } S.htx = 0; break; // toracostomía o drenaje: resuelve el neumotórax, también en altitud
+        case 'drain': S.ptxActive = false; S.ptx = 0; S.drained = true; S.drainClamp = false; S.ptxRate = 0; if (S.htx > .05) { const ml = Math.round(S.htx * 20) * 50; S.htxFirst = ml; S.htxOut = ml; S.log.push([S.clin, `Drenaje torácico: salen ${ml} mL de sangre${ml >= 1500 ? ' (≥ 1.500 mL: criterio de toracotomía)' : ''}`]); } S.htx = 0; break; // toracostomía o drenaje: resuelve el neumotórax, también en altitud
         case 'sga': if ((S.iface !== 'tube') && !S.isr) { const edema = Math.max(S.edAir, .8 * S.anaf); S.isr = { until: S.clin + .5, fail: rnd() < clamp(S.sgaFail + .4 * edema, 0, .95), sga: true, apox: false, from: S.iface }; S.bag = false; } break;
         case 'bottle': S.o2.bar = 200; S.o2.supply = true; S.o2.failed = false; break;
         case 'opencirc': if (!a.disc) { a.disc = true; a.manualOpen = true; setTimeoutSim(() => { if (a.manualOpen) { a.disc = false; a.manualOpen = false; } }, 15); } break;
@@ -1200,10 +1214,15 @@ function create(opts) {
       if (S.anaf > .15) f.push(S.iface === 'tube' ? 'Eritema y habones generalizados' + (S.anaf > .4 ? ', edema facial y de párpados; sibilancias en ambos campos' : '') + '.' : 'Habones generalizados' + (S.anaf > .4 ? ', angioedema de labios y lengua, voz ronca' : '') + '.');
       if (S.trach) f.push(S.trach.obs > 0 ? (S.trach.lar ? 'Laringectomizado: estoma traqueal en la base del cuello, sin comunicación con la boca. ' : 'Traqueostomía con cánula con balón. ') + 'No sale aire por la cánula, tiraje intenso y cianosis; la sonda de aspiración no progresa.' : 'Cánula permeable: entra y sale aire, se mueve el tórax.'); // v1.23
       if (S.lspasm > .3 && S.iface !== 'tube') f.push('Estridor agudo y después silencio: movimientos respiratorios sin entrada de aire, tiraje y cianosis. Laringoespasmo.');
+      if (S.drainClamp) f.push('Drenaje torácico pinzado: no oscila ni burbujea; ' + (S.ptxActive ? 'hemitórax hipoventilado y timpánico, enfisema subcutáneo que crece.' : 'hipoventilación en la base.')); else if (S.drained && S.flags.drainCase) f.push('Drenaje torácico permeable: oscila con la respiración y burbujea poco.'); // v1.24
+      if (S.cuff && S.cuffP != null) f.push(S.cuffP > 35 ? `Balón del tubo a tensión (≈ ${Math.round(S.cuffP)} cmH₂O al manómetro): el aire se ha expandido con la altitud.` : S.cuffP < 18 ? `Balón flácido (≈ ${Math.round(S.cuffP)} cmH₂O): fuga y gorgoteo al bajar de cota.` : `Balón a ${Math.round(S.cuffP)} cmH₂O.`);
+      if (S.flags.varices) f.push('Hepatópata con ascitis, ictericia, circulación colateral y flapping; ' + ((S.bleedNow || 0) > .004 ? 'sigue vomitando sangre roja.' : 'sin nueva hematemesis.'));
+      if (S.stroke && S.stroke.lysis) f.push(S.stroke.hemT ? 'Tras la trombólisis: cefalea intensa, vómitos y caída del nivel de conciencia.' : 'Trombólisis con tenecteplasa en el hospital de origen hace 40 min.');
       if (S.flags.collar) f.push(S.flags.mils ? 'Collarín abierto por delante; un compañero mantiene la estabilización manual en línea.' : 'Collarín cervical rígido bien colocado: casi no abre la boca.');
       if (S.flags.ieca) f.push('Edema de lengua y labios sin habones ni prurito; toma enalapril desde hace años.' + (S.edAir > .5 ? ' Babea, voz apagada y estridor.' : ''));
       if (S.flags.mimic && S.glu < 60) f.push('Hemiparesia derecha y disartria, sudoroso y pálido; en la mesilla, su insulina.'); // v1.22
       else if (S.flags.mimic) f.push('Mueve los cuatro miembros y habla con normalidad: el déficit ha desaparecido.');
+      if (S.flags.purpura) f.push('Petequias y equimosis que se extienden por tronco y piernas y no blanquean a la presión: púrpura fulminante.'); // v1.24
       if (S.flags.mening) f.push('Rigidez de nuca, Kernig y Brudzinski positivos, fotofobia; petequias en tronco y piernas que no blanquean a la presión.');
       if (S.flags.gbs) f.push(`Debilidad simétrica ascendente: no levanta las piernas${S.weak > .5 ? ' ni los brazos' : ''}, arreflexia, parestesias en guante y calcetín; ${S.weak > .55 ? 'voz débil, tos ineficaz y respiración paradójica' : 'tose con dificultad'}.`);
       if (S.flags.tumor) f.push('Glioblastoma conocido; cefalea matutina y vómitos desde hace días, bradipsiquia; papiledema' + (S.icp && S.icp.v > 30 ? '; anisocoria con pupila derecha perezosa.' : '.'));

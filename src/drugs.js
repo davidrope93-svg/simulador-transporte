@@ -50,7 +50,7 @@ const DRUGSET = [
     { id: 'ins', lab: 'Insulina rápida', k: 'ins', dose: 10, u: 'UI', amt: 1, note: 'con 25 g de glucosa' },
     { id: 'mg4', lab: 'Sulfato de magnesio', k: 'mg', dose: 4, u: 'g', note: 'en 15–20 min' }, { id: 'labet', lab: 'Labetalol', k: 'labet', dose: 20, u: 'mg' },
     { id: 'urap', lab: 'Urapidilo', k: 'urap', dose: 25, u: 'mg' }, { id: 'oxito', lab: 'Oxitocina', k: 'oxito', dose: 10, u: 'UI', amt: 10, route: ' IV lenta o IM', noIV: true },
-    { id: 'txa', lab: 'Ácido tranexámico', k: 'txa', dose: 1, u: 'g' }, { id: 'sugam', lab: 'Sugammadex', k: 'sugam', mgkg: 16, u: 'mg', note: 'reversión inmediata' },
+    { id: 'txa', lab: 'Ácido tranexámico', k: 'txa', dose: 1, u: 'g' }, { id: 'terli', lab: 'Terlipresina', k: 'terli', dose: 2, u: 'mg', note: 'varices: 2 mg IV, luego 1–2 mg/4 h' }, { id: 'sugam', lab: 'Sugammadex', k: 'sugam', mgkg: 16, u: 'mg', note: 'reversión inmediata' },
     { id: 'sugam4', lab: 'Sugammadex', k: 'sugam', mgkg: 4, u: 'mg' }, { id: 'midIN', lab: 'Midazolam intranasal o bucal', k: 'mid', dose: 10, u: 'mg', route: ' IN', noIV: true, bio: .6 }] },
   { g: 'EAP, HTIC e intoxicaciones', items: [
     { id: 'ntgsl', lab: 'NTG sublingual', k: 'ntg', dose: 400, u: 'mcg', amt: 250, route: '', noIV: true }, { id: 'ntgiv', lab: 'NTG en bolo', k: 'ntg', dose: 1, u: 'mg', amt: 900 },
