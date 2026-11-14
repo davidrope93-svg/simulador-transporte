@@ -43,7 +43,9 @@ const DRUGS = {
   // oxitocina (UI), adrenalina nebulizada (1 = 0,5 mg/kg), dexametasona (1 = 0,6 mg/kg) y glucagón (mg)
   ca: { h: 30, on: .5, ec50: .5 }, ins: { h: 120, on: 15, ec50: .5 }, txa: { h: 120, on: 3, ec50: .3 }, iso: { h: 2.5, on: 1, ec50: 2 },
   urap: { h: 180, on: 2, ec50: 25 }, labet: { h: 300, on: 5, ec50: 40 }, oxito: { h: 15, on: 3, ec50: 3 }, adrN: { h: 60, on: 4, ec50: 12 },
-  dexa: { h: 600, on: 60, ec50: 15 }, glucg: { h: 20, on: 8, ec50: .5 }
+  dexa: { h: 600, on: 60, ec50: 15 }, glucg: { h: 20, on: 8, ec50: .5 },
+  // v1.7: antiepilépticos de 2.ª línea (mg normalizados a 75 kg; en 10 min)
+  lev: { h: 420, on: 8, ec50: 1500 }, vpa: { h: 600, on: 8, ec50: 1000 }
 };
 const SED_RATE = 3 * Math.LN2 / 15; // perfusión que mantiene la sedación de base al 75 %
 
@@ -103,8 +105,14 @@ function create(opts) {
     // v1.5: shock distributivo — vasoplejia séptica (0–1 y progresión por minuto hasta el antibiótico), neurogénico (0–1) y volumen que tolera el pulmón (mL/kg)
     vaso: o.vaso || 0, vasoRate: o.vasoRate || 0, neurog: o.neurog || 0, fluidTol: o.fluidTol || 35, atbAt: null, tad: 70, pam: 90,
     // v1.6: trauma torácico y quemado — hemotórax (L en la pleura), volet costal (0–1), dolor (0–1), superficie quemada (%) y cristaloide en bomba (mL/h)
-    htx: o.htx || 0, htxOut: 0, flail: o.flail || 0, pain: o.pain || 0, burn: o.burn || 0, fluidRate: 0, analg: 0, painEff: 0
+    htx: o.htx || 0, htxOut: 0, flail: o.flail || 0, pain: o.pain || 0, burn: o.burn || 0, fluidRate: 0, analg: 0, painEff: 0,
+    // v1.7: neurología — estatus epiléptico (refractariedad 0–1 y minutos de crisis), ictus (tipo, lado de la lesión, RACE, minutos de evolución, hematoma en mL) y sodio
+    se: o.se ? { r: o.se.r != null ? o.se.r : .5, since: o.se.since || 0, on: true, by: null, ctrlAt: null } : null,
+    stroke: o.stroke ? Object.assign({ type: 'isq', side: 'izq', race: 6, onset: 60, vol: 0, code: null, worse: 0 }, o.stroke, { vol0: o.stroke.vol || 0 }) : null,
+    na: o.na || 140, naPend: 0, sexF: (o.sex || P.sex) === 'm'
   };
+  S.naMin = S.na; S.na0 = S.na;
+  if (S.se) { S.seizUntil = 1e9; S.seizures = 1; }
   S.etAlv = S.pco2 * (1 - P.vdAlv);
   for (const k in DRUGS) S.drug[k] = { cp: 0, ce: 0, R: 0 };
   S.drug.sed.cp = S.drug.sed.ce = (o.sedE != null ? o.sedE : 3);
@@ -167,7 +175,7 @@ function create(opts) {
       Ri: P.Ri * b + (a.obst ? 25 : 0) + (a.sel ? 2 : 0) + (S.iface === 'o2' || S.iface === 'nasal' ? -3 : 0) + (S.iface !== 'tube' ? croupR : 0),
       Re: P.Re * b + (a.obst ? 25 : 0) + (S.iface !== 'tube' ? .3 * croupR : 0),
       Pcrit: P.Pcrit * b + 6 * Math.max(0, S.bs - 1),
-      shunt: clamp(P.shunt0 - P.shuntPeep * (pe - 5), P.shuntMin, .5) + (a.sel ? .22 : 0) + .25 * ptxEff + (P.edema ? clamp(.3 * S.sev - .025 * (pe - 5) * Math.min(1, S.sev + .2), 0, .4) : 0) + clamp(.33 * S.asp - .015 * (pe - 5) * S.asp, 0, .38) + clamp(.009 * Math.max(0, (S.fluidKg || 0) - S.fluidTol), 0, .2) + .14 * S.derec + .06 * S.tep + .26 * hx + clamp(.16 * S.flail - .012 * (pe - 5) * S.flail, 0, .22),
+      shunt: clamp(P.shunt0 - P.shuntPeep * (pe - 5), P.shuntMin, .5) + (a.sel ? .22 : 0) + .25 * ptxEff + (P.edema ? clamp(.3 * S.sev - .025 * (pe - 5) * Math.min(1, S.sev + .2), 0, .4) : 0) + clamp(.33 * S.asp - .015 * (pe - 5) * S.asp, 0, .38) + clamp(.009 * Math.max(0, (S.fluidKg || 0) - S.fluidTol), 0, .2) + .14 * S.derec + .06 * S.tep + .18 * clamp((121 - S.na) / 5, 0, 1) + (S.se && S.clin < S.seizUntil && S.relTot < .6 ? .26 : 0) + .26 * hx + clamp(.16 * S.flail - .012 * (pe - 5) * S.flail, 0, .22),
       frc: P.frc * (a.sel ? .6 : 1) * (1 - .4 * ptxEff) * (1 - .4 * sv) * (1 - .35 * hx),
       ptxEff, hx
     };
@@ -447,6 +455,8 @@ function create(opts) {
     return { tas: clamp(tas, 30, 240), fc: clamp(fc, 25, 190) };
   }
   function tampEff() { return clamp((S.tamp - .25) / .6, 0, 1.2); }
+  function tbw() { const w = S.peso || S.ibw * 1.1, lean = !S.ped && w > S.ibw * 1.2 ? S.ibw + .4 * (w - S.ibw) : w; return (S.ped ? .6 : S.sexF ? .5 : .6) * lean; } // agua corporal total (L); en el obeso, con el peso ajustado
+  function addNa(naSol, L) { S.naPend += (naSol - S.na - S.naPend) * L / (tbw() + L); } // fórmula de Adrogué-Madias
   function alvDS() { const low = clamp((90 - S.tas) / 40, 0, 1); return P.vdAlv + .25 * low + .1 * S.mech.ptxEff + .35 * S.tep + (P.hyper ? .15 * clamp((S.spo2 - .9) / .07, 0, 1) : 0); }
 
   /* ---------- medio interno, temperatura, hemorragia, tóxicos y convulsiones (v0.7) ---------- */
@@ -454,7 +464,7 @@ function create(opts) {
   function metab(dtc) {
     const E = S.E, peso = S.peso || S.ibw * 1.1;
     if (dtc > 0) {
-      S.temp = clamp(S.temp + (S.warm ? .3 * S.tempRate + 1 : S.tempRate) * dtc / 60, 20, 42);
+      S.temp = clamp(S.temp + (S.warm ? .3 * S.tempRate + 1 : S.tempRate) * dtc / 60 + (S.clin < S.seizUntil ? .03 * dtc : 0), 20, 42); // la crisis mantenida calienta
       S.glu += (S.gluT - 55 * E.ins - S.glu) * Math.min(1, dtc / 25) + 3 * E.glucg * dtc;
       S.glu = clamp(S.glu, 10, 700);
       if (S.gluPerf) S.glu += 5 * S.gluPerf * dtc;
@@ -471,8 +481,10 @@ function create(opts) {
         S.deficit = Math.min(.7, S.deficit + S.bleedNow * dtc); S.lost = (S.lost || 0) + S.bleedNow * dtc;
         if (src === 'thor') { const ml = S.bleedNow * dtc * 4000; if (S.drained) S.htxOut += ml; else S.htx += ml / 1000; } // la sangre del hemotórax se queda en la pleura o sale por el drenaje
       } else S.bleedNow = 0;
+      strokeStep(dtc);
       if (S.burn > 0 && !S.arrest) S.deficit = Math.min(.7, S.deficit + .00007 * S.burn * dtc); // gran quemado: fuga capilar (≈ 550 mL/h con un 36 % en el adulto)
-      if (S.fluidRate > 0) { const mlkg = S.fluidRate / 60 * dtc / (S.peso || 75); S.fluidPend += .15 * mlkg / 7; S.fluidKg += mlkg; S.fluidPerfMl = (S.fluidPerfMl || 0) + S.fluidRate / 60 * dtc; }
+      if (S.fluidRate > 0) { const mlkg = S.fluidRate / 60 * dtc / (S.peso || 75); S.fluidPend += .15 * mlkg / 7; S.fluidKg += mlkg; S.fluidPerfMl = (S.fluidPerfMl || 0) + S.fluidRate / 60 * dtc; addNa(140, S.fluidRate / 60 * dtc / 1000); }
+      if (S.naPend) { const d = S.naPend * Math.min(1, dtc / 5); S.na += d; S.naPend -= d; S.naMin = Math.min(S.naMin, S.na); } // el sodio sube a medida que pasa el bolo
     }
     S.k = S.kTot - 1.0 * E.ins - .7 * E.salb + phShift();
     const kM = clamp((S.k - 6) / 2.5, 0, 1.4) * (1 - .9 * Math.min(1, E.ca / .6)); // el calcio estabiliza la membrana en minutos; el efecto se va en 30–60 min
@@ -507,17 +519,43 @@ function create(opts) {
     // convulsiones: eclampsia (protege el magnesio), tricíclicos, hipoglucemia grave y herniación
     const gluN = clamp((60 - S.glu) / 35, 0, 1);
     const rate = (S.ecl ? .2 * Math.pow(1 - E.mg, 3) * (S.tas > 160 ? 1.5 : 1) : 0) + .05 * tcaE + (gluN > .7 ? .05 : 0) + (S.icp && S.icp.v > 32 ? .02 : 0);
-    if (seiz && (E.mid > .25 || S.sedTot > .6 || E.prop > .4)) { S.seizUntil = S.clin; S.postIctUntil = S.clin + 8; S.log.push([S.clin, 'Cede la convulsión']); }
-    else if (!seiz && rate > 0 && rnd() < rate * dtc) startSeizure();
+    const naR = S.na < 120 ? .06 * clamp((120 - S.na) / 4, 0, 1.2) : 0; // v1.7: hiponatremia aguda
+    if (S.se) seLogic(dtc);
+    else if (seiz && (E.mid > .25 || S.sedTot > .6 || E.prop > .4)) { S.seizUntil = S.clin; S.postIctUntil = S.clin + 8; S.log.push([S.clin, 'Cede la convulsión']); }
+    else if (!seiz && rate + naR > 0 && rnd() < (rate + naR) * dtc) startSeizure();
     if (seiz && S.clin + dtc >= S.seizUntil) S.postIctUntil = S.seizUntil + 10;
     // arritmias por potasio, tricíclicos e hipotermia
     if (kM > .75 && rnd() < dtc * .12 * (kM - .7)) enterArrest('hyperk');
     else if (S.ecg.qrs > .16 && rnd() < dtc * .04 * clamp((S.ecg.qrs - .15) / .04, 0, 1.5)) { if (S.tas < 70) enterArrest('tca'); else if (!S.arr.type) { S.arr.type = 'tvp'; S.log.push([S.clin, 'TV por QRS ancho']); } }
     else if (S.temp < 30 && rnd() < dtc * .006 * (30 - S.temp)) enterArrest('hypoT');
     // escala de Glasgow aproximada
-    let g = 15 - 12 * S.sedTot - 3 * S.opi - 9 * gluN - 1.3 * clamp(32 - S.temp, 0, 8) - (S.pco2 > 80 ? (S.pco2 - 80) / 5 : 0) - (S.oxEff < .75 ? (.75 - S.oxEff) * 30 : 0) - (S.tas < 70 ? (70 - S.tas) / 5 : 0) - (S.cohb > .2 ? (S.cohb - .2) * 25 : 0) - (S.icp && S.icp.v > 22 ? (S.icp.v - 20) / 3 : 0);
+    let g = 15 - 12 * S.sedTot - 3 * S.opi - 9 * gluN - 1.3 * clamp(32 - S.temp, 0, 8) - (S.pco2 > 80 ? (S.pco2 - 80) / 5 : 0) - (S.oxEff < .75 ? (.75 - S.oxEff) * 30 : 0) - (S.tas < 70 ? (70 - S.tas) / 5 : 0) - (S.cohb > .2 ? (S.cohb - .2) * 25 : 0) - (S.icp && S.icp.v > 22 ? (S.icp.v - 20) / 3 : 0) - 6 * naEff() - strokeGcs();
     if (seiz) g = Math.min(g, 5); else if (S.clin < S.postIctUntil) g -= 4;
     S.gcs = Math.round(clamp(g, 3, 15));
+  }
+  // v1.7: hiponatremia sintomática, estatus epiléptico e ictus
+  function naEff() { return clamp((124 - S.na) / 10, 0, 1.2); }
+  function raceNow() { const k = S.stroke; return k ? Math.min(9, Math.round(k.race + k.worse)) : 0; }
+  function strokeGcs() { const k = S.stroke; if (!k) return 0; return k.type === 'hem' ? clamp((k.vol - 22) / 3.5, 0, 10) : (raceNow() >= 5 ? 3 : 1) + clamp(k.worse, 0, 3); }
+  function strokeStep(dtc) {
+    const k = S.stroke; if (!k || dtc <= 0) return;
+    if (k.type === 'hem') { const dv = (.45 * clamp((S.tas - 145) / 50, 0, 1.5) + .02) * dtc; k.vol += dv; if (k.vol > 40 && !k.vom) { k.vom = true; S.log.push([S.clin, 'Vómito en escopetazo']); if (S.iface !== 'tube' && S.gcs <= 10) S.aspT = Math.max(S.aspT || 0, .3); } } // sin la vía aérea protegida, broncoaspira // la TAS alta hace crecer el hematoma
+    else { k.tas0 = Math.max(k.tas0 || 0, S.tas); k.worse = clamp(k.worse + (.08 * clamp(((k.tas0 - S.tas) / k.tas0 - .2) / .15, 0, 1) + .1 * clamp((130 - S.tas) / 30, 0, 1) + .1 * clamp((.92 - S.spo2) / .06, 0, 1) + .06 * (S.glu > 200 || S.glu < 60 ? 1 : 0)) * dtc, 0, 3); } // la penumbra sufre si la TA cae más de un 20 %, con hipotensión, hipoxia o disglucemia
+  }
+  function seLogic(dtc) {
+    const E = S.E, se = S.se, seiz = S.clin < S.seizUntil;
+    const benzo = clamp((E.mid - .3) / .35, 0, 1), aed = 1 - (1 - E.lev) * (1 - E.vpa);
+    const anes = clamp(Math.max((E.prop - .35) / .15, (E.mid - .8) / .1, (E.ket - .5) / .15, (E.sed - .85) / .1), 0, 1); // dosis anestésicas
+    if (se.on) {
+      se.since += dtc;
+      const bf = clamp(1 - (se.since - 5) / 40, .3, 1); // cada minuto de crisis, menos eficaces las benzodiacepinas
+      const hb = 1.4 * benzo * bf * (1 - se.r), ha = .75 * clamp(aed / .6, 0, 1) * (1 - se.r), hn = 4 * anes, h = hb + ha + hn;
+      if (rnd() < h * dtc) { se.on = false; se.by = hn >= ha && hn >= hb ? 'anes' : ha >= hb ? 'aed' : 'benzo'; se.ctrlAt = se.ctrlAt == null ? S.clin : se.ctrlAt; S.seizUntil = S.clin; S.postIctUntil = S.clin + 15; S.log.push([S.clin, 'Cede la convulsión' + (se.by === 'anes' ? ' con la anestesia' : '')]); }
+    } else {
+      const protect = Math.max(anes, clamp(aed / .6, 0, 1) * (1 - .6 * se.r));
+      const hr = (se.by === 'anes' ? .8 * se.r : .08) * (1 - protect); // al retirar la anestesia, el estatus refractario vuelve
+      if (!seiz && anes < .2 && rnd() < hr * dtc) { se.on = true; S.seizUntil = 1e9; S.seizures++; S.log.push([S.clin, 'Vuelve a convulsionar']); if (S.onSeizure) S.onSeizure(); }
+    }
   }
   function startSeizure() { S.seizUntil = S.clin + 1 + rnd() * 1.5; S.seizures++; S.log.push([S.clin, 'Convulsión tónico-clónica']); if (S.onSeizure) S.onSeizure(); }
 
@@ -542,7 +580,7 @@ function create(opts) {
       let va = 0, fiw = 0, vt = 0; for (const e of L) { va += e.va; fiw += e.va * e.fi; vt += e.vt / 1000; }
       VA = va / L.length * 60 / effInt; VE = vt / L.length * 60 / effInt; if (va > 0) fiAvg = fiw / va;
     }
-    if (seizing && !ventDelivers) { VA *= .25; VE *= .4; } // convulsión: respiración ineficaz
+    if (seizing && !ventDelivers && S.relTot < .6) { VA *= S.se ? .45 : .25; VE *= .4; } // convulsión: respiración ineficaz (en el estatus, con fases clónicas que ventilan algo)
     S.vaInst = VA; S.veInst = VE; S.fiEff = fiAvg;
     // fatiga de la musculatura débil: empeora mientras trabaja sola con impulso alto; descansa con soporte
     if (S.weak0 > 0) S.weak = clamp(S.weak + (ventDelivers ? -.006 : .03 * Math.max(0, S.drive - .4)) * dtc, S.weak0 * .8, .85);
@@ -576,7 +614,7 @@ function create(opts) {
     if (S.cohb > 0) { const th = 300 / (1 + 3 * clamp((S.fiEff - .21) / .79, 0, 1)) * clamp(4.5 / Math.max(vaE, .5), .8, 1.6); S.cohb = Math.max(0, S.cohb - S.cohb * Math.LN2 / th * dtc); }
     S.oxEff = S.spo2 * (1 - S.cohb) - .25 * S.cn; // el pulsioxímetro no distingue la COHb
     // lactato (hipoperfusión, hipoxia tisular, sepsis, cianuro, CO, anafilaxia, parada) y equilibrio ácido-base con tampón agudo
-    const lt = 1 + 4 * clamp((90 - S.tas) / 40, 0, 1.2) + 4 * clamp((.85 - S.oxEff) / .25, 0, 1.2) + (S.pk === 'sepsis' ? 3 : 0) + 5 * S.vaso + 8 * S.cn + 6 * S.cohb + 3 * S.anaf;
+    const lt = 1 + 4 * clamp((90 - S.tas) / 40, 0, 1.2) + 4 * clamp((.85 - S.oxEff) / .25, 0, 1.2) + (S.pk === 'sepsis' ? 3 : 0) + 5 * S.vaso + 8 * S.cn + 6 * S.cohb + 3 * S.anaf + (S.clin < S.seizUntil && S.relTot < .6 ? 5 : 0);
     if (!S.lactInit) { S.lactInit = true; S.lact = S.lact0 = S.arrest ? 2 : lt; }
     if (S.arrest) S.lact += (S.cpr.comp !== 'off' ? .25 : .6) * dtc; else S.lact += (lt - S.lact) * Math.min(1, dtc / (lt > S.lact ? 6 : 40));
     S.hco3m = P.hco3 - .9 * (S.lact - S.lact0) + S.bicKg / .4 + (S.hco3Off || 0);
@@ -752,13 +790,14 @@ function create(opts) {
         case 'bottle': S.o2.bar = 200; S.o2.supply = true; S.o2.failed = false; break;
         case 'opencirc': if (!a.disc) { a.disc = true; a.manualOpen = true; setTimeoutSim(() => { if (a.manualOpen) { a.disc = false; a.manualOpen = false; } }, 15); } break;
         case 'bag': S.bag = !S.bag; break;
-        case 'fluid': { const mlkg = arg || 500 / (S.peso || 75); S.fluidPend += .15 * mlkg / 7; S.fluidKg += mlkg; break; } // 500 mL en el adulto
+        case 'fluid': { const mlkg = arg || 500 / (S.peso || 75); S.fluidPend += .15 * mlkg / 7; S.fluidKg += mlkg; addNa(140, mlkg * (S.peso || 75) / 1000); break; } // 500 mL en el adulto
         case 'blood': S.fluidPend += .12 * (arg || 1); S.bloodU = (S.bloodU || 0) + 1; break; // concentrado de hematíes: repone sin diluir
         case 'iv': if (!S.access && !S.accessPend) { const pf = clamp((S.arrest ? .45 : S.deficit > .3 ? .4 : .12) + (S.temp < 32 ? .2 : 0) + (S.ped ? .2 : 0) + (S.pk === 'obeso' ? .2 : 0), 0, .9); S.accessPend = { kind: 'iv', until: S.clin + 1.5, fail: rnd() < pf }; } break;
         case 'io': if (!S.access && !S.accessPend) S.accessPend = { kind: 'io', until: S.clin + .75, fail: rnd() < .05 }; break;
         case 'warm': S.warm = !S.warm; break;
         case 'pericardio': if (!S.pericPend) S.pericPend = { until: S.clin + 1, fail: S.tamp < .15 || rnd() < .1 }; break; // ecoguiada, ≈ 1 min
         case 'icp': if (S.stemi && S.stemi.icp == null) S.stemi.icp = S.clin; break;
+        case 'ictus': if (S.stroke && S.stroke.code == null) { S.stroke.code = S.clin; S.log.push([S.clin, `Código ictus activado: RACE ${raceNow()}, ${Math.round(S.stroke.onset + S.clin)} min de evolución`]); } break;
         case 'hemo': if (S.bleedSrc) S.hemo = true; break;
         case 'sedperf': d.sed.R = SED_RATE; break;
         case 'vagal': if (S.arr.type === 'tsv' && rnd() < .25) S.arr.type = null; break;
@@ -777,6 +816,8 @@ function create(opts) {
       if (k === 'sugam') { const mgkg = amount / 75, rev = mgkg >= 12 ? .98 : mgkg >= 4 ? .9 : .65; S.drug.rel.cp *= 1 - rev; updateMech(0); return; } // encapsula el rocuronio, no la succinilcolina
       if (k === 'bic') { S.bicKg += amount / 75; return; } // mEq/kg normalizados a 75 kg
       if (k === 'gluc') { S.glu += 5 * amount; return; } // g normalizados a 75 kg: 25 g suben ≈ 125 mg/dL
+      if (k === 'ssh3') { addNa(513, amount / 1000); return; } // salino hipertónico 3 % (mL)
+      if (k === 'shs') addNa(1283, .25 * amount); // salino hipertónico 7,5 % 250 mL
       if (k === 'ins') S.glu += 125 * amount; // 10 UI de insulina con 25 g de glucosa
       if (k === 'sux') S.kTot += .5; // la succinilcolina sube el potasio
       S.drug[k].cp += amount;
@@ -852,6 +893,7 @@ function create(opts) {
     setNtg(r) { S.drug.ntg.R = r; S.ntgRate = r; },
     setGluPerf(gPerMin) { S.gluPerf = gPerMin; },
     setFluidRate(mlh) { S.fluidRate = mlh; },
+    race() { return raceNow(); },
     glucemia() { return S.glu * (1 + (rnd() - .5) * .06); },
     temperatura() { return S.temp + (rnd() - .5) * .2; },
     ecg12() {
@@ -891,7 +933,7 @@ function create(opts) {
     },
     setAltitude(h) { S.altitude = h; updateMech(0); },
     setScale(x) { S.scale = x; },
-    gas() { return { ph: S.ph - .03, pco2: S.pco2 + 6, hco3: (S.hco3 || P.hco3) + 1, lact: S.lact, cohb: S.cohb * 100, k: S.k + .1, glu: S.glu, hb: 14.5 * (1 - .7 * S.deficit) * (1 - .15 * clamp(S.fluidKg / 40, 0, 1)) }; },
+    gas() { return { na: S.na, ph: S.ph - .03, pco2: S.pco2 + 6, hco3: (S.hco3 || P.hco3) + 1, lact: S.lact, cohb: S.cohb * 100, k: S.k + .1, glu: S.glu, hb: 14.5 * (1 - .7 * S.deficit) * (1 - .15 * clamp(S.fluidKg / 40, 0, 1)) }; },
     explore() {
       const a = S.air, f = [];
       if (S.arrest) return [S.cpr.comp !== 'off' ? 'Sin pulso central entre compresiones.' : 'Inconsciente, no respira, sin pulso central.'].concat(S.temp < 32 ? ['Muy frío al tacto, rígido.'] : [], S.bleed > 0 && !S.hemo ? ['Sangrado activo.'] : [], !S.access && !S.accessPend ? ['Sin acceso vascular.'] : []);
@@ -942,6 +984,11 @@ function create(opts) {
       if (S.tep > .3) f.push('Ingurgitación yugular sin crepitantes; extremidades frías.');
       if (S.asp > .2) f.push('Restos de contenido gástrico en orofaringe' + (S.iface === 'tube' ? ' y al aspirar por el tubo' : '') + '; crepitantes en base derecha.');
       if (S.weak > .3) f.push('Tos débil, respiración superficial con movimiento paradójico abdominal; no cuenta hasta 10 de un aliento.');
+      if (S.stroke) { const k = S.stroke, L = k.side === 'izq', r = raceNow(), min = Math.round(k.onset + S.clin);
+        if (k.type === 'hem') f.push(`Hemiparesia ${L ? 'derecha' : 'izquierda'} ${k.vol > 35 ? 'completa' : 'moderada'}${k.vol > 40 ? ', pupila ' + (L ? 'izquierda' : 'derecha') + ' algo más grande y perezosa' : ''}; ${k.vol > 35 ? 'cefalea intensa y somnolencia creciente' : 'cefalea intensa'}. Hematoma en la TC de origen ≈ ${Math.round(k.vol0 / 5) * 5} mL; ${min} min de evolución.`);
+        else f.push(`${L ? 'Hemiparesia derecha, desviación de la mirada a la izquierda y afasia global' : 'Hemiparesia izquierda, desviación de la mirada a la derecha, heminegligencia y anosognosia'}; escala RACE ${r}${r >= 5 ? ' (probable oclusión de gran vaso)' : ''}. Última vez ${S.sexF ? 'vista' : 'visto'} bien hace ${min} min.`); }
+      if (S.se && S.se.on && S.relTot > .6) f.push('Relajado: no se ven movimientos, pero sigue taquicárdico e hipertenso con midriasis: la crisis puede seguir sin verse.');
+      if (naEff() > .25) f.push('Cefalea, náuseas y vómitos repetidos; ' + (naEff() > .6 ? 'confusa y desorientada; ' : '') + 'manos y cara hinchadas, los anillos le aprietan.');
       if (S.icp) f.push(S.icp.v > 30 ? 'Pupila derecha midriática y arreactiva; la izquierda, reactiva.' : S.icp.v > 22 ? 'Pupilas isocóricas pero perezosas.' : 'Pupilas isocóricas y reactivas.');
       if (S.arr.type && S.arr.type !== 'sbrady') f.push(S.tas < 90 ? 'Pulso rápido y débil; sudoroso, pálido, con mareo.' : 'Palpitaciones; pulso rápido y bien tolerado.');
       if (S.arr.type === 'sbrady') f.push('Pulso lento y regular; mareado y pálido.');

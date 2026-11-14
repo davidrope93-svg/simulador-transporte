@@ -15,7 +15,7 @@ const codeOf = seed => (seed >>> 0).toString(36).toUpperCase().slice(-4).padStar
 /* gravedad: [mínimo, máximo, valor sin enfermedad] de los parámetros que escalan la patología */
 const SEV = { deficit: [0, .55], bs: [1, 4, 1], opioid: [0, 30], tep: [0, .95], anaf: [0, .95], cohb: [0, .5], cn: [0, 1], icp: [10, 45, 10], icpGrow: [0, .6],
   weak: [0, .95], edAir: [0, .95], edAirRate: [0, .2], asp: [0, .9], kRate: [0, .6], bleed: [0, .012], tca: [0, 1], croup: [0, 1], sevFloor: [0, .9], arrPen: [0, 60], sev: [0, 1], tampRate: [0, .04], vaso: [0, .9], vasoRate: [0, .02], neurog: [0, 1],
-  htx: [0, 2.4], flail: [0, 1], burn: [0, 90] };
+  htx: [0, 2.4], flail: [0, 1], burn: [0, 90], na: [105, 140, 140] };
 
 /* complicaciones que se pueden añadir: evento del motor, acción clave, texto del registro y explicación para la solución */
 const EV = {
@@ -84,7 +84,7 @@ function make(baseKey, seed) {
     const obese = c.pheno === 'obeso' || (c.pheno === 'sano' && !c.arrest && R() < .2);
     const bmi = c.pheno === 'obeso' ? rr(38, 50) : obese ? rr(35, 45) : rr(20, 31);
     const peso = Math.round(bmi * Math.pow(talla / 100, 2));
-    if (obese && c.pheno === 'sano') { c.pheno = 'obeso'; }
+    if (obese && c.pheno === 'sano') { c.pheno = 'obeso'; c.tasAdj = (c.tasAdj || 0) - 15; c.fcAdj = (c.fcAdj || 0) - 15; } // que la TA y la FC sigan siendo las del planteamiento
     const rest = c.goal.slice(mA[0].length);
     c.goal = `${mA[1]} de ${age} años, ${talla} cm, ${peso} kg${/^[.,;:]/.test(rest) ? '' : ','}${rest}`;
     Object.assign(c, { talla, peso });

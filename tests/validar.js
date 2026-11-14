@@ -8,7 +8,7 @@ const DR = global.SIM_DRUGS, SOL = global.SIM_SOL;
 const r10 = x => Math.round(x / 10) * 10;
 const O2LAD = ['gafas', 'venturi28', 'venturi35', 'venturi50', 'reserv'];
 const NOR = [0, .05, .1, .15, .2, .3, .5], ADRI = [0, 2, 5, 10, 20];
-const RND = { spo2: 0, et: 0, tas: 0, pam: 0, vtkg: 1, pplat: 0, dp: 0, peepi: 0, pco2: 0, rr: 0, ie: 2, auto: 2, leak: 0, o2: 0, fight: 2, sinus: 0, glu: 0, qrs: 0, fio2: 0, spco: 0, reperf: 0, temp: 1, fluidRate: 0 };
+const RND = { spo2: 0, et: 0, tas: 0, pam: 0, vtkg: 1, pplat: 0, dp: 0, peepi: 0, pco2: 0, rr: 0, ie: 2, auto: 2, leak: 0, o2: 0, fight: 2, sinus: 0, glu: 0, qrs: 0, fio2: 0, spco: 0, reperf: 0, temp: 1, fluidRate: 0, na: 0, naUp: 1, seizFree: 0 };
 
 function play(key, { seed = 1, idle = false } = {}) {
   const c = CASES[key], sol = SOL[c.vbase || key] || { s: [] }, L = load(key, { scale: 10, seed });
@@ -96,7 +96,7 @@ function play(key, { seed = 1, idle = false } = {}) {
     if (S.clin >= tNext.nor) { tNext.nor += 1;
       for (const [flag, id, steps, v, up] of [['nor', 'nor', NOR, S.tas, 50], ['adrI', 'adrI', ADRI, S.tas, 50], ['norPam', 'nor', NOR, S.pam, 30]]) if (sol[flag]) { const cur = perfNow[id] || 0, i = steps.indexOf(cur);
         if (v < sol[flag] && i < steps.length - 1) perf(id, steps[i + 1]); else if (v > sol[flag] + up && i > 0) perf(id, steps[i - 1]); } }
-    if (sol.labet && S.clin >= tNext.labet) { tNext.labet += 4; if (S.tas > 160) give('labet'); }
+    if (sol.labet && S.clin >= tNext.labet) { tNext.labet += 4; if (S.tas > (sol.labet === true ? 160 : sol.labet)) give('labet'); }
     if (sol.bicQrs && S.clin >= tNext.bic) { tNext.bic += 3; if (S.ecg.qrs * 1000 > 120) give('bic'); }
     if (sol.nalox && S.clin >= tNext.nalox) { tNext.nalox += 2.5; if ((M.effN >= 2 ? M.effRR : 0) < 10) give('nalox'); }
     if (sol.atr && S.clin >= (tNext.atr || 0) && S.arr.type === 'sbrady' && S.tas < 90) { tNext.atr = S.clin + 3; give('atr'); }
@@ -140,7 +140,7 @@ function val(k, S, M) {
     case 'pplat': return M.pplat; case 'dp': return M.dp; case 'peepi': return M.peepi; case 'pco2': return S.pco2;
     case 'rr': return S.arrest ? null : (M.effN >= 2 ? M.effRR : 0); case 'ie': return M.effN >= 4 ? M.ies / M.effN : null;
     case 'auto': return M.nB >= 4 ? M.auto / M.nB : null; case 'leak': return M.leak; case 'o2': return S.o2.supply ? 1 : 0;
-    case 'fight': return S.fight || 0; case 'sinus': return S.arr.type || S.arrest ? 0 : 1; case 'glu': return S.glu; case 'spco': return S.cohb * 100; case 'temp': return S.temp; case 'fluidRate': return S.fluidRate || 0; case 'reperf': { const m = S.stemi; return m && (m.pci <= 120 ? m.icp != null : m.tnkAt != null) ? 1 : 0; }
+    case 'fight': return S.fight || 0; case 'sinus': return S.arr.type || S.arrest ? 0 : 1; case 'glu': return S.glu; case 'spco': return S.cohb * 100; case 'temp': return S.temp; case 'fluidRate': return S.fluidRate || 0; case 'na': return S.na; case 'naUp': return S.na - S.na0; case 'seizFree': return S.arrest ? null : (S.clin >= S.seizUntil ? 1 : 0); case 'reperf': { const m = S.stemi; return m && (m.pci <= 120 ? m.icp != null : m.tnkAt != null) ? 1 : 0; }
     case 'qrs': return S.arrest ? null : S.ecg.qrs * 1000; case 'fio2': return (S.iface === 'tube' || S.iface === 'mask') && !S.standby ? S.cfg.fio2 : null;
   }
   return null;

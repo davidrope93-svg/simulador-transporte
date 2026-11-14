@@ -190,6 +190,27 @@ console.log('— Trauma torácico y quemado (v1.6): hemotórax, volet, analgesia
   const V = global.SIM_VARIANT; let rb = 0, px = 0; for (let k = 1; k <= 12; k++) { if (V.make('hemotorax', k * 7919).vev === 'rebleed') rb++; if (V.make('volet', k * 7919).vev === 'ptx') px++; }
   check('Variantes del hemotórax: sin «resangrado» (no hay hemostasia posible)', rb, 0, 0); check('Variantes del volet: neumotórax a tensión añadido', px, 4, 12); }
 
+console.log('— Neurología (v1.7): estatus epiléptico, ictus e hiponatremia');
+{ const mk = o => { const s = VMI.create(Object.assign({ pheno: 'sano', seed: 3, scale: 10, iface: 'o2', relCe: 0, sedE: 0, sedStopped: true, peso: 78, sex: 'h', talla: 175, cfg: { mode: 'VCV', vt: 500, fr: 14, peep: 5, fio2: 50, o2dev: 'reserv' } }, o)); s.warm(12); return s; };
+  const seiz = s => s.S.clin < s.S.seizUntil;
+  let s = mk({ se: { r: .97, since: 12 } }); adv(s, 1); const t0 = s.S.temp; check('Estatus: SpO₂ con reservorio', s.S.spo2 * 100, 84, 94, ' %'); adv(s, 20);
+  check('Estatus sin tratar: sigue convulsionando a los 21 min', seiz(s) ? 1 : 0, 1, 1); check('La crisis mantenida calienta', s.S.temp - t0, .4, 1, ' °C'); check('Lactato alto', s.S.lact, 4, 9, ' mmol/L');
+  const stop = (r, since, n = 20) => { let k = 0; for (let i = 1; i <= n; i++) { const a = mk({ seed: i, se: { r, since } }); adv(a, .5); a.drug('mid', 10 * 75 / 78); adv(a, 5); if (!seiz(a)) k++; } return k / n * 100; };
+  const early = stop(0, 5), late = stop(0, 45); check('Midazolam 10 mg en un estatus de 5 min: cede', early, 75, 100, ' %'); check('El mismo a los 45 min: cede menos', early - late, 15, 80, ' puntos');
+  let ref = 0; for (let i = 1; i <= 20; i++) { const a = mk({ seed: i, se: { r: .99, since: 12 } }); adv(a, .5); a.drug('mid', 10 * 75 / 78); a.drug('lev', 4327); adv(a, 10); if (seiz(a)) ref++; } check('Refractario: midazolam y levetiracetam no bastan', ref / 20 * 100, 75, 100, ' %');
+  s = mk({ se: { r: .97, since: 12 } }); adv(s, .5); s.drug('rel', 18); adv(s, 3); check('Con el relajante solo, la crisis sigue (sin movimientos)', s.S.se.on ? 1 : 0, 1, 1); s.drug('prop', 115); s.perf('prop', 200 / 60 * 75 / 78); adv(s, 5); check('Propofol en perfusión: crisis controlada', seiz(s) ? 0 : 1, 1, 1); adv(s, 15); check('Con la perfusión mantenida no vuelve', seiz(s) ? 0 : 1, 1, 1);
+  let L = load('ictusIsq', { seed: 4, scale: 10 }); s = L.sim; adv(s, .5); check('Ictus: exploración con RACE 7', /RACE 7/.test(s.explore().join(' ')) ? 1 : 0, 1, 1); check('Ictus: TAS de partida', s.S.tas, 200, 220, ' mmHg');
+  const ta0 = s.S.tas; s.drug('labet', 20); adv(s, 8); check('Labetalol 20 mg: baja la TAS', ta0 - s.S.tas, 10, 30, ' mmHg'); s.action('ictus'); check('Código ictus en el registro', s.S.log.some(x => /Código ictus activado/.test(x[1])) ? 1 : 0, 1, 1);
+  s = load('ictusIsq', { seed: 4, scale: 10 }).sim; adv(s, .5); s.drug('labet', 100); s.drug('urap', 100); adv(s, 25); check('Hipotensión relativa: la penumbra empeora (RACE)', s.race() - 7, 1, 3);
+  const hem = n => { const a = load('hemCerebral', { seed: 4, scale: 10 }).sim; adv(a, .5); if (n) { a.drug('labet', 40); a.drug('urap', 50); } adv(a, 30); return a.S; };
+  const h0 = hem(false), h1 = hem(true); check('Hemorragia sin bajar la TA: crece el hematoma en 30 min', h0.stroke.vol - 30, 10, 25, ' mL'); check('… y cae la GCS', h0.gcs, 3, 9); check('Con TAS ≤ 150: casi no crece', h1.stroke.vol - 30, 0, 6, ' mL');
+  L = load('hiponatremia', { seed: 1, scale: 10 }); s = L.sim; adv(s, .2); s.S.access = 'iv'; check('Hiponatremia: la gasometría da el sodio', s.gas().na, 115, 117, ' mmol/L'); check('Con Na 116, confusa (sin convulsionar)', seiz(s) ? 0 : s.S.gcs, 8, 12);
+  const na0 = s.S.na; s.drug('ssh3', 100); adv(s, 10); check('Salino hipertónico 3 % 100 mL: sube el Na', s.S.na - na0, 1.1, 1.7, ' mmol/L');
+  const n1 = s.S.na; s.drug('shs', 1); adv(s, 10); check('Salino 7,5 % 250 mL: sube más', s.S.na - n1, 5, 9, ' mmol/L');
+  s = mk({ na: 140, peso: 70 }); adv(s, .5); s.action('fluid', 2000 / 70); adv(s, 10); check('2 L de cristaloide con Na normal: el sodio no cambia', Math.abs(s.S.na - 140), 0, .3, ' mmol/L');
+  let sz = 0; for (let i = 1; i <= 10; i++) { const a = mk({ seed: i, na: 116, sex: 'm', peso: 58, talla: 165 }); adv(a, 25); if (a.S.seizures > 0) sz++; } check('Na 116 sin tratar: convulsiona en 25 min', sz / 10 * 100, 50, 100, ' %');
+  sz = 0; for (let i = 1; i <= 10; i++) { const a = mk({ seed: i, na: 126, sex: 'm', peso: 58, talla: 165 }); adv(a, 25); if (a.S.seizures > 0) sz++; } check('Na 126: no convulsiona', sz, 0, 0); }
+
 console.log('— Instalable y sin conexión (v1.3): manifiesto, iconos y service worker');
 { const fs = require('fs'), path = require('path'), R = f => path.join(__dirname, '..', f);
   const man = JSON.parse(fs.readFileSync(R('manifest.webmanifest'), 'utf8'));

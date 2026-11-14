@@ -35,7 +35,7 @@ const NIV = Object.assign({ iface: 'mask' }, AWAKE);
 const O2 = Object.assign({ iface: 'o2' }, AWAKE);
 const inv = (o) => Object.assign({ mode: 'VCV', vt: 480, fr: 16, ti: 1.0, tplat: 0, peep: 5, fio2: 100, pmax: 40, flow: 50 }, o || {});
 
-const GROUPS = ['VMI · SVA', 'VMI · HEMS', 'VMNI', 'Vía aérea', 'Oxigenoterapia e intoxicaciones', 'Pediatría', 'Trauma y obstetricia', 'Metabólico y ambiental', 'Shock', 'Cardiología', 'Arritmias', 'Parada', 'Libre'];
+const GROUPS = ['VMI · SVA', 'VMI · HEMS', 'VMNI', 'Vía aérea', 'Oxigenoterapia e intoxicaciones', 'Pediatría', 'Trauma y obstetricia', 'Metabólico y ambiental', 'Shock', 'Cardiología', 'Neurología', 'Arritmias', 'Parada', 'Libre'];
 
 const CASES = {
   /* ---------- VMI · SVA ---------- */
@@ -331,6 +331,13 @@ const CASES = {
     hint: 'EtCO₂ mucho más baja que la pCO₂ (espacio muerto). Evita intubar si puedes: la inducción y la presión positiva pueden hundir el VD; si hay que hacerlo, PEEP baja y noradrenalina antes. Noradrenalina para TAS ≥ 90, volumen prudente y fibrinólisis (tenecteplasa) en el TEP de alto riesgo.',
     targets: { tas: [90, 200], spo2: [90, 100] } }, O2),
 
+  hiponatremia: Object.assign({ lvl: 'Metabólico y ambiental', title: 'Hiponatremia aguda sintomática tras un ultramaratón', pheno: 'sano', sex: 'm', talla: 165, peso: 58, na: 116, access: false, speed: 5, duration: 30,
+    cfg: { o2dev: 'gafas' }, events: [{ at: 1.5, k: 'seiz', txt: 'Convulsión tónico-clónica' }],
+    goal: 'Mujer de 36 años en la meta de la Transvulcania (La Palma) tras 13 horas de carrera; ha bebido mucha agua en los avituallamientos. Cefalea intensa, vómitos y confusión; pesa más que en la salida. SpO₂ 91 % con gafas, TAS 125, glucemia normal.',
+    hint: 'Confusión, vómitos o convulsión tras un esfuerzo largo bebiendo mucha agua = hiponatremia asociada al ejercicio hasta que se demuestre lo contrario. Natremia en la gasometría si la tienes, pero con síntomas graves no esperes: salino hipertónico 3 % 100 mL en 10 min, repetible hasta 3 veces cada 5–10 min mientras sigan los síntomas (objetivo: subir 4–6 mmol/L y que ceda la clínica). Nada de sueros hipotónicos ni de cristaloide en bolo, restricción de líquidos y midazolam si convulsiona. La SpO₂ baja por edema pulmonar no cardiogénico. Límite de corrección: 10 mmol/L en 24 h.',
+    checks: [['act:iv|act:io', 'Acceso vascular'], ['act:gas', 'Natremia'], ['drug:ssh3|drug:shs', 'Salino hipertónico'], ['drug:mid', 'Tratar la convulsión']],
+    targets: { naUp: [3, 10], spo2: [92, 100] } }, O2),
+
   /* ---------- Shock (v1.5) ---------- */
   sepsisUrin: Object.assign({ lvl: 'Shock', title: 'Shock séptico de origen urinario', pheno: 'sano', sex: 'm', talla: 158, peso: 62, vaso: .45, vasoRate: .006, deficit: .4, temp: 39.4, speed: 5, duration: 30,
     cfg: { o2dev: 'gafas' },
@@ -376,6 +383,26 @@ const CASES = {
     hint: 'Tríada de Beck (hipotensión, ingurgitación yugular, tonos apagados), pulso paradójico, bajo voltaje y alternancia eléctrica. La ecografía clínica confirma el derrame con colapso del VD. Volumen (500 mL) para ganar tiempo y pericardiocentesis ecoguiada: sacar 50–100 mL ya mejora la TA. Evita intubar y la PEEP: la presión positiva reduce aún más el llenado. Si se para: AESP, pericardiocentesis durante la RCP.',
     checks: [['act:eco', 'Ecografía clínica'], ['act:fluid', 'Volumen'], ['act:pericardio', 'Pericardiocentesis']],
     targets: { tas: [90, 180] } }, O2),
+
+  /* ---------- Neurología (v1.7) ---------- */
+  estatus: Object.assign({ lvl: 'Neurología', title: 'Estatus epiléptico refractario', pheno: 'sano', sex: 'h', talla: 175, peso: 78, se: { r: .99, since: 12 }, glu: 118, temp: 37.4, tasAdj: 15, fcAdj: 25, access: false, speed: 5, duration: 30,
+    cfg: { o2dev: 'reserv' },
+    goal: 'Varón de 34 años con epilepsia que dejó la medicación hace una semana. La familia llamó hace 12 min: convulsiona sin recuperar la conciencia entre crisis. Al llegar sigue con una crisis tónico-clónica generalizada. SpO₂ 90 % con reservorio, FC 135, TAS 170.',
+    hint: 'Estatus = crisis de más de 5 min o crisis repetidas sin recuperar la conciencia, y el tiempo cuenta: cada minuto las benzodiacepinas funcionan peor. Glucemia capilar y vía. Primera línea: midazolam 0,15 mg/kg (máx. 10 mg) IM o IV, repetible una vez a los 5 min. Segunda línea en cuanto falle la primera, sin esperar: levetiracetam 60 mg/kg (máx. 4.500 mg) o valproato 40 mg/kg (máx. 3.000 mg) IV en 10 min. Si persiste (refractario): ISR con propofol o midazolam y perfusión anestésica (propofol 2–4 mg/kg/h o midazolam 0,2 mg/kg/h). El relajante quita los movimientos, no la crisis: sin perfusión, sigue convulsionando sin que lo veas. Normoglucemia y normotermia.',
+    checks: [['act:glu', 'Glucemia capilar'], ['drug:mid', 'Benzodiacepina'], ['drug:lev|drug:vpa', 'Antiepiléptico de 2.ª línea'], ['intub', 'Vía aérea definitiva'], ['perf:prop|perf:mid', 'Perfusión anestésica']],
+    targets: { seizFree: [1, 1], spo2: [92, 100] } }, O2),
+  ictusIsq: Object.assign({ lvl: 'Neurología', title: 'Código ictus: oclusión de gran vaso', pheno: 'sano', sex: 'm', talla: 162, peso: 70, stroke: { type: 'isq', side: 'izq', race: 7, onset: 50 }, tasAdj: 78, fcAdj: 10, glu: 168, speed: 5, duration: 25,
+    cfg: { o2dev: 'gafas' },
+    goal: 'Mujer de 71 años, hipertensa y con fibrilación auricular sin anticoagular. Su hija la vio bien a las 10:10 y a las 10:40 la encontró sin poder hablar y sin mover el lado derecho. Han pasado 50 min. TA 210/112, FC 88.',
+    hint: 'Hora de inicio (la última vez que se la vio bien), glucemia (la hipoglucemia imita un ictus) y escala RACE: ≥ 5 sugiere oclusión de gran vaso → hospital con trombectomía, aunque haya otro más cerca. Activa el código ictus con pre-aviso. TA: solo si supera 185/110, labetalol 10–20 mg IV lento (o urapidilo 12,5–25 mg), sin bajarla más de un 15 %: la penumbra depende de la presión. SpO₂ ≥ 94 % (O₂ solo si baja), cabecero a 0–30°, nada por boca, sin sueros glucosados y sin antiagregar ni anticoagular antes de la TC.',
+    checks: [['act:glu', 'Glucemia capilar'], ['act:explore', 'Exploración neurológica (RACE)'], ['act:ictus', 'Código ictus'], ['drug:labet|drug:urap', 'Bajar la TA de 185/110']],
+    targets: { tas: [140, 185], glu: [60, 180], spo2: [94, 100] } }, O2),
+  hemCerebral: Object.assign({ lvl: 'Neurología', title: 'Hemorragia cerebral: traslado en helicóptero a neurocirugía', pheno: 'sano', sex: 'h', talla: 172, peso: 84, stroke: { type: 'hem', side: 'der', race: 5, onset: 90, vol: 30 }, tasAdj: 74, glu: 150, speed: 5, duration: 35,
+    cfg: { o2dev: 'gafas' },
+    goal: 'Varón de 66 años en el hospital de La Gomera: cefalea brusca y hemiparesia izquierda hace 90 min. La TC muestra un hematoma en los ganglios basales derechos de unos 30 mL, sin hidrocefalia; ya le han revertido el acenocumarol. GCS 13, TA 205/110. Lo trasladáis en helicóptero al hospital con neurocirugía (35 min).',
+    hint: 'En la hemorragia confirmada, bajar pronto la TAS a 140–160 frena el crecimiento del hematoma (sin bajar de 130, para no quitar perfusión cerebral). Labetalol 10–20 mg IV cada 10 min o urapidilo 12,5–25 mg, reevaluando la PNI cada 5 min; si no basta con uno, se suman. Cabecero a 30°, glucemia 140–180, normotermia y SpO₂ ≥ 94 %. Vigila la conciencia y las pupilas: si la GCS cae a 8 o menos, vomita o aparece una midriasis, ISR y aviso al hospital: puede necesitar cirugía al llegar.',
+    checks: [['drug:labet|drug:urap', 'Antihipertensivo'], ['act:glu', 'Glucemia capilar'], ['act:explore', 'Vigilar la conciencia y las pupilas']],
+    targets: { tas: [130, 160], spo2: [94, 100] } }, O2),
 
   /* ---------- Arritmias ---------- */
   tsvInestable: Object.assign({ lvl: 'Arritmias', title: 'TSV mal tolerada', pheno: 'sano', sex: 'm', talla: 160, peso: 60, rhythm: 'tsv', arrPen: 60,
@@ -524,6 +551,10 @@ const META = {
   pcrTep: ['t', 3, 'PCR por TEP: fibrinólisis y RCP prolongada'],
   pcrPedFv: ['t', 2, 'FV pediátrica: 4 J/kg, intraósea y dosis por peso'],
   rceInestable: ['t', 2, 'RCE inestable: volumen, noradrenalina y evitar una nueva parada'],
+  estatus: ['t', 3, 'Estatus refractario: benzodiacepina, 2.ª línea y anestesia sin esperar'],
+  ictusIsq: ['t', 2, 'Código ictus: hora de inicio, RACE, glucemia y TA por debajo de 185/110'],
+  hemCerebral: ['h', 2, 'Hemorragia cerebral: TAS 140–160 y vigilancia neurológica en el traslado'],
+  hiponatremia: ['t', 2, 'Hiponatremia asociada al ejercicio: salino hipertónico 3 % en bolos'],
   scaAnt: ['t', 1, 'SCACEST con ICP primaria a tiempo: ECG, antiagregación, heparina y código infarto'],
   scaGomera: ['t', 2, 'SCACEST sin ICP en 120 min: fibrinólisis en menos de 10 min y estrategia farmacoinvasiva'],
   scaVD: ['t', 2, 'Infarto de VD: V4R, sin nitratos y volumen'],

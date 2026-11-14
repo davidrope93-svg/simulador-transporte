@@ -83,6 +83,10 @@ const SOL = {
   hemotorax: { s: [[.3, 'a', 'eco'], [.5, 'a', 'drain'], [.7, 'a', 'iv'], [2.4, 'd', 'txa'], [2.6, 'd', 'ketA'], [3, 'a', 'blood'], [6, 'a', 'blood']], permissive: true },
   volet: { s: [[.3, 'a', 'eco'], [.5, 'd', 'fentS'], [3, 'niv', { peep: 8, ps: 6 }]] },
   granQuemado: { s: [[.3, 'a', 'warm'], [.5, 'a', 'iv'], [2.2, 'p', 'cris', 500], [2.4, 'd', 'fentS']] },
+  estatus: { s: [[.3, 'd', 'midCr'], [.5, 'a', 'iv'], [2.2, 'd', 'lev'], [5.5, 'd', 'midCr'], [8, 'isr', { ind: 'propI' }], [8.6, 'p', 'prop', 200]], post: { fr: 14, peep: 5 } },
+  ictusIsq: { s: [[.4, 'a', 'ictus']], labet: 185 },
+  hemCerebral: { s: [[3, 'd', 'urap'], [8, 'd', 'urap']], labet: 160 },
+  hiponatremia: { s: [[.3, 'a', 'iv'], [1.9, 'd', 'ssh3'], [6, 'd', 'ssh3'], [11, 'd', 'ssh3']] },
   rceInestable: { s: [[.3, 'a', 'fluid'], [.4, 'p', 'nor', .1], [.5, 'vt', 7], [.6, 'cfg', { fr: 14 }], [3, 'a', 'fluid']], nor: 100 }
 };
 root.SIM_SOL = SOL;
