@@ -415,6 +415,19 @@ console.log('— Tanda de pediatría y obstetricia (v1.21): OVACE, Fallot, disto
   a = run('ectopico', [], 15); check('Ectópico roto sin tratar: TAS a 15 min', a.S.tas, 30, 80, ' mmHg'); check('… la ecografía muestra líquido libre', /Douglas/.test(a.eco()) ? 1 : 0, 1, 1);
   let sz = 0, sz2 = 0; for (let sd = 1; sd <= 8; sd++) { if (run('preeclampsiaGrave', [], 20, sd).S.seizures > 0) sz++; if (run('preeclampsiaGrave', [[.5, give('mg4', 82, false)], [1.5, s => DR.PERFS.find(p => p.id === 'mgP').run(s, 1, 1)]], 20, sd).S.seizures > 0) sz2++; } check('Preeclampsia grave sin magnesio: convulsiona en 20 min (de 8)', sz, 3, 8); check('… con magnesio (de 8)', sz2, 0, 1); }
 
+console.log('— Tanda de neurología (v1.22): basilar, HSA, imitador, meningitis, Guillain-Barré, disreflexia y más');
+{ const run = (k, acts, m, seed) => { const L = load(k, { seed: seed || 4, scale: 10 }), s = L.sim; adv(s, .05); for (const [t, f] of acts) { if (s.S.clin < t) adv(s, t - s.S.clin); f(s); } adv(s, m - s.S.clin); return s; };
+  global.window = global; require('../src/drugs.js'); const DR = global.SIM_DRUGS;
+  const give = (id, kg) => s => { const it = DR.DRUGITEMS[id]; s.drug(it.k, DR.amountOf(it, kg || 70, false)); };
+  let a = run('ictusMimic', [], 3), b = run('ictusMimic', [[.3, s => { s.S.access = 'iv'; }], [.5, give('gluc')]], 3); check('Imitador de ictus: déficit con hipoglucemia', /Hemiparesia/.test(a.explore().join(' ')) ? 1 : 0, 1, 1); check('… desaparece con glucosa', /ha desaparecido/.test(b.explore().join(' ')) ? 1 : 0, 1, 1);
+  let rb = 0, rb2 = 0; for (let sd = 1; sd <= 10; sd++) { if (run('hsa', [], 25, sd).S.stroke.rebled) rb++; if (run('hsa', [[.3, give('fentS', 62)], [.6, give('labet')], [3, give('labet')]], 25, sd).S.stroke.rebled) rb2++; } check('HSA con TAS 190: resangra en 25 min (de 10)', rb, 4, 10); check('… con analgesia y labetalol (de 10)', rb2, 0, 3);
+  a = run('meningitis', [], 25); b = run('meningitis', [[.3, give('dexaIV')], [.4, give('ceftri')], [.6, s => s.action('fluid')], [3, s => s.action('fluid')]], 25); check('Meningitis sin antibiótico: PAM a 25 min', a.S.pam, 30, 64, ' mmHg'); check('… con ceftriaxona, dexametasona y volumen', b.S.pam, 60, 110, ' mmHg');
+  a = run('guillainBarre', [], 25); check('Guillain-Barré: hipercapnia por debilidad a 25 min', a.S.pco2, 50, 150, ' mmHg');
+  let hk = 0; for (let sd = 1; sd <= 6; sd++) { const x = run('guillainBarre', [[.3, give('sux', 78)]], 6, sd); if (x.S.k > 6.5 || x.S.arrest) hk++; } check('… la succinilcolina dispara el potasio (de 6)', hk, 5, 6);
+  a = run('disreflexia', [], 5); b = run('disreflexia', [[.3, s => s.action('sonda')]], 5); check('Disreflexia: TAS con la sonda acodada', a.S.tas, 190, 260, ' mmHg'); check('… al cambiar la sonda', b.S.tas, 100, 150, ' mmHg');
+  let sz = 0; for (let sd = 1; sd <= 8; sd++) if (run('encefalopatiaHta', [], 20, sd).S.seizures > 0) sz++; check('Encefalopatía hipertensiva sin tratar: convulsiona (de 8)', sz, 2, 8);
+  a = run('tumorHtic', [], 20); b = run('tumorHtic', [[.5, give('shs')]], 20); check('Glioblastoma: el Glasgow cae sin osmoterapia', a.S.gcs, 3, 11); check('… con salino hipertónico', b.S.gcs, 10, 15); }
+
 console.log('— Instalable y sin conexión (v1.3): manifiesto, iconos y service worker');
 { const fs = require('fs'), path = require('path'), R = f => path.join(__dirname, '..', f);
   const man = JSON.parse(fs.readFileSync(R('manifest.webmanifest'), 'utf8'));
