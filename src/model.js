@@ -120,7 +120,8 @@ function create(opts) {
     tca: o.tca || 0, bicKg: 0, ecl: !!o.ecl, croup: o.croup || 0, seizUntil: -1, postIctUntil: -1, seizures: 0, postRosc: !!o.postRosc,
     access: o.access !== false, accessPend: null, ecg: { qrs: .08, t: 1, p: 1, j: 0, st: 0, amp: 1 }, gcs: 15,
     // v1.4: SCACEST (localización, VD, minutos de evolución al empezar, minutos hasta la ICP primaria) y taponamiento (0–1 y crecimiento por minuto)
-    stemi: o.stemi ? { loc: o.stemi.loc || 'ant', rv: !!o.stemi.rv, onset: o.stemi.onset || 60, pci: o.stemi.pci != null ? o.stemi.pci : 30, reperf: false, reperfAt: null, tnkAt: null, icp: null } : null,
+    stemi: o.stemi ? { loc: o.stemi.loc || 'ant', rv: !!o.stemi.rv, onset: o.stemi.onset || 60, pci: o.stemi.pci != null ? o.stemi.pci : 30, reperf: false, reperfAt: null, tnkAt: o.stemi.failed ? -70 : null, icp: null, noTnk: !!o.stemi.noTnk, nste: !!o.stemi.nste, failed: !!o.stemi.failed, ich: false } : null,
+    qtl: o.qtl ? { qtc: o.qtl.qtc || 600, n: 0, until: -1 } : null, dissec: o.dissec ? { prog: 0, done: false } : null, bavN: !!o.bavN, pmFail: !!o.pmFail, // v1.18+: QT largo, disección aórtica, BAV nodal y fallo de marcapasos
     tamp: o.tamp || 0, tampRate: o.tampRate || 0, pericPend: null,
     // v1.5: shock distributivo — vasoplejia séptica (0–1 y progresión por minuto hasta el antibiótico), neurogénico (0–1) y volumen que tolera el pulmón (mL/kg)
     tire: !!o.tire, pneu: o.pneu || 0, tbi: o.tbi || 0, tbi0: o.tbi || 0, preg: o.preg || 0, lud: false, tdp: !!o.tdp, ptxOpen: !!o.ptxOpen, crush: o.crush || 0, released: false, drive0: o.drive0 || 1, ptxRate: o.ptxRate || 0, irritant: !!o.irritant, hape: o.hape || 0, anxRate: o.anxRate || 0, anxBase: o.anxBase || 0, calmAt: null, retainer: !!o.retainer, ced: o.cedema ? { at: o.cedema.at || 15, risk: o.cedema.risk || .3, on: false, bic: false, insB: false, pRef: o.pco2 || 40 } : null, vaso: o.vaso || 0, vasoRate: o.vasoRate || 0, neurog: o.neurog || 0, fluidTol: o.fluidTol || 35, atbAt: null, tad: 70, pam: 90,
@@ -486,11 +487,11 @@ function create(opts) {
     if (S.neurog > 0) { tas -= 55 * S.neurog - 45 * E.nor * S.neurog; fc -= S.neurog * (22 * clamp((100 - S.tas) / 40, 0, 1) + 38); }
     const ar = S.arr.type;
     if (ar && !S.pace.capture) {
-      fc = ar === 'tsv' ? 186 : ar === 'flutter' ? 150 - 20 * E.amio : ar === 'fa' ? 158 - 45 * E.amio : ar === 'tvp' ? 178 - 15 * E.amio : 36 + 55 * E.atr + 40 * E.adr + 45 * E.iso;
+      fc = ar === 'tsv' ? 186 : ar === 'flutter' ? 150 - 20 * E.amio : ar === 'fa' ? 158 - 45 * E.amio : ar === 'tvp' ? 178 - 15 * E.amio : ar === 'fapre' ? 225 - 10 * E.amio : ar === 'tdp' ? 240 : 36 + 55 * E.atr + 40 * E.adr + 45 * E.iso;
       if (S.t < S.slowUntil) fc *= .55;
       tas -= S.arr.pen * (ar === 'sbrady' ? clamp((62 - fc) / 26, 0, 1) : clamp((fc - 120) / 60, 0, 1.3));
     }
-    if (S.bav && !S.pace.capture) { fc = 32 + 8 * E.atr + 30 * E.adr + 35 * E.iso; tas -= 45 - 25 * E.adr - 20 * E.iso; }
+    if (S.bav && !S.pace.capture) { if (S.bavN) { fc = 40 + 40 * E.atr + 30 * E.adr + 35 * E.iso; tas -= 40 - 30 * clamp(E.atr, 0, 1) - 25 * E.adr - 20 * E.iso; } else { fc = 32 + 8 * E.atr + 30 * E.adr + 35 * E.iso; tas -= 45 - 25 * E.adr - 20 * E.iso; } } // v1.19: BAV nodal (escape estrecho, responde a la atropina)
     if (S.hypoxT > 1.5) fc = 38 + 30 * E.atr + 25 * E.adr;
     if (S.neo) { const ox = clamp((S.spo2 - .45) / .4, 0, 1); fc = S.neo.hr; tas = (30 + 32 * S.neo.m * (.4 + .6 * ox) + (S.neo.comp ? 8 : 0) + 15 * E.adr) * (S.neo.prem ? clamp(.5 + (S.neo.prem - 22) / 30, .6, 1) : 1) * (1 - (S.ptxActive ? .4 * S.ptx : 0)); } // el prematuro tiene TA más baja // recién nacido: la FC sigue a la oxigenación y al miocardio
     S.fcIntr = fc;
@@ -531,7 +532,7 @@ function create(opts) {
         const pf = Math.pow(clamp(S.tas / 100, .3, 1.6), 1.5), src = S.bleedSrc;
         const hem = S.hemo ? (src === 'ext' ? .1 : src === 'pelv' ? .55 : src === 'uter' ? .6 : src === 'femur' ? .5 : 1) : 1;
         const coag = 1 + .08 * clamp(35.5 - S.temp, 0, 6) + .3 * clamp((S.fluidKg - 20) / 40, 0, 1.5) + .4 * clamp((7.2 - (S.ph || 7.4)) / .2, 0, 1);
-        S.bleedNow = S.bleed * pf * (1 - .3 * E.txa) * hem * (src === 'uter' ? 1 - .6 * E.oxito : 1) * coag;
+        S.bleedNow = S.bleed * pf * (1 - (src === 'dig' ? 0 : .3) * E.txa) * hem * (src === 'uter' ? 1 - .6 * E.oxito : 1) * coag;
         S.deficit = Math.min(.7, S.deficit + S.bleedNow * dtc); S.lost = (S.lost || 0) + S.bleedNow * dtc;
         if (src === 'thor') { const ml = S.bleedNow * dtc * 4000; if (S.drained) S.htxOut += ml; else S.htx += ml / 1000; } // la sangre del hemotórax se queda en la pleura o sale por el drenaje
       } else S.bleedNow = 0;
@@ -558,11 +559,15 @@ function create(opts) {
     // v1.4: SCACEST — reperfusión tras la fibrinólisis (más probable cuanto antes), FV primaria y bradicardia en el inferior
     if (S.stemi && dtc > 0 && !S.arrest) {
       const m = S.stemi;
-      if (!m.reperf && S.E.tnk > .4 && m.tnkAt == null) { m.tnkAt = S.clin; const since = m.onset + S.clin; if (rnd() < (since <= 120 ? .82 : since <= 360 ? .68 : .45)) m.reperfAt = S.clin + 15 + 30 * rnd(); }
+      if (S.E.tnk > .4 && (m.noTnk || m.failed || m.nste) && !m.ich && (m.noTnk ? rnd() < dtc * .25 : rnd() < dtc * .02)) { m.ich = true; S.icp = S.icp || { base: 22, grow: 1.4, v: 22 }; S.log.push([S.clin, 'Cefalea brusca y bajo nivel de conciencia: hemorragia intracraneal tras la fibrinólisis']); } // v1.19
+      if (!m.reperf && S.E.tnk > .4 && m.tnkAt == null && !m.nste) { m.tnkAt = S.clin; const since = m.onset + S.clin; if (rnd() < (since <= 120 ? .82 : since <= 360 ? .68 : .45)) m.reperfAt = S.clin + 15 + 30 * rnd(); }
       if (!m.reperf && m.reperfAt != null && S.clin >= m.reperfAt) { m.reperf = true; S.log.push([S.clin, 'Reperfusión: cede el dolor y baja el ST']); }
       if (!m.reperf && rnd() < dtc * (m.loc === 'ant' ? .006 : .004)) enterArrest('vf');
       else if (!m.reperf && m.loc === 'inf' && !S.arr.type && rnd() < dtc * .006) { S.arr.type = 'sbrady'; S.arr.pen = 35; }
     }
+    if (S.dissec && !S.dissec.done && dtc > 0 && !S.arrest) { const d = S.dissec, anticoag = (S.E.aas > .2 ? .5 : 0) + (S.E.hnf > .2 || S.E.enox > .2 ? 1 : 0) + (S.E.tnk > .2 ? 3 : 0); // v1.19: disección tipo A — progresa con la TA, la FC y la antiagregación
+      d.prog += dtc * (.012 * clamp((S.tas - 115) / 40, 0, 2) + .01 * clamp((S.fc - 70) / 30, 0, 1.5) + .03 * anticoag);
+      if (d.prog >= 1) { d.done = true; S.tamp = Math.max(S.tamp, .35); S.tampRate = Math.max(S.tampRate, .035); S.log.push([S.clin, 'La disección progresa: derrame pericárdico y caída de la TA']); } }
     // v1.5: sepsis — la vasoplejia progresa hasta unos 20 min después del antibiótico; la fuga capilar consume el volumen
     if (S.vaso > 0 && dtc > 0 && !S.arrest) {
       if (S.E.atb > .3 && S.atbAt == null) S.atbAt = S.clin;
@@ -727,6 +732,7 @@ function create(opts) {
     if (S.icp) { S.icp.base = clamp(S.icp.base + S.icp.grow * dtc, 5, 70); S.icp.v = clamp(S.icp.base - 9 * S.E.shs - 9 * S.E.manit + .9 * (S.pco2 - (S.ced ? S.ced.pRef : 40)) + .3 * Math.max(0, S.cfg.peep - 5) + 10 * (S.fight || 0) + (S.oxEff < .9 ? 12 * (.9 - S.oxEff) / .2 : 0) + (S.tas > 160 ? (S.tas - 160) * .1 : 0), 3, 90); }
     if (S.adenPending && S.clin >= S.adenPending.at) { const d = S.adenPending.dose; S.adenPending = null; if (!S.arrest) { S.pauseUntil = S.t + 4.5; const t = S.arr.type;
         if (t === 'tsv' && rnd() < (d >= 12 ? .85 : .6)) { S.arr.type = null; S.log.push([S.clin, 'Adenosina: TSV revertida']); }
+        else if (t === 'fapre') { if (rnd() < .45) { enterArrest('vf'); S.log.push([S.clin, 'Adenosina en FA preexcitada: degenera a FV']); } else S.arr.pen += 15; } // v1.19: el bloqueo del nodo deja pasar todo por la vía accesoria
         else if (t === 'fa' || t === 'flutter' || t === 'tvp') S.slowUntil = S.t + 9; } }
     if (S.arr.type === 'tvp' && rnd() < .2 * S.E.amio * dtc) S.arr.type = null;
     if ((S.arr.type === 'fa' || S.arr.type === 'flutter') && rnd() < .025 * S.E.amio * dtc) S.arr.type = null;
@@ -738,7 +744,11 @@ function create(opts) {
       const uns = S.tas < 90;
       S.arr.pen += dtc * (uns ? .8 : .1); if (S.bav) S.tasAdj -= dtc * (uns ? .4 : .05);
       if (S.arr.type === 'tvp' && rnd() < dtc * (uns ? .02 : .005)) enterArrest(rnd() < .5 ? 'vf' : 'vt');
+      if (S.arr.type === 'fapre' && rnd() < dtc * (uns ? .03 : .008)) enterArrest('vf');
     }
+    if (S.qtl && !S.arrest && dtc > 0) { const q = S.qtl, mg = clamp((S.E.mg - .15) / .35, 0, 1), fast = clamp((S.fc - 70) / 30, 0, 1); // v1.19: QT largo — torsades autolimitadas que pueden degenerar en FV
+      if (S.arr.type === 'tdp' && S.clin >= q.until) { S.arr.type = null; S.arr.pen = 40; if (rnd() < .18 * (1 - .8 * mg)) enterArrest('vf'); else S.log.push([S.clin, 'Torsade autolimitada: recupera pulso']); }
+      else if (!S.arr.type && rnd() < dtc * .45 * (1 - .9 * mg) * (1 - .7 * fast) * (S.k < 3.5 ? 1.4 : 1)) { S.arr.type = 'tdp'; S.arr.pen = 120; q.until = S.clin + .25 + .45 * rnd(); q.n++; S.log.push([S.clin, 'Torsade de pointes: pierde el pulso']); if (S.onSeizure) S.onSeizure(); } }
     if (!S.arrest) {
       S.hypoxT = S.oxEff < .55 ? S.hypoxT + dtc : Math.max(0, S.hypoxT - dtc);
       S.lowT = S.tas < 50 ? S.lowT + dtc : Math.max(0, S.lowT - 2 * dtc);
@@ -750,7 +760,7 @@ function create(opts) {
       S.etAlv = S.pco2 * (1 - alvDS()) + (ago < 4 ? 14 * Math.exp(-ago / 1.5) : 0);
       if (S.postRosc && S.clin - S.cpr.roscAt < 30 && (S.tas < 75 || S.spo2 < .85) && rnd() < dtc * .04) enterArrest(rnd() < .5 ? 'vf' : 'primary'); // nueva parada en el post-RCE inestable
       else if (S.tdp && S.E.mg < .3 && S.clin - S.cpr.roscAt < 20 && rnd() < dtc * .3) { enterArrest('vt'); S.log.push([S.clin, 'Nueva torsade de pointes']); } // v1.15: sin magnesio, la torsade recurre
-      else if (!S.neo && (S.tas < 38 || S.hypoxT > 4 || S.lowT > 2.5)) enterArrest(S.hypoxT > 4 ? (S.cohb > .25 ? 'co' : 'hypox') : S.ptxActive ? 'ptx' : S.tep > .4 ? 'tep' : S.anaf > .4 ? 'anaf' : S.arr.type === 'tvp' ? 'vt' : S.cvT > .4 ? 'tox' : S.deficit > .35 ? 'hypo' : 'primary');
+      else if (!S.neo && ((S.tas < 38 && S.arr.type !== 'tdp') || S.hypoxT > 4 || S.lowT > 2.5)) enterArrest(S.hypoxT > 4 ? (S.cohb > .25 ? 'co' : 'hypox') : S.ptxActive ? 'ptx' : S.tep > .4 ? 'tep' : S.anaf > .4 ? 'anaf' : S.arr.type === 'tvp' ? 'vt' : S.cvT > .4 ? 'tox' : S.deficit > .35 ? 'hypo' : 'primary');
       else S.rhythm = S.pace.capture ? 'paced' : S.bav ? 'bav' : S.arr.type ? S.arr.type : S.hypoxT > 1.5 || S.fc < 50 ? 'brady' : S.fc > (S.neo ? 180 : S.ped ? pedNorms(S.age || 0).fc[1] : 100) ? 'tsinus' : 'sinus'; // en el niño, taquicardia por encima de lo normal para su edad
     } else {
       const c = S.cpr, comp = c.comp !== 'off';
@@ -971,7 +981,7 @@ function create(opts) {
         const t = S.arr.type;
         if (t && t !== 'sbrady') {
           if (!sync && rnd() < .2) { enterArrest('vf'); return { result: 'vf' }; }
-          const p = ({ tsv: J >= 70 ? .92 : .6, flutter: J >= 50 ? .9 : .6, fa: J >= 150 ? .78 : J >= 120 ? .62 : .4, tvp: J >= 100 ? .9 : .6 })[t] * (sync ? 1 : .8);
+          const p = ({ tsv: J >= 70 ? .92 : .6, flutter: J >= 50 ? .9 : .6, fa: J >= 150 ? .78 : J >= 120 ? .62 : .4, tvp: J >= 100 ? .9 : .6, fapre: J >= 120 ? .85 : .55, tdp: J >= 150 ? .9 : .6 })[t] * (sync ? 1 : .8);
           if (rnd() < p) { S.arr.type = null; S.pauseUntil = S.t + 1.5; return { result: 'converted' }; }
           return { result: 'persist' };
         }
@@ -1030,13 +1040,16 @@ function create(opts) {
     ecg12() {
       if (S.arrest) return 'En parada no se interpreta el ECG de 12 derivaciones: sigue el algoritmo.';
       const f = [], m = S.stemi, e = S.ecg, at = S.arr.type;
-      f.push(`${at ? { tsv: 'Taquicardia regular de QRS estrecho', fa: 'Fibrilación auricular', flutter: 'Flutter auricular', tvp: 'Taquicardia regular de QRS ancho', sbrady: 'Bradicardia sinusal' }[at] : S.bav ? 'BAV completo con escape de QRS ancho' : S.pace.capture ? 'Ritmo de marcapasos' : S.fc > 100 ? 'Taquicardia sinusal' : 'Ritmo sinusal'} a ${Math.round(S.fc)} lpm.`);
+      f.push(`${at ? { tsv: 'Taquicardia regular de QRS estrecho', fa: 'Fibrilación auricular', flutter: 'Flutter auricular', tvp: 'Taquicardia regular de QRS ancho', sbrady: 'Bradicardia sinusal', fapre: 'Taquicardia irregular de QRS ancho y morfología cambiante, con R-R de hasta 200 ms', tdp: 'Taquicardia ventricular polimorfa con QRS que giran alrededor de la línea de base' }[at] : S.bav ? (S.pmFail ? 'Espículas de marcapasos a 70 lpm que no capturan (no les sigue QRS), con escape ventricular lento' : S.bavN ? 'BAV completo con escape de QRS estrecho' : 'BAV completo con escape de QRS ancho') : S.pace.capture ? 'Ritmo de marcapasos' : S.fc > 100 ? 'Taquicardia sinusal' : 'Ritmo sinusal'} a ${Math.round(S.fc)} lpm.`);
       if (m) {
-        if (m.loc === 'ant') f.push('Elevación del ST de 3–4 mm en V1–V5, I y aVL, con descenso especular en II, III y aVF: SCACEST anterior extenso.');
+        if (m.nste) f.push('Descenso del ST de 2–3 mm en V2–V6, I y aVL con elevación del ST en aVR: isquemia subendocárdica extensa, sin elevación del ST.');
+        else if (m.loc === 'ant') f.push('Elevación del ST de 3–4 mm en V1–V5, I y aVL, con descenso especular en II, III y aVF: SCACEST anterior extenso.' + (m.failed ? ' Igual que en el ECG de antes de la fibrinólisis (hace 70 min): no ha bajado el 50 %.' : ''));
         else if (m.loc === 'inf') f.push('Elevación del ST de 2–3 mm en II, III y aVF (más en III que en II), con descenso especular en I y aVL: SCACEST inferior.' + (m.rv ? ' En V4R, elevación del ST de 1,5 mm: afectación del ventrículo derecho.' : ' V4R sin elevación del ST.'));
         else f.push('Elevación del ST en I, aVL, V5 y V6, con descenso en III y aVF: SCACEST lateral.');
         if (m.reperf) f.push('El ST ha bajado más de un 50 % respecto al primer ECG: criterio de reperfusión.');
       }
+      if (S.qtl && at !== 'tdp') f.push(`QT muy largo (QTc ≈ ${S.qtl.qtc} ms) con ondas U y extrasístoles ventriculares que caen sobre la T.`);
+      if (S.dissec) f.push('Hipertrofia del VI con alteraciones secundarias de la repolarización; sin elevación del ST.');
       if (e.t > 1.8) f.push('Ondas T picudas y simétricas.');
       if (e.qrs > .115) f.push(`QRS ancho (${Math.round(e.qrs * 1000)} ms)${S.tca > .2 ? ' con R terminal en aVR.' : '.'}`);
       if (e.j > .25) f.push('Ondas J de Osborn.');
@@ -1169,14 +1182,16 @@ function create(opts) {
       if (S.heat && S.temp > 39.5) f.push('Piel caliente y enrojecida; ' + (S.temp > 41 ? 'agitado y confuso, con lenguaje incoherente.' : 'confuso.'));
       if (naEff() > .25) f.push('Cefalea, náuseas y vómitos repetidos; ' + (naEff() > .6 ? 'confusa y desorientada; ' : '') + 'manos y cara hinchadas, los anillos le aprietan.');
       if (S.icp) f.push(S.icp.v > 30 ? 'Pupila derecha midriática y arreactiva; la izquierda, reactiva.' : S.icp.v > 22 ? 'Pupilas isocóricas pero perezosas.' : 'Pupilas isocóricas y reactivas.');
-      if (S.arr.type && S.arr.type !== 'sbrady') f.push(S.tas < 90 ? 'Pulso rápido y débil; sudoroso, pálido, con mareo.' : 'Palpitaciones; pulso rápido y bien tolerado.');
+      if (S.arr.type === 'tdp') f.push('Sin pulso palpable, pálido y sin respuesta: síncope durante la torsade.'); // v1.19
+      else if (S.dissec) f.push('Dolor desgarrante que irradia a la espalda; TAS 30 mmHg más alta en el brazo derecho que en el izquierdo, pulso femoral izquierdo débil y soplo diastólico aórtico.');
+      if (S.arr.type && S.arr.type !== 'sbrady' && S.arr.type !== 'tdp') f.push(S.tas < 90 ? 'Pulso rápido y débil; sudoroso, pálido, con mareo.' : 'Palpitaciones; pulso rápido y bien tolerado.');
       if (S.arr.type === 'sbrady') f.push('Pulso lento y regular; mareado y pálido.');
       if (S.glu < 55) f.push('Sudoración profusa, piel fría y pálida' + (S.glu < 40 ? ', no obedece órdenes.' : ', irritable.'));
       if (S.temp < 32) f.push('Frío al tacto, sin tiritona, rigidez muscular; pulso lento y difícil de palpar.'); else if (S.temp < 35) f.push('Tiritona intensa, piel fría.');
       if (S.croupEff > .25) f.push('Estridor inspiratorio en reposo, tos perruna, tiraje supraesternal' + (S.croupEff > .6 ? ' e intercostal; agotado y pálido.' : '.'));
       if (S.tca > .3) f.push('Midriasis, piel caliente y seca, mucosas secas; abdomen sin ruidos.');
       if (S.ecl) f.push('Gestante de tercer trimestre con edemas; hiperreflexia con clonus.');
-      if (S.bleed > 0) { const bn = S.bleedNow || 0; f.push(S.bleedSrc === 'ext' ? (S.hemo ? 'Torniquete apretado: la herida ya no sangra.' : 'Sangrado activo, pulsátil, por la herida.') : S.bleedSrc === 'pelv' ? (S.hemo ? 'Cinturón pélvico colocado; dolor a la compresión pélvica.' : 'Pelvis inestable y dolorosa; equimosis perineal.') : S.bleedSrc === 'uter' ? (bn > .006 ? 'Útero blando, por encima del ombligo; sangrado vaginal abundante con coágulos.' : 'Útero más firme; el sangrado disminuye.') : S.bleedSrc === 'thor' ? (S.drained ? `Drenaje torácico derecho: ${Math.round(S.htxOut / 50) * 50} mL de sangre desde su colocación; ahora drena ≈ ${Math.round(bn * 4000 * 60 / 50) * 50} mL/h.` : 'Contusión y erosiones en la pared torácica derecha.') : 'Abdomen distendido y doloroso.'); }
+      if (S.bleed > 0) { const bn = S.bleedNow || 0; f.push(S.bleedSrc === 'dig' ? (bn > .004 ? 'Melenas abundantes y hematemesis en posos de café; abdomen blando, no doloroso.' : 'Sin nuevos vómitos; melenas escasas.') : S.bleedSrc === 'ext' ? (S.hemo ? 'Torniquete apretado: la herida ya no sangra.' : 'Sangrado activo, pulsátil, por la herida.') : S.bleedSrc === 'pelv' ? (S.hemo ? 'Cinturón pélvico colocado; dolor a la compresión pélvica.' : 'Pelvis inestable y dolorosa; equimosis perineal.') : S.bleedSrc === 'uter' ? (bn > .006 ? 'Útero blando, por encima del ombligo; sangrado vaginal abundante con coágulos.' : 'Útero más firme; el sangrado disminuye.') : S.bleedSrc === 'thor' ? (S.drained ? `Drenaje torácico derecho: ${Math.round(S.htxOut / 50) * 50} mL de sangre desde su colocación; ahora drena ≈ ${Math.round(bn * 4000 * 60 / 50) * 50} mL/h.` : 'Contusión y erosiones en la pared torácica derecha.') : 'Abdomen distendido y doloroso.'); }
       if (!S.access && !S.accessPend) f.push('Sin acceso vascular.');
       if (!f.length) f.push('Murmullo simétrico, tubo en su marca, sin hallazgos nuevos.');
       return f;

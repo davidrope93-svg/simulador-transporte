@@ -374,6 +374,20 @@ console.log('— Tanda de VMI terrestre (v1.18): obeso, hipercapnia permisiva, E
   a = run('eapIntubado', [], 10); b = run('eapIntubado', [[.3, cfg({ peep: 10 })], [.5, s => s.setNtg(200)]], 10); check('EAP intubado con PEEP 5: SpO₂', a.S.spo2 * 100, 70, 89, ' %'); check('… PEEP 10 y nitroglicerina: SpO₂', b.S.spo2 * 100, 92, 100, ' %'); check('… y TAS', b.S.tas, 110, 165, ' mmHg');
   a = run('ptxSdra', [[.3, cfg({ tplat: .3 })]], 3); check('SDRA con 650 mL (9,6 mL/kg de peso ideal): meseta', a.monitor().pplat, 31, 60, ' cmH₂O'); }
 
+console.log('— Tanda de arritmias y cardiología (v1.19): FA preexcitada, QT largo, BAV, disección y SCA sin fibrinólisis');
+{ const run = (k, acts, m, seed) => { const L = load(k, { seed: seed || 4, scale: 10 }), s = L.sim; adv(s, .05); for (const [t, f] of acts) { if (s.S.clin < t) adv(s, t - s.S.clin); f(s); } adv(s, m - s.S.clin); return s; };
+  global.window = global; require('../src/drugs.js'); const DR = global.SIM_DRUGS;
+  const give = (id, kg) => s => { const it = DR.DRUGITEMS[id]; s.drug(it.k, DR.amountOf(it, kg || 75, false)); };
+  let vf = 0, cv = 0; for (let sd = 1; sd <= 12; sd++) { if (run('faPreexcitada', [[.3, give('aden6')]], 1, sd).S.arrest) vf++; const x = run('faPreexcitada', [[.3, s => s.shock(150, true)]], 1, sd); if (!x.S.arr.type && !x.S.arrest) cv++; }
+  check('FA preexcitada: la adenosina la degenera en FV (de 12)', vf, 3, 9); check('… la cardioversión sincronizada a 150 J la revierte (de 12)', cv, 8, 12);
+  let a = run('qtLargo', [], 15), b = run('qtLargo', [[.3, give('mgso4')], [.5, s => DR.PERFS.find(p => p.id === 'iso').run(s, 2, 1)]], 3); const n3 = b.S.qtl.n; adv(b, 12); check('QT largo sin tratar: torsades en 15 min', a.S.qtl.n + (a.S.arrest ? 1 : 0), 2, 20); check('… con magnesio e isoprenalina, del minuto 3 al 15', b.S.qtl.n - n3, 0, 1);
+  a = run('bavInferior', [], 3); b = run('bavInferior', [[.3, give('atr')]], 3); check('BAV nodal del IAM inferior: la atropina sube la FC', b.S.fc - a.S.fc, 15, 50, ' lpm');
+  a = run('pmFallo', [], 3); b = run('pmFallo', [[.3, give('atr')]], 3); check('… con escape ventricular apenas responde', b.S.fc - a.S.fc, 0, 10, ' lpm');
+  a = run('diseccionAorta', [[.3, give('aas')], [.4, give('hnf', 92)]], 25); b = run('diseccionAorta', [[.3, give('fentS', 92)], [.5, give('labet')], [3, give('labet')], [6, give('labet')], [7, give('urap')]], 25); check('Disección con AAS y heparina: progresa a derrame pericárdico', a.S.tamp, .3, 1); check('… con analgesia, labetalol y urapidilo no progresa', b.S.dissec.done ? 1 : 0, 0, 0);
+  a = run('scaContraindicada', [[.5, give('tnk', 80)]], 20); check('SCACEST con ictus reciente: la fibrinólisis da una hemorragia intracraneal', a.S.stemi.ich ? 1 : 0, 1, 1);
+  a = run('scasest', [[.5, give('tnk', 70)]], 20); check('SCASEST: la fibrinólisis no reperfunde', a.S.stemi.reperf ? 1 : 0, 0, 0);
+  a = run('taquiSinusal', [], 20); b = run('taquiSinusal', [[.3, s => { s.S.access = 'iv'; }], [.5, s => s.action('fluid')], [2, s => s.action('blood')], [5, s => s.action('blood')]], 20); check('Hemorragia sin reponer: FC a 20 min', a.S.fc, 130, 180, ' lpm'); check('… con volumen y sangre la taquicardia cede sola', b.S.fc, 90, 125, ' lpm'); }
+
 console.log('— Instalable y sin conexión (v1.3): manifiesto, iconos y service worker');
 { const fs = require('fs'), path = require('path'), R = f => path.join(__dirname, '..', f);
   const man = JSON.parse(fs.readFileSync(R('manifest.webmanifest'), 'utf8'));

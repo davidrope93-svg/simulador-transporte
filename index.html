@@ -449,7 +449,7 @@ body.exam #tutBtn{display:none}
 <main>
   <header class="top">
     <div class="brand">
-      <span class="eyebrow">Simulador docente · SVA terrestre y HEMS · v1.18</span>
+      <span class="eyebrow">Simulador docente · SVA terrestre y HEMS · v1.19</span>
       <h1>Ventilación, monitor y RCP</h1>
     </div>
     <div class="toolbar">
@@ -862,7 +862,8 @@ function create(opts) {
     tca: o.tca || 0, bicKg: 0, ecl: !!o.ecl, croup: o.croup || 0, seizUntil: -1, postIctUntil: -1, seizures: 0, postRosc: !!o.postRosc,
     access: o.access !== false, accessPend: null, ecg: { qrs: .08, t: 1, p: 1, j: 0, st: 0, amp: 1 }, gcs: 15,
     // v1.4: SCACEST (localización, VD, minutos de evolución al empezar, minutos hasta la ICP primaria) y taponamiento (0–1 y crecimiento por minuto)
-    stemi: o.stemi ? { loc: o.stemi.loc || 'ant', rv: !!o.stemi.rv, onset: o.stemi.onset || 60, pci: o.stemi.pci != null ? o.stemi.pci : 30, reperf: false, reperfAt: null, tnkAt: null, icp: null } : null,
+    stemi: o.stemi ? { loc: o.stemi.loc || 'ant', rv: !!o.stemi.rv, onset: o.stemi.onset || 60, pci: o.stemi.pci != null ? o.stemi.pci : 30, reperf: false, reperfAt: null, tnkAt: o.stemi.failed ? -70 : null, icp: null, noTnk: !!o.stemi.noTnk, nste: !!o.stemi.nste, failed: !!o.stemi.failed, ich: false } : null,
+    qtl: o.qtl ? { qtc: o.qtl.qtc || 600, n: 0, until: -1 } : null, dissec: o.dissec ? { prog: 0, done: false } : null, bavN: !!o.bavN, pmFail: !!o.pmFail, // v1.18+: QT largo, disección aórtica, BAV nodal y fallo de marcapasos
     tamp: o.tamp || 0, tampRate: o.tampRate || 0, pericPend: null,
     // v1.5: shock distributivo — vasoplejia séptica (0–1 y progresión por minuto hasta el antibiótico), neurogénico (0–1) y volumen que tolera el pulmón (mL/kg)
     tire: !!o.tire, pneu: o.pneu || 0, tbi: o.tbi || 0, tbi0: o.tbi || 0, preg: o.preg || 0, lud: false, tdp: !!o.tdp, ptxOpen: !!o.ptxOpen, crush: o.crush || 0, released: false, drive0: o.drive0 || 1, ptxRate: o.ptxRate || 0, irritant: !!o.irritant, hape: o.hape || 0, anxRate: o.anxRate || 0, anxBase: o.anxBase || 0, calmAt: null, retainer: !!o.retainer, ced: o.cedema ? { at: o.cedema.at || 15, risk: o.cedema.risk || .3, on: false, bic: false, insB: false, pRef: o.pco2 || 40 } : null, vaso: o.vaso || 0, vasoRate: o.vasoRate || 0, neurog: o.neurog || 0, fluidTol: o.fluidTol || 35, atbAt: null, tad: 70, pam: 90,
@@ -1228,11 +1229,11 @@ function create(opts) {
     if (S.neurog > 0) { tas -= 55 * S.neurog - 45 * E.nor * S.neurog; fc -= S.neurog * (22 * clamp((100 - S.tas) / 40, 0, 1) + 38); }
     const ar = S.arr.type;
     if (ar && !S.pace.capture) {
-      fc = ar === 'tsv' ? 186 : ar === 'flutter' ? 150 - 20 * E.amio : ar === 'fa' ? 158 - 45 * E.amio : ar === 'tvp' ? 178 - 15 * E.amio : 36 + 55 * E.atr + 40 * E.adr + 45 * E.iso;
+      fc = ar === 'tsv' ? 186 : ar === 'flutter' ? 150 - 20 * E.amio : ar === 'fa' ? 158 - 45 * E.amio : ar === 'tvp' ? 178 - 15 * E.amio : ar === 'fapre' ? 225 - 10 * E.amio : ar === 'tdp' ? 240 : 36 + 55 * E.atr + 40 * E.adr + 45 * E.iso;
       if (S.t < S.slowUntil) fc *= .55;
       tas -= S.arr.pen * (ar === 'sbrady' ? clamp((62 - fc) / 26, 0, 1) : clamp((fc - 120) / 60, 0, 1.3));
     }
-    if (S.bav && !S.pace.capture) { fc = 32 + 8 * E.atr + 30 * E.adr + 35 * E.iso; tas -= 45 - 25 * E.adr - 20 * E.iso; }
+    if (S.bav && !S.pace.capture) { if (S.bavN) { fc = 40 + 40 * E.atr + 30 * E.adr + 35 * E.iso; tas -= 40 - 30 * clamp(E.atr, 0, 1) - 25 * E.adr - 20 * E.iso; } else { fc = 32 + 8 * E.atr + 30 * E.adr + 35 * E.iso; tas -= 45 - 25 * E.adr - 20 * E.iso; } } // v1.19: BAV nodal (escape estrecho, responde a la atropina)
     if (S.hypoxT > 1.5) fc = 38 + 30 * E.atr + 25 * E.adr;
     if (S.neo) { const ox = clamp((S.spo2 - .45) / .4, 0, 1); fc = S.neo.hr; tas = (30 + 32 * S.neo.m * (.4 + .6 * ox) + (S.neo.comp ? 8 : 0) + 15 * E.adr) * (S.neo.prem ? clamp(.5 + (S.neo.prem - 22) / 30, .6, 1) : 1) * (1 - (S.ptxActive ? .4 * S.ptx : 0)); } // el prematuro tiene TA más baja // recién nacido: la FC sigue a la oxigenación y al miocardio
     S.fcIntr = fc;
@@ -1273,7 +1274,7 @@ function create(opts) {
         const pf = Math.pow(clamp(S.tas / 100, .3, 1.6), 1.5), src = S.bleedSrc;
         const hem = S.hemo ? (src === 'ext' ? .1 : src === 'pelv' ? .55 : src === 'uter' ? .6 : src === 'femur' ? .5 : 1) : 1;
         const coag = 1 + .08 * clamp(35.5 - S.temp, 0, 6) + .3 * clamp((S.fluidKg - 20) / 40, 0, 1.5) + .4 * clamp((7.2 - (S.ph || 7.4)) / .2, 0, 1);
-        S.bleedNow = S.bleed * pf * (1 - .3 * E.txa) * hem * (src === 'uter' ? 1 - .6 * E.oxito : 1) * coag;
+        S.bleedNow = S.bleed * pf * (1 - (src === 'dig' ? 0 : .3) * E.txa) * hem * (src === 'uter' ? 1 - .6 * E.oxito : 1) * coag;
         S.deficit = Math.min(.7, S.deficit + S.bleedNow * dtc); S.lost = (S.lost || 0) + S.bleedNow * dtc;
         if (src === 'thor') { const ml = S.bleedNow * dtc * 4000; if (S.drained) S.htxOut += ml; else S.htx += ml / 1000; } // la sangre del hemotórax se queda en la pleura o sale por el drenaje
       } else S.bleedNow = 0;
@@ -1300,11 +1301,15 @@ function create(opts) {
     // v1.4: SCACEST — reperfusión tras la fibrinólisis (más probable cuanto antes), FV primaria y bradicardia en el inferior
     if (S.stemi && dtc > 0 && !S.arrest) {
       const m = S.stemi;
-      if (!m.reperf && S.E.tnk > .4 && m.tnkAt == null) { m.tnkAt = S.clin; const since = m.onset + S.clin; if (rnd() < (since <= 120 ? .82 : since <= 360 ? .68 : .45)) m.reperfAt = S.clin + 15 + 30 * rnd(); }
+      if (S.E.tnk > .4 && (m.noTnk || m.failed || m.nste) && !m.ich && (m.noTnk ? rnd() < dtc * .25 : rnd() < dtc * .02)) { m.ich = true; S.icp = S.icp || { base: 22, grow: 1.4, v: 22 }; S.log.push([S.clin, 'Cefalea brusca y bajo nivel de conciencia: hemorragia intracraneal tras la fibrinólisis']); } // v1.19
+      if (!m.reperf && S.E.tnk > .4 && m.tnkAt == null && !m.nste) { m.tnkAt = S.clin; const since = m.onset + S.clin; if (rnd() < (since <= 120 ? .82 : since <= 360 ? .68 : .45)) m.reperfAt = S.clin + 15 + 30 * rnd(); }
       if (!m.reperf && m.reperfAt != null && S.clin >= m.reperfAt) { m.reperf = true; S.log.push([S.clin, 'Reperfusión: cede el dolor y baja el ST']); }
       if (!m.reperf && rnd() < dtc * (m.loc === 'ant' ? .006 : .004)) enterArrest('vf');
       else if (!m.reperf && m.loc === 'inf' && !S.arr.type && rnd() < dtc * .006) { S.arr.type = 'sbrady'; S.arr.pen = 35; }
     }
+    if (S.dissec && !S.dissec.done && dtc > 0 && !S.arrest) { const d = S.dissec, anticoag = (S.E.aas > .2 ? .5 : 0) + (S.E.hnf > .2 || S.E.enox > .2 ? 1 : 0) + (S.E.tnk > .2 ? 3 : 0); // v1.19: disección tipo A — progresa con la TA, la FC y la antiagregación
+      d.prog += dtc * (.012 * clamp((S.tas - 115) / 40, 0, 2) + .01 * clamp((S.fc - 70) / 30, 0, 1.5) + .03 * anticoag);
+      if (d.prog >= 1) { d.done = true; S.tamp = Math.max(S.tamp, .35); S.tampRate = Math.max(S.tampRate, .035); S.log.push([S.clin, 'La disección progresa: derrame pericárdico y caída de la TA']); } }
     // v1.5: sepsis — la vasoplejia progresa hasta unos 20 min después del antibiótico; la fuga capilar consume el volumen
     if (S.vaso > 0 && dtc > 0 && !S.arrest) {
       if (S.E.atb > .3 && S.atbAt == null) S.atbAt = S.clin;
@@ -1469,6 +1474,7 @@ function create(opts) {
     if (S.icp) { S.icp.base = clamp(S.icp.base + S.icp.grow * dtc, 5, 70); S.icp.v = clamp(S.icp.base - 9 * S.E.shs - 9 * S.E.manit + .9 * (S.pco2 - (S.ced ? S.ced.pRef : 40)) + .3 * Math.max(0, S.cfg.peep - 5) + 10 * (S.fight || 0) + (S.oxEff < .9 ? 12 * (.9 - S.oxEff) / .2 : 0) + (S.tas > 160 ? (S.tas - 160) * .1 : 0), 3, 90); }
     if (S.adenPending && S.clin >= S.adenPending.at) { const d = S.adenPending.dose; S.adenPending = null; if (!S.arrest) { S.pauseUntil = S.t + 4.5; const t = S.arr.type;
         if (t === 'tsv' && rnd() < (d >= 12 ? .85 : .6)) { S.arr.type = null; S.log.push([S.clin, 'Adenosina: TSV revertida']); }
+        else if (t === 'fapre') { if (rnd() < .45) { enterArrest('vf'); S.log.push([S.clin, 'Adenosina en FA preexcitada: degenera a FV']); } else S.arr.pen += 15; } // v1.19: el bloqueo del nodo deja pasar todo por la vía accesoria
         else if (t === 'fa' || t === 'flutter' || t === 'tvp') S.slowUntil = S.t + 9; } }
     if (S.arr.type === 'tvp' && rnd() < .2 * S.E.amio * dtc) S.arr.type = null;
     if ((S.arr.type === 'fa' || S.arr.type === 'flutter') && rnd() < .025 * S.E.amio * dtc) S.arr.type = null;
@@ -1480,7 +1486,11 @@ function create(opts) {
       const uns = S.tas < 90;
       S.arr.pen += dtc * (uns ? .8 : .1); if (S.bav) S.tasAdj -= dtc * (uns ? .4 : .05);
       if (S.arr.type === 'tvp' && rnd() < dtc * (uns ? .02 : .005)) enterArrest(rnd() < .5 ? 'vf' : 'vt');
+      if (S.arr.type === 'fapre' && rnd() < dtc * (uns ? .03 : .008)) enterArrest('vf');
     }
+    if (S.qtl && !S.arrest && dtc > 0) { const q = S.qtl, mg = clamp((S.E.mg - .15) / .35, 0, 1), fast = clamp((S.fc - 70) / 30, 0, 1); // v1.19: QT largo — torsades autolimitadas que pueden degenerar en FV
+      if (S.arr.type === 'tdp' && S.clin >= q.until) { S.arr.type = null; S.arr.pen = 40; if (rnd() < .18 * (1 - .8 * mg)) enterArrest('vf'); else S.log.push([S.clin, 'Torsade autolimitada: recupera pulso']); }
+      else if (!S.arr.type && rnd() < dtc * .45 * (1 - .9 * mg) * (1 - .7 * fast) * (S.k < 3.5 ? 1.4 : 1)) { S.arr.type = 'tdp'; S.arr.pen = 120; q.until = S.clin + .25 + .45 * rnd(); q.n++; S.log.push([S.clin, 'Torsade de pointes: pierde el pulso']); if (S.onSeizure) S.onSeizure(); } }
     if (!S.arrest) {
       S.hypoxT = S.oxEff < .55 ? S.hypoxT + dtc : Math.max(0, S.hypoxT - dtc);
       S.lowT = S.tas < 50 ? S.lowT + dtc : Math.max(0, S.lowT - 2 * dtc);
@@ -1492,7 +1502,7 @@ function create(opts) {
       S.etAlv = S.pco2 * (1 - alvDS()) + (ago < 4 ? 14 * Math.exp(-ago / 1.5) : 0);
       if (S.postRosc && S.clin - S.cpr.roscAt < 30 && (S.tas < 75 || S.spo2 < .85) && rnd() < dtc * .04) enterArrest(rnd() < .5 ? 'vf' : 'primary'); // nueva parada en el post-RCE inestable
       else if (S.tdp && S.E.mg < .3 && S.clin - S.cpr.roscAt < 20 && rnd() < dtc * .3) { enterArrest('vt'); S.log.push([S.clin, 'Nueva torsade de pointes']); } // v1.15: sin magnesio, la torsade recurre
-      else if (!S.neo && (S.tas < 38 || S.hypoxT > 4 || S.lowT > 2.5)) enterArrest(S.hypoxT > 4 ? (S.cohb > .25 ? 'co' : 'hypox') : S.ptxActive ? 'ptx' : S.tep > .4 ? 'tep' : S.anaf > .4 ? 'anaf' : S.arr.type === 'tvp' ? 'vt' : S.cvT > .4 ? 'tox' : S.deficit > .35 ? 'hypo' : 'primary');
+      else if (!S.neo && ((S.tas < 38 && S.arr.type !== 'tdp') || S.hypoxT > 4 || S.lowT > 2.5)) enterArrest(S.hypoxT > 4 ? (S.cohb > .25 ? 'co' : 'hypox') : S.ptxActive ? 'ptx' : S.tep > .4 ? 'tep' : S.anaf > .4 ? 'anaf' : S.arr.type === 'tvp' ? 'vt' : S.cvT > .4 ? 'tox' : S.deficit > .35 ? 'hypo' : 'primary');
       else S.rhythm = S.pace.capture ? 'paced' : S.bav ? 'bav' : S.arr.type ? S.arr.type : S.hypoxT > 1.5 || S.fc < 50 ? 'brady' : S.fc > (S.neo ? 180 : S.ped ? pedNorms(S.age || 0).fc[1] : 100) ? 'tsinus' : 'sinus'; // en el niño, taquicardia por encima de lo normal para su edad
     } else {
       const c = S.cpr, comp = c.comp !== 'off';
@@ -1713,7 +1723,7 @@ function create(opts) {
         const t = S.arr.type;
         if (t && t !== 'sbrady') {
           if (!sync && rnd() < .2) { enterArrest('vf'); return { result: 'vf' }; }
-          const p = ({ tsv: J >= 70 ? .92 : .6, flutter: J >= 50 ? .9 : .6, fa: J >= 150 ? .78 : J >= 120 ? .62 : .4, tvp: J >= 100 ? .9 : .6 })[t] * (sync ? 1 : .8);
+          const p = ({ tsv: J >= 70 ? .92 : .6, flutter: J >= 50 ? .9 : .6, fa: J >= 150 ? .78 : J >= 120 ? .62 : .4, tvp: J >= 100 ? .9 : .6, fapre: J >= 120 ? .85 : .55, tdp: J >= 150 ? .9 : .6 })[t] * (sync ? 1 : .8);
           if (rnd() < p) { S.arr.type = null; S.pauseUntil = S.t + 1.5; return { result: 'converted' }; }
           return { result: 'persist' };
         }
@@ -1772,13 +1782,16 @@ function create(opts) {
     ecg12() {
       if (S.arrest) return 'En parada no se interpreta el ECG de 12 derivaciones: sigue el algoritmo.';
       const f = [], m = S.stemi, e = S.ecg, at = S.arr.type;
-      f.push(`${at ? { tsv: 'Taquicardia regular de QRS estrecho', fa: 'Fibrilación auricular', flutter: 'Flutter auricular', tvp: 'Taquicardia regular de QRS ancho', sbrady: 'Bradicardia sinusal' }[at] : S.bav ? 'BAV completo con escape de QRS ancho' : S.pace.capture ? 'Ritmo de marcapasos' : S.fc > 100 ? 'Taquicardia sinusal' : 'Ritmo sinusal'} a ${Math.round(S.fc)} lpm.`);
+      f.push(`${at ? { tsv: 'Taquicardia regular de QRS estrecho', fa: 'Fibrilación auricular', flutter: 'Flutter auricular', tvp: 'Taquicardia regular de QRS ancho', sbrady: 'Bradicardia sinusal', fapre: 'Taquicardia irregular de QRS ancho y morfología cambiante, con R-R de hasta 200 ms', tdp: 'Taquicardia ventricular polimorfa con QRS que giran alrededor de la línea de base' }[at] : S.bav ? (S.pmFail ? 'Espículas de marcapasos a 70 lpm que no capturan (no les sigue QRS), con escape ventricular lento' : S.bavN ? 'BAV completo con escape de QRS estrecho' : 'BAV completo con escape de QRS ancho') : S.pace.capture ? 'Ritmo de marcapasos' : S.fc > 100 ? 'Taquicardia sinusal' : 'Ritmo sinusal'} a ${Math.round(S.fc)} lpm.`);
       if (m) {
-        if (m.loc === 'ant') f.push('Elevación del ST de 3–4 mm en V1–V5, I y aVL, con descenso especular en II, III y aVF: SCACEST anterior extenso.');
+        if (m.nste) f.push('Descenso del ST de 2–3 mm en V2–V6, I y aVL con elevación del ST en aVR: isquemia subendocárdica extensa, sin elevación del ST.');
+        else if (m.loc === 'ant') f.push('Elevación del ST de 3–4 mm en V1–V5, I y aVL, con descenso especular en II, III y aVF: SCACEST anterior extenso.' + (m.failed ? ' Igual que en el ECG de antes de la fibrinólisis (hace 70 min): no ha bajado el 50 %.' : ''));
         else if (m.loc === 'inf') f.push('Elevación del ST de 2–3 mm en II, III y aVF (más en III que en II), con descenso especular en I y aVL: SCACEST inferior.' + (m.rv ? ' En V4R, elevación del ST de 1,5 mm: afectación del ventrículo derecho.' : ' V4R sin elevación del ST.'));
         else f.push('Elevación del ST en I, aVL, V5 y V6, con descenso en III y aVF: SCACEST lateral.');
         if (m.reperf) f.push('El ST ha bajado más de un 50 % respecto al primer ECG: criterio de reperfusión.');
       }
+      if (S.qtl && at !== 'tdp') f.push(`QT muy largo (QTc ≈ ${S.qtl.qtc} ms) con ondas U y extrasístoles ventriculares que caen sobre la T.`);
+      if (S.dissec) f.push('Hipertrofia del VI con alteraciones secundarias de la repolarización; sin elevación del ST.');
       if (e.t > 1.8) f.push('Ondas T picudas y simétricas.');
       if (e.qrs > .115) f.push(`QRS ancho (${Math.round(e.qrs * 1000)} ms)${S.tca > .2 ? ' con R terminal en aVR.' : '.'}`);
       if (e.j > .25) f.push('Ondas J de Osborn.');
@@ -1911,14 +1924,16 @@ function create(opts) {
       if (S.heat && S.temp > 39.5) f.push('Piel caliente y enrojecida; ' + (S.temp > 41 ? 'agitado y confuso, con lenguaje incoherente.' : 'confuso.'));
       if (naEff() > .25) f.push('Cefalea, náuseas y vómitos repetidos; ' + (naEff() > .6 ? 'confusa y desorientada; ' : '') + 'manos y cara hinchadas, los anillos le aprietan.');
       if (S.icp) f.push(S.icp.v > 30 ? 'Pupila derecha midriática y arreactiva; la izquierda, reactiva.' : S.icp.v > 22 ? 'Pupilas isocóricas pero perezosas.' : 'Pupilas isocóricas y reactivas.');
-      if (S.arr.type && S.arr.type !== 'sbrady') f.push(S.tas < 90 ? 'Pulso rápido y débil; sudoroso, pálido, con mareo.' : 'Palpitaciones; pulso rápido y bien tolerado.');
+      if (S.arr.type === 'tdp') f.push('Sin pulso palpable, pálido y sin respuesta: síncope durante la torsade.'); // v1.19
+      else if (S.dissec) f.push('Dolor desgarrante que irradia a la espalda; TAS 30 mmHg más alta en el brazo derecho que en el izquierdo, pulso femoral izquierdo débil y soplo diastólico aórtico.');
+      if (S.arr.type && S.arr.type !== 'sbrady' && S.arr.type !== 'tdp') f.push(S.tas < 90 ? 'Pulso rápido y débil; sudoroso, pálido, con mareo.' : 'Palpitaciones; pulso rápido y bien tolerado.');
       if (S.arr.type === 'sbrady') f.push('Pulso lento y regular; mareado y pálido.');
       if (S.glu < 55) f.push('Sudoración profusa, piel fría y pálida' + (S.glu < 40 ? ', no obedece órdenes.' : ', irritable.'));
       if (S.temp < 32) f.push('Frío al tacto, sin tiritona, rigidez muscular; pulso lento y difícil de palpar.'); else if (S.temp < 35) f.push('Tiritona intensa, piel fría.');
       if (S.croupEff > .25) f.push('Estridor inspiratorio en reposo, tos perruna, tiraje supraesternal' + (S.croupEff > .6 ? ' e intercostal; agotado y pálido.' : '.'));
       if (S.tca > .3) f.push('Midriasis, piel caliente y seca, mucosas secas; abdomen sin ruidos.');
       if (S.ecl) f.push('Gestante de tercer trimestre con edemas; hiperreflexia con clonus.');
-      if (S.bleed > 0) { const bn = S.bleedNow || 0; f.push(S.bleedSrc === 'ext' ? (S.hemo ? 'Torniquete apretado: la herida ya no sangra.' : 'Sangrado activo, pulsátil, por la herida.') : S.bleedSrc === 'pelv' ? (S.hemo ? 'Cinturón pélvico colocado; dolor a la compresión pélvica.' : 'Pelvis inestable y dolorosa; equimosis perineal.') : S.bleedSrc === 'uter' ? (bn > .006 ? 'Útero blando, por encima del ombligo; sangrado vaginal abundante con coágulos.' : 'Útero más firme; el sangrado disminuye.') : S.bleedSrc === 'thor' ? (S.drained ? `Drenaje torácico derecho: ${Math.round(S.htxOut / 50) * 50} mL de sangre desde su colocación; ahora drena ≈ ${Math.round(bn * 4000 * 60 / 50) * 50} mL/h.` : 'Contusión y erosiones en la pared torácica derecha.') : 'Abdomen distendido y doloroso.'); }
+      if (S.bleed > 0) { const bn = S.bleedNow || 0; f.push(S.bleedSrc === 'dig' ? (bn > .004 ? 'Melenas abundantes y hematemesis en posos de café; abdomen blando, no doloroso.' : 'Sin nuevos vómitos; melenas escasas.') : S.bleedSrc === 'ext' ? (S.hemo ? 'Torniquete apretado: la herida ya no sangra.' : 'Sangrado activo, pulsátil, por la herida.') : S.bleedSrc === 'pelv' ? (S.hemo ? 'Cinturón pélvico colocado; dolor a la compresión pélvica.' : 'Pelvis inestable y dolorosa; equimosis perineal.') : S.bleedSrc === 'uter' ? (bn > .006 ? 'Útero blando, por encima del ombligo; sangrado vaginal abundante con coágulos.' : 'Útero más firme; el sangrado disminuye.') : S.bleedSrc === 'thor' ? (S.drained ? `Drenaje torácico derecho: ${Math.round(S.htxOut / 50) * 50} mL de sangre desde su colocación; ahora drena ≈ ${Math.round(bn * 4000 * 60 / 50) * 50} mL/h.` : 'Contusión y erosiones en la pared torácica derecha.') : 'Abdomen distendido y doloroso.'); }
       if (!S.access && !S.accessPend) f.push('Sin acceso vascular.');
       if (!f.length) f.push('Murmullo simétrico, tubo en su marca, sin hallazgos nuevos.');
       return f;
@@ -2881,6 +2896,43 @@ const CASES = {
     checks: [['act:eco', 'Ecografía clínica'], ['act:fluid', 'Volumen'], ['act:pericardio', 'Pericardiocentesis']],
     targets: { tas: [90, 180] } }, O2),
 
+  /* v1.19 — fase 3, sesión 16: cardiología */
+  scasest: Object.assign({ lvl: 'Cardiología', title: 'SCASEST de muy alto riesgo: coronariografía inmediata', pheno: 'sano', sex: 'm', talla: 160, peso: 70, stemi: { loc: 'ant', nste: true, onset: 120, pci: 25 }, tasAdj: -25, pain: .6, speed: 5, duration: 20,
+    cfg: { o2dev: 'gafas' },
+    goal: 'Mujer de 71 años, diabética, con dolor torácico opresivo desde hace 2 horas que no cede con nitroglicerina sublingual. Sudorosa, TAS 98, FC 104. Estáis en Las Palmas: la sala de hemodinámica está a 25 minutos.',
+    hint: 'Sin elevación del ST no hay fibrinólisis. Descenso difuso del ST con elevación en aVR, dolor refractario e inestabilidad hemodinámica = SCASEST de muy alto riesgo: coronariografía inmediata (< 2 h), así que activa la sala igual que en un SCACEST. AAS 150–300 mg, heparina sódica 70–100 UI/kg y analgesia (fentanilo o morfina). O₂ solo si la SpO₂ < 90 %.',
+    checks: [['act:ecg12', 'ECG de 12 derivaciones'], ['drug:aas', 'AAS'], ['drug:hnf|drug:enox', 'Anticoagulación'], ['act:icp', 'Activar la coronariografía inmediata'], ['no:drug:tnk', 'Sin fibrinólisis']],
+    targets: { tas: [90, 180], reperf: [1, 1] } }, O2),
+  scaContraindicada: Object.assign({ lvl: 'Cardiología', title: 'SCACEST en El Hierro con la fibrinólisis contraindicada', pheno: 'sano', sex: 'h', talla: 168, peso: 80, stemi: { loc: 'ant', onset: 75, pci: 160, noTnk: true }, speed: 5, duration: 25,
+    cfg: { o2dev: 'gafas' },
+    goal: 'Varón de 66 años en Valverde (El Hierro) con dolor torácico típico desde hace 75 min. Tuvo un ictus isquémico hace 2 meses. El traslado aéreo hasta la sala de hemodinámica de Tenerife lleva unos 160 minutos.',
+    hint: 'Un ictus isquémico en los últimos 6 meses es una contraindicación absoluta de la fibrinólisis (hemorragia intracraneal). Aunque la ICP supere los 120 min, la estrategia es el traslado para ICP primaria: activa la sala y el traslado aéreo cuanto antes. AAS, heparina sódica y analgesia; monitor y parches por la FV primaria.',
+    checks: [['act:ecg12', 'ECG de 12 derivaciones'], ['drug:aas', 'AAS'], ['drug:hnf|drug:enox', 'Anticoagulación'], ['act:icp', 'Traslado para ICP primaria'], ['no:drug:tnk', 'Sin fibrinólisis']],
+    targets: { tas: [90, 180], reperf: [1, 1] } }, O2),
+  scaRescate: Object.assign({ lvl: 'Cardiología', title: 'Fibrinólisis fallida: ICP de rescate', pheno: 'sano', sex: 'h', talla: 175, peso: 84, stemi: { loc: 'ant', onset: 160, pci: 45, failed: true }, pain: .5, speed: 5, duration: 20,
+    cfg: { o2dev: 'gafas' },
+    goal: 'Varón de 57 años con SCACEST anterior. Hace 70 min le pusieron tenecteplasa en el centro de salud de Vilaflor. Sigue con dolor 7/10. Os llaman para trasladarlo.',
+    hint: 'Criterios de reperfusión a los 60–90 min de la fibrinólisis: el ST baja más de un 50 % en la derivación con más elevación, cede el dolor y aparecen arritmias de reperfusión. Si no: fibrinólisis fallida y ICP de rescate inmediata (activa la sala). No repitas la fibrinólisis. Si ya recibió AAS y enoxaparina, no repitas dosis sin consultar.',
+    checks: [['act:ecg12', 'ECG de 12 derivaciones'], ['act:icp', 'Activar la ICP de rescate'], ['no:drug:tnk', 'Sin segunda fibrinólisis']],
+    targets: { tas: [90, 180], reperf: [1, 1] } }, O2),
+  scaShock: Object.assign({ lvl: 'Cardiología', title: 'IAM anterior con shock cardiogénico', pheno: 'eap', sex: 'h', talla: 172, peso: 82, stemi: { loc: 'ant', onset: 150, pci: 35 }, sevFloor: .8, tasAdj: -118, speed: 5, duration: 25,
+    cfg: { o2dev: 'reserv' },
+    goal: 'Varón de 64 años con dolor torácico desde hace 2,5 horas. Frío, sudoroso, confuso, con crepitantes hasta la mitad de ambos campos. TAS 85, FC 113, SpO₂ 80 % con reservorio.',
+    hint: 'Shock cardiogénico por SCACEST anterior: la reperfusión es el tratamiento (ICP primaria inmediata, sin importar el tiempo de evolución). Noradrenalina para PAM ≥ 65 (TAS ≥ 90); nada de nitratos ni morfina, y volumen solo en bolos pequeños si no hay congestión (aquí la hay). Soporte respiratorio con cuidado: la presión positiva baja la precarga y la TA. AAS y heparina.',
+    checks: [['act:ecg12', 'ECG de 12 derivaciones'], ['perf:nor', 'Noradrenalina'], ['act:icp', 'Activar la ICP primaria'], ['drug:aas', 'AAS'], ['no:drug:ntg', 'Sin nitratos']],
+    targets: { tas: [90, 140], spo2: [90, 100], reperf: [1, 1] } }, O2),
+  diseccionAorta: Object.assign({ lvl: 'Cardiología', title: 'Dolor torácico desgarrante: disección aórtica', pheno: 'sano', sex: 'h', talla: 180, peso: 92, dissec: true, tasAdj: 35, pain: .85, speed: 5, duration: 25,
+    cfg: { o2dev: 'gafas' },
+    goal: 'Varón de 62 años, hipertenso mal controlado. Dolor brusco, «como una puñalada», en el pecho que pasa a la espalda. TAS 180 en el brazo derecho.',
+    hint: 'Dolor desgarrante que migra a la espalda, asimetría de pulsos o de TA entre los brazos y soplo diastólico = disección aórtica hasta que se demuestre lo contrario. ECG para descartar SCACEST (puede coexistir si afecta a una coronaria). Analgesia potente (fentanilo) y control de la FC primero y de la TA después: labetalol en bolos de 20 mg (FC < 60–70) y, si la TA sigue alta con la FC controlada, urapidilo 25 mg para TAS 100–120. Ni AAS, ni heparina, ni fibrinólisis. Traslado a un hospital con cirugía cardiaca y angio-TC.',
+    checks: [['act:ecg12', 'ECG de 12 derivaciones'], ['drug:fent|drug:morf', 'Analgesia'], ['drug:labet|drug:urap', 'Control de FC y TA'], ['no:drug:aas', 'Sin AAS'], ['no:drug:hnf', 'Sin heparina']],
+    targets: { tas: [100, 130], fc: [50, 80] } }, O2),
+  bavInferior: Object.assign({ lvl: 'Cardiología', title: 'IAM inferior con BAV completo', pheno: 'sano', sex: 'm', talla: 158, peso: 66, stemi: { loc: 'inf', onset: 50, pci: 30 }, bav: true, bavN: true, speed: 5, duration: 20,
+    cfg: { o2dev: 'gafas' },
+    goal: 'Mujer de 69 años con dolor epigástrico y vómitos desde hace 50 min. Mareada, pálida. FC 40, TAS 82.',
+    hint: 'En el infarto inferior el BAV suele ser nodal (escape de QRS estrecho a 40–50) y responde a la atropina: 0,5–1 mg, repetible hasta 3 mg. Si no responde, adrenalina 2–10 mcg/min o marcapasos transcutáneo. ICP primaria (activa la sala), AAS y heparina. Mira V4R: si hay afectación del VD, nada de nitratos y volumen.',
+    checks: [['act:ecg12', 'ECG de 12 derivaciones'], ['drug:atr', 'Atropina'], ['act:icp', 'Activar la ICP primaria'], ['drug:aas', 'AAS']],
+    targets: { tas: [90, 180], reperf: [1, 1] } }, O2),
   /* ---------- Neurología (v1.7) ---------- */
   estatus: Object.assign({ lvl: 'Neurología', title: 'Estatus epiléptico refractario', pheno: 'sano', sex: 'h', talla: 175, peso: 78, se: { r: .99, since: 12 }, glu: 118, temp: 37.4, tasAdj: 15, fcAdj: 25, access: false, speed: 5, duration: 30,
     cfg: { o2dev: 'reserv' },
@@ -2937,6 +2989,37 @@ const CASES = {
     checks: [['perf:adrI|act:pace', 'Marcapasos o adrenalina']],
     targets: { tas: [90, 250] } }, O2),
 
+  /* v1.19 — fase 3, sesión 16: arritmias */
+  flutter21: Object.assign({ lvl: 'Arritmias', title: 'Taquicardia regular a 150: flutter 2:1', pheno: 'sano', sex: 'h', talla: 170, peso: 86, rhythm: 'flutter', arrPen: 88, speed: 5, duration: 20,
+    cfg: { o2dev: 'gafas' },
+    goal: 'Varón de 72 años con EPOC. Palpitaciones desde esta mañana; ahora mareado y sudoroso. Pulso regular a 150, TAS 86.',
+    hint: 'Taquicardia regular de QRS estrecho a 150 = flutter 2:1 hasta que se demuestre lo contrario: busca las ondas F en dientes de sierra en II, III, aVF y V1 (la adenosina las desenmascara un momento, pero no lo revierte). Con hipotensión y mareo: cardioversión sincronizada con sedación, empezando con 70–120 J (el flutter revierte con poca energía). Estable: control de la frecuencia y anticoagulación; si dura > 48 h, no cardiovertir sin ETE.',
+    checks: [['act:ecg12', 'ECG de 12 derivaciones'], ['shock', 'Cardioversión sincronizada'], ['drug:eto|drug:mid|drug:prop|drug:fent', 'Sedación']],
+    targets: { sinus: [1, 1], tas: [90, 200] } }, O2),
+  faPreexcitada: Object.assign({ lvl: 'Arritmias', title: 'FA preexcitada: no frenes el nodo', pheno: 'sano', sex: 'h', talla: 178, peso: 72, rhythm: 'fapre', arrPen: 42, speed: 5, duration: 20,
+    cfg: { o2dev: 'gafas' },
+    goal: 'Varón de 24 años con palpitaciones bruscas mientras jugaba al fútbol. Le dijeron hace años que tenía «un ECG raro». FC 220 irregular, TAS 96, mareado.',
+    hint: 'Taquicardia irregular de QRS ancho y cambiante a > 200 en un joven = FA preexcitada (WPW). Nada que frene el nodo AV (adenosina, betabloqueantes, verapamilo, diltiazem, digoxina; tampoco la amiodarona): todo pasa por la vía accesoria y puede degenerar en FV. Cardioversión sincronizada 120–200 J con sedación; si está estable, procainamida en el hospital. Parches puestos desde el principio.',
+    checks: [['act:ecg12', 'ECG de 12 derivaciones'], ['no:drug:aden', 'Sin adenosina'], ['shock', 'Cardioversión sincronizada']],
+    targets: { sinus: [1, 1], tas: [90, 200] } }, O2),
+  taquiSinusal: Object.assign({ lvl: 'Arritmias', title: 'Taquicardia a 130 en una hemorragia: no es la arritmia', pheno: 'sano', sex: 'm', talla: 165, peso: 60, deficit: .45, bleed: .008, bleedSrc: 'dig', tasAdj: -5, fcAdj: 30, access: false, speed: 5, duration: 25,
+    cfg: { o2dev: 'gafas' },
+    goal: 'Mujer de 54 años con melenas desde ayer y hoy dos vómitos en posos de café. Pálida, sudorosa. El monitor marca una taquicardia regular a 125 que va subiendo. TAS 92.',
+    hint: 'Taquicardia regular con ondas P delante de cada QRS y una causa evidente (hemorragia) = taquicardia sinusal compensadora: no es una arritmia que haya que cardiovertir ni frenar (ni adenosina, ni cardioversión, ni betabloqueantes). Trata la causa: dos vías, volumen y sangre para TAS 90–100 y traslado para endoscopia. La FC bajará sola cuando reponga volumen.',
+    checks: [['act:ecg12', 'ECG de 12 derivaciones'], ['act:iv|act:io', 'Acceso vascular'], ['act:fluid|act:blood', 'Volumen o sangre'], ['no:shock', 'Sin cardioversión'], ['no:drug:aden', 'Sin adenosina']],
+    targets: { tas: [90, 140], fc: [60, 125] } }, O2),
+  qtLargo: Object.assign({ lvl: 'Arritmias', title: 'Síncopes repetidos: QT largo y torsades', pheno: 'sano', sex: 'm', talla: 162, peso: 58, qtl: { qtc: 620 }, k: 3.0, fcAdj: -22, speed: 5, duration: 25,
+    cfg: { o2dev: 'gafas' },
+    goal: 'Mujer de 46 años en tratamiento con metadona; lleva tres días con vómitos y ha empezado ciprofloxacino. Dos síncopes de segundos esta mañana. FC 58, TAS 110.',
+    hint: 'Síncopes con QT largo y bradicardia: torsades de pointes autolimitadas que pueden degenerar en FV. Sulfato de magnesio 2 g IV en 10 min (aunque el Mg sea normal; repetible), corrige el potasio, retira lo que alarga el QT (metadona, quinolonas, ondansetrón…) y, si las torsades dependen de pausas o bradicardia, sube la FC a 90–100 con isoprenalina o marcapasos. Parches puestos: si una torsade no cede, desfibrila.',
+    checks: [['act:ecg12', 'ECG de 12 derivaciones'], ['drug:mg', 'Sulfato de magnesio'], ['perf:iso|act:pace', 'Subir la FC']],
+    targets: { sinus: [1, 1] } }, O2),
+  pmFallo: Object.assign({ lvl: 'Arritmias', title: 'Portador de marcapasos con fallo de captura', pheno: 'sano', sex: 'h', talla: 168, peso: 74, bav: true, pmFail: true, speed: 5, duration: 20,
+    cfg: { o2dev: 'gafas' },
+    goal: 'Varón de 81 años portador de marcapasos por un BAV completo, con mareo y un síncope en casa. FC 30, TAS 74.',
+    hint: 'Espículas de marcapasos sin QRS detrás = fallo de captura (electrodo desplazado o umbral alto); si no hubiera espículas, sería un fallo de estimulación. El imán solo cambia el modo, no arregla la captura. Marcapasos transcutáneo con analgesia y sedación, o adrenalina 2–10 mcg/min (o isoprenalina) mientras tanto. La atropina sirve de poco con escape ventricular. Traslado a un hospital con electrofisiología.',
+    checks: [['act:ecg12', 'ECG de 12 derivaciones'], ['act:pace|perf:adrI|perf:iso', 'Marcapasos transcutáneo o fármaco']],
+    targets: { tas: [90, 200] } }, O2),
   /* ---------- Parada ---------- */
   pcrFv: { lvl: 'Parada', title: 'PCR en FV', pheno: 'sano', sex: 'h', talla: 175, peso: 80, arrest: 'vf', comp: 'manual',
     cfg: { mode: 'CPV', pinsp: 15, fr: 10, ti: 1.0, peep: 0, fio2: 100, pmax: 60, vt: 500, tplat: 0 },
@@ -3143,6 +3226,17 @@ const META = {
   faRapida: ['t', 2, 'FA rápida con hipotensión: cardioversión y control de frecuencia'],
   tvPulso: ['t', 2, 'TV con pulso: cardioversión o amiodarona según la estabilidad'],
   bradiSinusal: ['t', 1, 'Bradicardia sintomática: atropina y escalada'],
+  scasest: ['t', 2, 'SCASEST de muy alto riesgo: coronariografía inmediata y sin fibrinólisis'],
+  scaContraindicada: ['i', 2, 'SCACEST con fibrinólisis contraindicada: traslado para ICP aunque tarde'],
+  scaRescate: ['t', 2, 'Criterios de reperfusión y fibrinólisis fallida: ICP de rescate'],
+  scaShock: ['t', 3, 'Shock cardiogénico: noradrenalina, sin nitratos y reperfusión inmediata'],
+  diseccionAorta: ['t', 2, 'Disección aórtica: analgesia, labetalol y nada de antitrombóticos'],
+  bavInferior: ['t', 2, 'BAV nodal en el IAM inferior: atropina, ICP y V4R'],
+  flutter21: ['t', 1, 'Taquicardia regular a 150: flutter 2:1 y cardioversión con poca energía'],
+  faPreexcitada: ['t', 3, 'FA preexcitada: nada que frene el nodo; cardioversión'],
+  taquiSinusal: ['t', 1, 'Taquicardia sinusal compensadora: trata la causa, no el ritmo'],
+  qtLargo: ['t', 3, 'QT largo con torsades: magnesio, potasio y subir la FC'],
+  pmFallo: ['t', 2, 'Fallo de captura del marcapasos: transcutáneo o adrenalina'],
   bav: ['t', 2, 'BAV completo: marcapasos transcutáneo y adrenalina'],
   pcrFv: ['t', 1, 'Algoritmo de la FV: descarga precoz, adrenalina y antiarrítmico'],
   fvRefractaria: ['t', 3, 'FV refractaria: cambio de vector, compresor mecánico y causas'],
@@ -3391,11 +3485,11 @@ const fmt = (x, d = 0) => (x == null || !isFinite(x)) ? '–' : x.toFixed(d).rep
 const { SPEC, PKEYS, KEYS, DEVS, KEYLAB, MONS } = window.SIM_DEV;
 const CASES = window.SIM_CASES, GROUPS = window.SIM_GROUPS;
 const N = 750, SR = .02, GAP = 12, ZN = 750, ZSR = .008, ZGAP = 20;
-const MODEL_KEYS = ['pco2', 'deficit', 'bs', 'opioid', 'rhythm', 'arrPen', 'tep', 'anaf', 'cohb', 'cn', 'icp', 'icpGrow', 'weak', 'dav', 'edAir', 'edAirRate', 'asp', 'arrest', 'arrestCause', 'comp', 'bav', 'tasAdj', 'fcAdj', 'sevFloor', 'bottleL', 'bottleBar', 'leak10', 'relCe', 'sedE', 'sedStopped', 'sev', 'ptx', 'ptxTension', 'shockMul', 'bmv', 'sgaFail', 'peso', 'k', 'kRate', 'glu', 'gluT', 'temp', 'tempRate', 'bleed', 'bleedSrc', 'tca', 'ecl', 'croup', 'postRosc', 'access', 'arrestCause2', 'hco3Off', 'stemi', 'tamp', 'tampRate', 'vaso', 'vasoRate', 'neurog', 'fluidTol', 'htx', 'flail', 'pain', 'burn', 'se', 'stroke', 'na', 'cv', 'op', 'opRate', 'cocaine', 'dka', 'neo', 'dci', 'heat', 'drown', 'edad', 'tire', 'pneu', 'cedema', 'tbi', 'witnessed', 'preg', 'tdp', 'retainer', 'hape', 'anxRate', 'anxBase', 'irritant', 'ptxRate', 'drive0', 'ptxOpen', 'crush', 'phen'];
+const MODEL_KEYS = ['pco2', 'deficit', 'bs', 'opioid', 'rhythm', 'arrPen', 'tep', 'anaf', 'cohb', 'cn', 'icp', 'icpGrow', 'weak', 'dav', 'edAir', 'edAirRate', 'asp', 'arrest', 'arrestCause', 'comp', 'bav', 'tasAdj', 'fcAdj', 'sevFloor', 'bottleL', 'bottleBar', 'leak10', 'relCe', 'sedE', 'sedStopped', 'sev', 'ptx', 'ptxTension', 'shockMul', 'bmv', 'sgaFail', 'peso', 'k', 'kRate', 'glu', 'gluT', 'temp', 'tempRate', 'bleed', 'bleedSrc', 'tca', 'ecl', 'croup', 'postRosc', 'access', 'arrestCause2', 'hco3Off', 'stemi', 'tamp', 'tampRate', 'vaso', 'vasoRate', 'neurog', 'fluidTol', 'htx', 'flail', 'pain', 'burn', 'se', 'stroke', 'na', 'cv', 'op', 'opRate', 'cocaine', 'dka', 'neo', 'dci', 'heat', 'drown', 'edad', 'tire', 'pneu', 'cedema', 'tbi', 'witnessed', 'preg', 'tdp', 'retainer', 'hape', 'anxRate', 'anxBase', 'irritant', 'ptxRate', 'drive0', 'ptxOpen', 'crush', 'phen', 'qtl', 'dissec', 'bavN', 'pmFail'];
 const O2LAB = { gafas: 'gafas nasales 2 L/min', venturi28: 'Venturi 28 %', venturi35: 'Venturi 35 %', venturi50: 'Venturi 50 %', reserv: 'mascarilla con reservorio 15 L/min' };
 const IFLAB = { tube: 'tubo endotraqueal', mask: 'mascarilla oronasal', nasal: 'cánula nasal de alto flujo', o2: 'paciente sin conectar' };
 const IFSHORT = { tube: 'intubado', mask: 'VMNI', nasal: 'alto flujo', o2: 'oxigenoterapia' };
-const RLAB = { sinus: 'sinusal', tsinus: 'taquicardia sinusal', brady: 'bradicardia', sbrady: 'bradicardia sinusal', bav: 'BAV completo', paced: 'ritmo de marcapasos', aesp: 'AESP', vf: 'FV', tvsp: 'TVSP', asys: 'asistolia', tsv: 'TSV', fa: 'FA rápida', flutter: 'flutter auricular', tvp: 'TV con pulso' };
+const RLAB = { fapre: 'FA preexcitada', tdp: 'torsade de pointes', sinus: 'sinusal', tsinus: 'taquicardia sinusal', brady: 'bradicardia', sbrady: 'bradicardia sinusal', bav: 'BAV completo', paced: 'ritmo de marcapasos', aesp: 'AESP', vf: 'FV', tvsp: 'TVSP', asys: 'asistolia', tsv: 'TSV', fa: 'FA rápida', flutter: 'flutter auricular', tvp: 'TV con pulso' };
 const rhyLab = r => { const e = S.ecg || {}; return (RLAB[r] || r) + (S.arrest || ['vf', 'tvsp', 'asys'].includes(r) ? '' : (e.qrs > .115 ? ` · QRS ${fmt(e.qrs * 1000)} ms` : '') + (e.t > 1.8 ? ' · T picudas' : '') + (e.j > .25 ? ' · ondas J' : '') + (Math.abs(e.st || 0) >= .8 ? ` · ST ${e.st > 0 ? '+' : '−'}${fmt(Math.abs(e.st), 1)} mm` : '')); };
 const FALLBACK = { CPV: ['CPR_M', 'VCV', 'APV', 'PCV'], CPR_M: ['CPV', 'VCV', 'APV'], CPV_RCE: ['PCV', 'APV'], SIMV_V: ['SIMV_A', 'SIMV_P', 'VCV'], SIMV_A: ['SIMV_V', 'SIMV_P', 'APV'], SIMV_P: ['SIMV_A', 'SIMV_V', 'PCV'], ASV: ['APV', 'VCV'], APV: ['VCV'], PST: ['PSV'], CPAP: ['PSV'], VCV: ['APV'], PCV: ['APV'], PSV: ['CPAP'], HFNC: [], DEM: ['CPAP', 'PSV'], MAN: ['VCV', 'APV'] };
 
@@ -3425,7 +3519,7 @@ const TGT = {
 };
 const EVLAB = { release: 'Liberación del atrapamiento', edema: 'Edema pulmonar lesional', seiz: 'Convulsión', move: 'Movilización brusca', rebleed: 'Resangrado', extub: 'Extubación o retirada de mascarilla', disc: 'Desconexión', sel: 'Intubación selectiva', obst: 'Tapón o acodamiento', bronco: 'Broncoespasmo', ptx: 'Neumotórax a tensión', leak: 'Fuga', o2: 'Fallo de O₂', wake: 'Se despierta', anx: 'Ansiedad', cough: 'Tos', vf: 'Fibrilación ventricular', aspir: 'Broncoaspiración', tep: 'TEP', anaf: 'Anafilaxia', tsv: 'TSV', fa: 'FA rápida', tvp: 'TV con pulso' };
 const EVFIX = { release: () => S.k < 6, edema: () => S.spo2 > .93, seiz: () => S.clin >= S.seizUntil, move: () => true, rebleed: () => S.hemo || !S.bleed, extub: () => !S.air.extub && !(S.iface === 'mask' && S.mask.leak10 > 100), disc: () => !S.air.disc, sel: () => !S.air.sel, obst: () => !S.air.obst, bronco: () => S.bs < 1.2, ptx: () => !S.ptxActive, leak: () => S.air.leak === 0 && !(S.iface === 'mask' && S.mask.leak10 > 40), o2: () => S.o2.supply, wake: () => (S.fight || 0) < .1, anx: () => S.clin >= S.anxUntil, cough: () => true, vf: () => !S.arrest, aspir: () => false, tep: () => S.tep < .3, anaf: () => S.anaf < .2, tsv: () => !S.arr.type, fa: () => !S.arr.type, tvp: () => !S.arr.type };
-const HEMOLAB = { ext: 'Torniquete', pelv: 'Cinturón pélvico', uter: 'Masaje uterino bimanual', int: 'Compresión y empaquetado', femur: 'Férula de tracción' };
+const HEMOLAB = { dig: 'Hemostasia', ext: 'Torniquete', pelv: 'Cinturón pélvico', uter: 'Masaje uterino bimanual', int: 'Compresión y empaquetado', femur: 'Férula de tracción' };
 const ACTLAB = { seal: 'Parche torácico valvulado sobre la herida soplante', calm: 'Tranquilizar y guiar la respiración lenta', lud: 'Desplazamiento manual del útero a la izquierda', rescue: '5 ventilaciones de rescate de 2–3 s con bolsa y O₂ al 100 %', cpap: 'CPAP con pieza en T y mascarilla', plast: 'Bolsa de plástico hasta el cuello, sin secar, y gorro', infl: '5 insuflaciones de 2–3 s a 30 cmH₂O con mascarilla', neoPos: 'Cabeza en posición neutra, tracción mandibular y sellado a dos manos', neoSuct: 'Aspiración suave de boca y nariz', uvc: 'Catéter venoso umbilical (≈ 2 min)', decont: 'Descontaminación con protección: ropa retirada en bolsa cerrada y piel lavada con agua y jabón', ictus: 'Código ictus activado: pre-aviso al hospital con trombectomía', pericardio: 'Pericardiocentesis ecoguiada (≈ 1 min)', icp: 'Código infarto activado: ICP primaria, traslado directo a la sala de hemodinámica', iv: 'Canalizando vía venosa periférica (≈ 1,5 min)', io: 'Vía intraósea en tibia proximal (≈ 45 s)', blood: 'Concentrado de hematíes (1 U)', sga: 'Dispositivo supraglótico (i-gel): insertando (≈ 30 s)', drain: 'Toracostomía / drenaje torácico', reconnect: 'Tubuladura reconectada', reintub: 'Reintubación en curso (1,5 min)', pull: 'Tubo retirado 2 cm', suction: 'Aspirado y revisado el tubo', cuff: 'Balón inflado', opencirc: 'Desconexión 15 s para vaciar', decomp: 'Descompresión con aguja', bottle: 'Botella cambiada', fluid: 'Cristaloide 500 mL', mask: 'Mascarilla recolocada', sedperf: 'Bomba de sedación reanudada', vagal: 'Maniobra de Valsalva modificada', recruit: 'Maniobra de reclutamiento (CPAP 40 cmH₂O 30 s)', clamp: 'Tubo pinzado para desconectar', vl: 'Videolaringoscopio y bougie preparados', cric: 'Cricotiroidotomía quirúrgica (≈ 1,5 min)' };
 
 /* ---------- estado ---------- */
@@ -3621,7 +3715,7 @@ function fireEvent(k, txt, scheduled) {
 
 /* ---------- tarjeta del caso ---------- */
 /* SCACEST: ICP primaria si llega en ≤ 120 min; si no, fibrinólisis */
-function reperfOk() { const m = S.stemi; return !!m && (m.pci <= 120 ? m.icp != null : m.tnkAt != null || S.E.tnk > .1); }
+function reperfOk() { const m = S.stemi; return !!m && (m.pci <= 120 || m.nste || m.noTnk || m.failed ? m.icp != null : m.tnkAt != null || S.E.tnk > .1); }
 function rangeTxt(r, t) { if (t.fmt) return r[0] === 1 && r[1] === 1 ? '' : r[1] < 1 ? '≤ ' + fmt(r[1] * 100) + ' %' : ''; if (r[1] >= 200) return '≥ ' + fmt(r[0], t.d); if (r[0] <= 0) return '≤ ' + fmt(r[1], t.d); if (r[1] >= 40 && t === TGT.rr) return '≥ ' + fmt(r[0], t.d); return fmt(r[0], t.d) + '–' + fmt(r[1], t.d); }
 function renderCase() {
   const c = CASES[caseKey];
@@ -4183,18 +4277,27 @@ function readingsMain(out) {
   if (!S.arrest && S.opi > .45 && !tube && (S.pat.pmax <= 1 || S.pat.rr < 10)) out.push(['bad', 'Depresión respiratoria por opiáceos', `FR ${fmt(S.pat.pmax > 1 ? S.pat.rr : 0)} rpm y miosis.`, 'Ambú con O₂ y naloxona 0,4 mg IV; repite cada 2–3 min hasta FR ≥ 10.']);
   else if (!S.arrest && track.nalox != null && S.E.nalox < .35 && S.opi > .3) out.push(['warn', 'Resedación', 'La naloxona se agota antes que el opiáceo.', 'Nueva dosis o perfusión, y vigilancia estrecha.']);
   if (!S.arrest && track.intubAt != null && S.clin - track.intubAt < 15 && S.tas < 90) out.push(['bad', 'Hipotensión tras la intubación', `TAS ${fmt(S.tas)} mmHg.`, 'Inductor y presión positiva sin precarga: volumen, noradrenalina o adrenalina en bolo de 10–20 mcg; revisa la PEEP.']);
-  if (!S.arrest && S.arr.type && S.arr.type !== 'sbrady') {
+  if (!S.arrest && S.arr.type === 'fapre') out.push(['bad', 'FA preexcitada', `Irregular, QRS ancho y cambiante a ${fmt(S.fc)} lpm; TAS ${fmt(S.tas)} mmHg.`, 'Nada que frene el nodo AV: ni adenosina, ni betabloqueantes, ni calcioantagonistas, ni digoxina (todo pasa por la vía accesoria y puede acabar en FV). Cardioversión sincronizada 120–200 J con sedación; si está estable, procainamida en el hospital.']); // v1.19
+  if (!S.arrest && S.arr.type === 'tdp') out.push(['bad', 'Torsade de pointes', 'TV polimorfa sin pulso eficaz.', 'Si no cede en segundos, desfibrila (no sincronizada). Sulfato de magnesio 2 g IV.']);
+  else if (!S.arrest && S.qtl && S.E.mg < .3) out.push(['bad', 'QT largo con torsades', `QTc ≈ ${S.qtl.qtc} ms; ${S.qtl.n} episodio${S.qtl.n === 1 ? '' : 's'} de torsade.`, 'Sulfato de magnesio 2 g IV en 10 min (aunque el Mg sea normal), corrige el potasio, retira los fármacos que alargan el QT y, si las torsades siguen a pausas o bradicardia, isoprenalina o marcapasos a 90–100 lpm. Parches puestos.']);
+  if (!S.arrest && S.arr.type && !['sbrady', 'fapre', 'tdp'].includes(S.arr.type)) {
     const unstable = S.tas < 90;
     out.push([unstable ? 'bad' : 'warn', RLAB[S.arr.type] + (unstable ? ' inestable' : ' estable'), `FC ${fmt(S.fc)} lpm, TAS ${fmt(S.tas)} mmHg.`, unstable ? `Cardioversión sincronizada con sedación: TSV o flutter 70–120 J; TV 120–150 J; FA a la energía máxima (${Math.max(...MONS[$('#monSel').value].energies)} J). Activa SINC antes de cargar.` : S.arr.type === 'tsv' ? 'Maniobras vagales y adenosina 6 → 12 → 18 mg.' : S.arr.type === 'tvp' ? 'Amiodarona 300 mg en 10–20 min con el desfibrilador preparado.' : 'Control de frecuencia; anticoagulación según tiempo de evolución.']);
   }
   if (!S.arrest && S.arr.type === 'sbrady') out.push(['bad', 'Bradicardia con bajo gasto', `FC ${fmt(S.fc)} lpm.`, 'Atropina 0,5 mg cada 3–5 min; si no responde, adrenalina 2–10 mcg/min o marcapasos.']);
   if (!S.arrest && S.pace.on && !S.pace.capture && !(S.pace.mode === 'demand' && (S.fcIntr || 0) >= S.pace.rate)) out.push(['warn', 'Marcapasos sin captura', `${S.pace.mA} mA no capturan.`, 'Sube de 10 en 10 mA hasta captura y pulso; deja 10 mA por encima del umbral.']);
   if (!S.arrest && S.pace.on && S.pace.capture && S.pace.mA >= 40 && S.sedTot < .3 && S.opi < .3) out.push(['warn', 'Marcapasos sin analgesia', 'La estimulación transcutánea duele.', 'Fentanilo y midazolam a dosis bajas.']);
-  if (!S.arrest && S.bav && !S.pace.capture && S.fc < 45) out.push(['bad', 'BAV completo con bajo gasto', `FC ${fmt(S.fc)} lpm, escape de QRS ancho.`, 'Con QRS ancho la atropina no está indicada (ERC 2025): marcapasos transcutáneo o adrenalina 2–10 mcg/min.']);
+  if (!S.arrest && S.bav && S.pmFail && !S.pace.capture && S.fc < 45) out.push(['bad', 'Fallo de captura del marcapasos', `Espículas sin QRS detrás; escape a ${fmt(S.fc)} lpm.`, 'Marcapasos transcutáneo (el imán no arregla la captura) o adrenalina 2–10 mcg/min mientras tanto; traslado para revisar o cambiar el electrodo.']); // v1.19
+  else if (!S.arrest && S.bav && S.bavN && !S.pace.capture && S.fc < 50) out.push(['bad', 'BAV completo con escape estrecho', `FC ${fmt(S.fc)} lpm.`, 'Bloqueo nodal (típico del infarto inferior): atropina 0,5–1 mg, repetible hasta 3 mg; si no responde, adrenalina 2–10 mcg/min o marcapasos.']);
+  else if (!S.arrest && S.bav && !S.pace.capture && S.fc < 45) out.push(['bad', 'BAV completo con bajo gasto', `FC ${fmt(S.fc)} lpm, escape de QRS ancho.`, 'Con QRS ancho la atropina no está indicada (ERC 2025): marcapasos transcutáneo o adrenalina 2–10 mcg/min.']);
   if (!S.arrest && S.stemi) {
     const m = S.stemi, decided = m.icp != null || S.E.tnk > .1 || (track.used && track.used.has('drug:tnk'));
-    if (m.pci <= 120 && (S.E.tnk > .1 || (track.used && track.used.has('drug:tnk')))) out.push(['warn', 'Fibrinólisis con ICP a tiempo', `La hemodinámica está a ${m.pci} min.`, 'Con la ICP primaria a menos de 120 min, la estrategia es ICP primaria; la fibrinólisis añade riesgo de sangrado sin beneficio. Activa el código infarto.']);
+    if (m.pci <= 120 && !m.nste && !m.noTnk && !m.failed && (S.E.tnk > .1 || (track.used && track.used.has('drug:tnk')))) out.push(['warn', 'Fibrinólisis con ICP a tiempo', `La hemodinámica está a ${m.pci} min.`, 'Con la ICP primaria a menos de 120 min, la estrategia es ICP primaria; la fibrinólisis añade riesgo de sangrado sin beneficio. Activa el código infarto.']);
     if (track.ecg12At == null) out.push(['bad', 'Dolor torácico', 'Puede ser un síndrome coronario agudo.', 'ECG de 12 derivaciones en menos de 10 minutos.']);
+    else if (m.nste && m.icp == null) out.push(['bad', 'SCASEST de muy alto riesgo', 'Descenso difuso del ST con elevación en aVR, dolor que no cede e inestabilidad.', 'Coronariografía inmediata (< 2 h): activa la sala de hemodinámica. AAS y heparina; la fibrinólisis no está indicada sin elevación del ST.']); // v1.19
+    else if (m.failed && m.icp == null) out.push(['bad', 'Fibrinólisis fallida', 'A los 70 min el ST no ha bajado el 50 % y sigue el dolor.', 'ICP de rescate: activa la sala de hemodinámica y traslada ya. No repitas la fibrinólisis.']);
+    else if (m.noTnk && m.icp == null) out.push(['bad', 'Fibrinólisis contraindicada', 'Ictus isquémico hace 2 meses: contraindicación absoluta.', 'Traslado para ICP primaria aunque supere los 120 min (HEMS si hace falta); AAS y heparina.']);
+    else if (m.ich) out.push(['bad', 'Hemorragia intracraneal', 'Tras la fibrinólisis.', 'Suspende la heparina, protege la vía aérea, TAS 140–160 y neurocirugía.']);
     else if (!decided) out.push(['bad', 'SCACEST ' + { ant: 'anterior', inf: 'inferior', lat: 'lateral' }[m.loc], 'Elevación del ST en el ECG de 12 derivaciones' + (m.rv ? ' con afectación del VD' : '') + '.', 'Decide la reperfusión ya: ICP primaria si llega a hemodinámica en ≤ 120 min; si no, fibrinólisis en < 10 min (tenecteplasa por peso) y traslado a un centro con ICP.']);
     if (track.ecg12At != null && !(track.used && track.used.has('drug:aas'))) out.push(['warn', 'Antiagregación', 'Aún sin AAS.', 'AAS 150–300 mg masticado (o IV) y anticoagulación (heparina o enoxaparina).']);
     if (m.rv && S.E.ntg > .1) out.push(['bad', 'Nitratos con infarto de VD', `TAS ${fmt(S.tas)} mmHg.`, 'Suspende los nitratos y da volumen: el VD depende de la precarga.']);
@@ -4212,6 +4315,7 @@ function readingsMain(out) {
   if (!S.arrest && (S.fluidKg || 0) > S.fluidTol + 5) out.push(['warn', 'Sobrecarga de volumen', isPed() ? 'Crepitantes nuevos, hígado que crece y más necesidad de O₂.' : 'Crepitantes nuevos y peor oxigenación.', isPed() ? 'No más bolos: adrenalina o noradrenalina para la perfusión y alto flujo o CPAP si hace falta.' : 'No más volumen: noradrenalina para la PAM y O₂ o VMNI si hace falta.']);
   if (!S.arrest && S.neurog > .2 && S.pam < 80) out.push(['bad', 'Shock neurogénico', `PAM ≈ ${fmt(S.pam)} con FC ${fmt(S.fc)} y piel caliente.`, 'Descarta la hemorragia; volumen prudente, atropina si FC < 50 y noradrenalina para PAM ≥ 80–85.']);
   if (!S.arrest && S.tamp > .35 && S.tas < 100) out.push(['bad', 'Shock obstructivo', 'Hipotensión con ingurgitación yugular y tonos apagados.', 'Ecografía clínica; si hay taponamiento, volumen y pericardiocentesis. Evita intubar y la PEEP alta.']);
+  if (!S.arrest && S.dissec) { const at = S.E.aas > .2 || S.E.hnf > .2 || S.E.enox > .2 || S.E.tnk > .2; out.push([at ? 'bad' : S.tas > 130 || S.fc > 70 ? 'bad' : 'warn', at ? 'Antitrombótico en una disección' : 'Disección aórtica', `TAS ${fmt(S.tas)}, FC ${fmt(S.fc)}.`, at ? 'Aumenta el riesgo de rotura y taponamiento: no des más; traslado inmediato a cirugía cardiaca.' : 'Analgesia (fentanilo) y labetalol en bolos de 20 mg para FC < 60 y TAS 100–120; ni AAS, ni heparina, ni fibrinólisis. Traslado a un centro con cirugía cardiaca.']); } // v1.19
   if (!S.arrest && S.tep > .3) out.push(['warn', 'Patrón de TEP', `EtCO₂ ${fmt(M.et)} frente a PaCO₂ ≈ ${fmt(S.pco2)} mmHg: espacio muerto.`, 'Noradrenalina para TAS ≥ 90, volumen prudente, PEEP baja y fibrinólisis si es de alto riesgo.']);
   if (!S.arrest && S.anaf > .2) out.push([S.tas < (isPed() ? VMI.pedNorms(S.age || 0).tasMin : 90) ? 'bad' : 'warn', 'Anafilaxia activa', `TAS ${fmt(S.tas)}, broncoespasmo y angioedema.`, `Adrenalina IM ${isPed() ? fmt(Math.min(.5, .01 * peso), 2) + ' mg (0,01 mg/kg)' : '0,5 mg'} en el muslo (repite a los 5 min), volumen${isPed() ? ' 10 mL/kg' : ''}; perfusión de adrenalina si es refractaria.`]);
   const seizing = S.clin < S.seizUntil;
@@ -4225,7 +4329,7 @@ function readingsMain(out) {
   if (!S.arrest && S.temp < 35 && track.tempAt == null) out.push(['warn', 'Paciente frío', 'Al tacto está muy frío.', 'Mide la temperatura y aísla del frío.']);
   else if (!S.arrest && S.temp < 32) out.push(['bad', 'Hipotermia grave', `${fmt(S.temp, 1)} °C: riesgo de FV al movilizar.`, `${S.warm ? '' : 'Quita la ropa mojada, aísla y calor activo. '}Manejo cuidadoso y horizontal; traslado a un centro con ECMO.`]);
   if (!S.arrest && S.bleed > 0 && S.bleedSrc === 'int') out.push(['bad', 'Hemorragia interna', 'Abdomen distendido y doloroso tras el impacto.', 'No se puede comprimir: sangre o volumen para la TA objetivo, tranexámico y traslado rápido a un centro con cirugía; eFAST si da tiempo.']); // v1.14
-  else if (!S.arrest && S.bleed > 0 && !S.hemo && S.bleedSrc && S.bleedSrc !== 'thor') out.push(['bad', 'Sangrado activo', S.bleedSrc === 'ext' ? 'Hemorragia externa activa.' : S.bleedSrc === 'pelv' ? 'Pelvis inestable: sangrado retroperitoneal.' : S.bleedSrc === 'uter' ? 'Atonía uterina.' : S.bleedSrc === 'femur' ? 'Fractura de fémur: sangra dentro del muslo.' : 'Sangrado interno.', HEMOLAB[S.bleedSrc] + (S.bleedSrc === 'uter' ? ' y oxitocina 10 UI.' : ' ya.')]);
+  else if (!S.arrest && S.bleed > 0 && !S.hemo && S.bleedSrc && S.bleedSrc !== 'thor' && S.bleedSrc !== 'dig') out.push(['bad', 'Sangrado activo', S.bleedSrc === 'ext' ? 'Hemorragia externa activa.' : S.bleedSrc === 'pelv' ? 'Pelvis inestable: sangrado retroperitoneal.' : S.bleedSrc === 'uter' ? 'Atonía uterina.' : S.bleedSrc === 'femur' ? 'Fractura de fémur: sangra dentro del muslo.' : 'Sangrado interno.', HEMOLAB[S.bleedSrc] + (S.bleedSrc === 'uter' ? ' y oxitocina 10 UI.' : ' ya.')]);
   if (!S.arrest && S.ptxOpen) out.push(['bad', 'Neumotórax abierto', 'La herida aspira aire en cada inspiración y el pulmón se colapsa.', 'Parche torácico valvulado (o apósito fijado por tres lados), O₂ y analgesia; tras sellar, vigila el neumotórax a tensión.']); // v1.17
   if (!S.arrest && S.crush > 0 && !S.released) out.push(['warn', 'Miembro atrapado', 'Al liberarlo entrarán potasio, ácido y mioglobina.', `${!S.access ? 'Vía venosa, ' : ''}suero fisiológico 1–1,5 L antes de soltar, monitor y analgesia; ten preparados calcio, salbutamol, bicarbonato e insulina con glucosa.`]);
   if (!S.arrest && S.iface === 'tube' && track.gasAt != null && S.P.hyper && S.ph > 7.48) out.push(['bad', 'Alcalosis posthipercápnica', `pH ${fmt(S.ph, 2)} con pCO₂ ${fmt(S.pco2)} y bicarbonato alto de base.`, 'Ventila para su pH (7,30–7,40), no para una pCO₂ de 40: baja el volumen minuto y deja la pCO₂ en su basal.']);
@@ -4235,7 +4339,8 @@ function readingsMain(out) {
   if (!S.arrest && S.fcAdj <= -30 && S.deficit > .15 && S.tas < 115) out.push(['warn', 'Shock con la FC frenada', `FC ${fmt(S.fc)} con TAS ${fmt(S.tas)}: el betabloqueante oculta la taquicardia.`, 'Mira el lactato, la perfusión y la conciencia; volumen o sangre para TAS ≥ 110, tranexámico y calor.']);
   if (!S.arrest && S.tbi > 0 && S.bleed > 0 && S.tas < 90) out.push(['bad', 'Shock hemorrágico con TCE', `TAS ${fmt(S.tas)} mmHg: la hipotensión daña el cerebro lesionado.`, `${!S.access ? 'Intraósea si la vena no sale a la primera; después, ' : ''}sangre 10 mL/kg (${fmt(10 * peso)} mL) o cristaloide 10 mL/kg si no hay, hasta TAS ≥ 90 (nada de hipotensión permisiva con TCE). Traslado rápido a cirugía pediátrica.`]); // v1.14
   if (!S.arrest && S.tbi > 0 && !S.warm && S.temp < 36.5) out.push(['warn', 'Evita la hipotermia', 'En el TCE y la hemorragia, el frío empeora el cerebro y la coagulación.', 'Retíralo del suelo, manta térmica y habitáculo caliente.']);
-  if (!S.arrest && S.bleed > 0 && S.E.txa < .3) out.push(['warn', 'Ácido tranexámico', 'Hemorragia en la primera hora.', 'Ácido tranexámico 1 g IV (15 mg/kg en niños) en 10 min.']);
+  if (!S.arrest && S.bleed > 0 && S.bleedSrc === 'dig') out.push([S.tas < 90 ? 'bad' : 'warn', 'Hemorragia digestiva alta', `TAS ${fmt(S.tas)}, FC ${fmt(S.fc)}.`, 'Dos vías, volumen y sangre para TAS 90–100 (transfusión restrictiva, Hb 7–8), sin tranexámico (no reduce la mortalidad en la digestiva) y endoscopia urgente; IBP en el hospital.']); // v1.19
+  if (!S.arrest && S.bleed > 0 && S.E.txa < .3 && S.bleedSrc !== 'dig') out.push(['warn', 'Ácido tranexámico', 'Hemorragia en la primera hora.', 'Ácido tranexámico 1 g IV (15 mg/kg en niños) en 10 min.']);
   if (!S.arrest && S.bleed > 0 && pniS != null && pniS > 110 && track.fluidMl >= 1000 && !S.tbi) out.push(['warn', 'Hipotensión permisiva', `PNI ${fmt(pniS)} mmHg tras ${fmt(track.fluidMl)} mL.`, 'Sin TCE, TAS 80–90 basta hasta la hemostasia: más volumen sube la TA, diluye y aumenta el sangrado.']);
   // v1.6: trauma torácico, dolor y quemado
   if (!S.arrest && S.htx > .3) out.push(['bad', 'Hemotórax', `Hemitórax derecho mate e hipoventilado${S.tas < 90 ? ', con shock' : ''}.`, 'Drenaje torácico en el 5.º espacio, línea medioaxilar, con sangre preparada; avisa a cirugía torácica.']);
@@ -4551,7 +4656,7 @@ function updateButtons() {
   ['iv', 'io'].forEach(k => { const x = $(`[data-act="${k}"]`); if (x) x.disabled = hasAcc || !!S.accessPend; });
   const ic = $('[data-act="ictus"]'); if (ic) { ic.hidden = !(S.stroke && S.stroke.type === 'isq'); ic.disabled = !!(S.stroke && S.stroke.code != null); }
   const ib = $('[data-act="icp"]'); if (ib) { ib.hidden = !S.stemi; ib.disabled = !!(S.stemi && S.stemi.icp != null); }
-  const hb = $('[data-act="hemo"]'); if (hb) { hb.hidden = !S.bleedSrc || S.bleedSrc === 'thor'; hb.textContent = HEMOLAB[S.bleedSrc] || 'Hemostasia'; hb.disabled = !!S.hemo; }
+  const hb = $('[data-act="hemo"]'); if (hb) { hb.hidden = !S.bleedSrc || S.bleedSrc === 'thor' || S.bleedSrc === 'dig'; hb.textContent = HEMOLAB[S.bleedSrc] || 'Hemostasia'; hb.disabled = !!S.hemo; }
   const cb = $('[data-act="cool"]'); if (cb) { cb.setAttribute('aria-pressed', S.cool ? 'true' : 'false'); cb.textContent = S.cool ? 'Enfriando' : 'Enfriamiento activo'; }
   const db = $('[data-act="decont"]'); if (db) db.disabled = !!S.decont;
   const wb = $('[data-act="warm"]'); if (wb) { wb.setAttribute('aria-pressed', S.warm ? 'true' : 'false'); wb.textContent = S.warm ? 'Calor activo puesto' : S.neo ? (S.neo.t0 > 30 ? 'Encender la incubadora de transporte' : S.neo.prem && S.neo.prem < 32 ? 'Gorro y calor radiante' : 'Secar, gorro y calor') : 'Manta y calor activo'; }
@@ -4685,7 +4790,7 @@ const EK = {
   none: () => 0
 };
 const RPEAK = { sinus: .17, narrow: .03, wide: .06, aesp: .08 };
-let zT = 0, bt = 9, bl = .8, btype = 'sinus', pPh = 0, paceT = 0, spike = 0, markAt = -1, beatAmp = 1, ecgAmp = 1, altB = false;
+let zT = 0, bt = 9, bl = .8, btype = 'sinus', pPh = 0, paceT = 0, pmT = 0, spike = 0, markAt = -1, beatAmp = 1, ecgAmp = 1, altB = false;
 function nextBeat() {
   const r = S.rhythm, rate = x => 60 / Math.max(x, 15);
   beatAmp = 1; altB = !altB;
@@ -4694,7 +4799,9 @@ function nextBeat() {
   if (r === 'vf' || r === 'tvsp' || r === 'asys') { btype = 'none'; bl = .3; return; }
   if (r === 'paced') { btype = 'wide'; bl = rate(S.pace.rate); spike = 2; paceT = 0; }
   else if (r === 'aesp') { btype = 'aesp'; bl = rate(34); }
-  else if (r === 'bav' || r === 'tvp') { btype = 'wide'; bl = rate(S.fc); }
+  else if (r === 'tdp') { btype = 'none'; bl = .3; return; }
+  else if (r === 'fapre') { btype = 'wide'; bl = rate(S.fc) * (.5 + 1 * Math.random()); beatAmp = .6 + .8 * Math.random(); } // v1.19: FA preexcitada
+  else if (r === 'bav' || r === 'tvp') { btype = r === 'bav' && S.bavN ? 'narrow' : 'wide'; bl = rate(S.fc); }
   else if (r === 'tsv' || r === 'flutter') { btype = 'narrow'; bl = rate(S.fc); }
   else if (r === 'fa') { btype = 'narrow'; bl = rate(S.fc) * (.55 + .9 * Math.random()); beatAmp = .7 + .6 * Math.min(1, bl / .5); }
   else { btype = 'sinus'; bl = rate(S.fc); }
@@ -4708,6 +4815,8 @@ function zSample(dt) {
   if (r === 'vf') { const a = S.cpr.vfAmp; e = a * (.36 * Math.sin(TAU * 5.2 * zT) + .26 * Math.sin(TAU * 6.9 * zT + 1.3) + .18 * Math.sin(TAU * 3.4 * zT + .4)) * (.75 + .25 * Math.sin(TAU * .4 * zT)); }
   else if (r === 'tvsp') e = .85 * Math.sin(TAU * zT * 190 / 60) + .15 * Math.sin(2 * TAU * zT * 190 / 60 + .5);
   else if (r === 'asys') e = .03 * Math.sin(TAU * .3 * zT);
+  else if (r === 'tdp') e = (.25 + .65 * Math.abs(Math.sin(TAU * .45 * zT))) * Math.sin(TAU * zT * 240 / 60);
+  if (S.pmFail && S.bav && !arrest) { pmT += dt; if (pmT >= 60 / 70) { pmT = 0; spike = 2; } } // v1.19: espículas sin captura
   if (r === 'bav') { pPh = (pPh + dt * 78 / 60) % 1; e += .13 * G(pPh, .5, .03); }
   if (r === 'fa') e += .035 * (Math.sin(TAU * 6.3 * zT) + Math.sin(TAU * 8.7 * zT + 1)) + .02 * (Math.random() - .5);
   if (r === 'flutter') { const s = (zT * 5) % 1; e += .14 * (s < .8 ? -s / .8 : (s - .8) / .2 - 1) + .07; }
@@ -5051,7 +5160,7 @@ const PARAMS = { pco2: 'PaCO₂ inicial (mmHg)', deficit: 'Pérdida de volemia (
   tep: 'TEP (0–1)', anaf: 'Anafilaxia (0–1)', cohb: 'COHb (fracción)', cn: 'Cianuro (0–1)', icp: 'PIC (mmHg)', icpGrow: 'Subida de la PIC (mmHg/min)', weak: 'Debilidad muscular (0–1)', dav: 'Intubación fallida (probabilidad)', edAir: 'Edema de vía aérea (0–1)', edAirRate: 'Progresión del edema (/min)',
   asp: 'Broncoaspiración (0–1)', ptx: 'Neumotórax (0–1)', ptxTension: 'Neumotórax a tensión (1)', tasAdj: 'Ajuste de TAS (mmHg)', fcAdj: 'Ajuste de FC (lpm)', sevFloor: 'Edema pulmonar mínimo (0–1)', bottleL: 'Botella (L)', bottleBar: 'Botella (bar)', leak10: 'Fuga de mascarilla',
   altitude: 'Altitud de cabina (m)', bmv: 'Eficacia de la bolsa (0–1)', sgaFail: 'Fallo del supraglótico (0–1)', k: 'Potasio (mmol/L)', kRate: 'Subida de potasio (mmol/L/h)', glu: 'Glucemia (mg/dL)', gluT: 'Glucemia a la que tiende', temp: 'Temperatura (°C)', tempRate: 'Cambio de temperatura (°C/h)',
-  bleed: 'Sangrado (fracción de volemia/min)', bleedSrc: 'Foco: ext, pelv, uter, int, thor (hemotórax)', htx: 'Hemotórax inicial (L)', flail: 'Volet costal (0–1)', pain: 'Dolor (0–1)', burn: 'Superficie quemada (%)', na: 'Sodio (mmol/L)', edad: 'Edad en años (pediatría; 0,5 = 6 meses)', op: 'Organofosforado (0–1)', opRate: 'Absorción del organofosforado (/min)', cocaine: 'Cocaína (0–1)', drown: 'Ahogamiento: agua en el alveolo (0–1)', tca: 'Tricíclicos (0–1)', ecl: 'Eclampsia (1)', croup: 'Crup (0–1)', postRosc: 'Recién recuperado de una parada (1)', tamp: 'Taponamiento (0–1)', tampRate: 'Crecimiento del derrame (/min)', vaso: 'Vasoplejia séptica (0–1)', vasoRate: 'Progresión de la vasoplejia (/min)', neurog: 'Shock neurogénico (0–1)', fluidTol: 'Volumen que tolera el pulmón (mL/kg)', access: 'Vía venosa al empezar (1 sí, 0 no)', hco3Off: 'Cambio de bicarbonato (mmol/L)',
+  bleed: 'Sangrado (fracción de volemia/min)', bleedSrc: 'Foco: ext, pelv, uter, int, thor (hemotórax), femur, dig (digestiva)', htx: 'Hemotórax inicial (L)', flail: 'Volet costal (0–1)', pain: 'Dolor (0–1)', burn: 'Superficie quemada (%)', na: 'Sodio (mmol/L)', edad: 'Edad en años (pediatría; 0,5 = 6 meses)', op: 'Organofosforado (0–1)', opRate: 'Absorción del organofosforado (/min)', cocaine: 'Cocaína (0–1)', drown: 'Ahogamiento: agua en el alveolo (0–1)', tca: 'Tricíclicos (0–1)', ecl: 'Eclampsia (1)', croup: 'Crup (0–1)', postRosc: 'Recién recuperado de una parada (1)', tamp: 'Taponamiento (0–1)', tampRate: 'Crecimiento del derrame (/min)', vaso: 'Vasoplejia séptica (0–1)', vasoRate: 'Progresión de la vasoplejia (/min)', neurog: 'Shock neurogénico (0–1)', fluidTol: 'Volumen que tolera el pulmón (mL/kg)', access: 'Vía venosa al empezar (1 sí, 0 no)', hco3Off: 'Cambio de bicarbonato (mmol/L)',
   sedE: 'Sedación de base (0 = despierto)', relCe: 'Relajante de base (0 = no)', sedStopped: 'Bomba de sedación parada (1)' };
 const BOOLK = { bav: 1, ptxTension: 1, ecl: 1, postRosc: 1, access: 1, sedStopped: 1, ped: 1 };
 const CFGK = ['mode', 'vt', 'fr', 'ti', 'tplat', 'pinsp', 'ps', 'rise', 'peep', 'fio2', 'trigI', 'trigE', 'timax', 'pmax', 'minvol', 'flow', 'o2dev'];
@@ -5542,6 +5651,11 @@ const TUT = {
   tvPulso: [R, ...SHOCK([120, 200], '120–150 J'), END],
   bradiSinusal: [R, D('drug:atr', 'Atropina 0,5 mg.', null, 'atropina'), TG('tas', 'Si no responde: repite, adrenalina 2–10 mcg/min o marcapasos.', null, 'atropina'), END],
   bav: [R, D('act:pace', 'Enciende el marcapasos (a demanda, 70 lpm).', 'Con QRS ancho la atropina no sirve.', 'marcapasos'), { t: 'Sube los mA de 10 en 10 hasta la captura.', at: ['#zmA'], ok: () => S.pace.capture }, D('drug:fent|drug:mid', 'Analgesia: fentanilo.', 'Estimular duele.', 'fentanilo'), TG('tas', 'TAS ≥ 90.', null, 'pni'), END],
+  flutter21: [R, D('act:ecg12', 'ECG de 12 derivaciones: busca las ondas F en II, III, aVF y V1.', 'Regular a 150 con QRS estrecho = flutter 2:1 hasta que se demuestre lo contrario.', 'ecg de 12'), ...SHOCK([70, 120], '70–120 J'), END],
+  faPreexcitada: [R, D('act:ecg12', 'ECG de 12 derivaciones: irregular, QRS ancho y cambiante a más de 200.', 'Es una FA que baja por una vía accesoria (WPW).', 'ecg de 12'), { t: 'Ni adenosina, ni betabloqueantes, ni calcioantagonistas, ni amiodarona.', w: 'Frenar el nodo deja pasar todo por la vía accesoria: puede degenerar en FV.' }, ...SHOCK([120, 200], '120–200 J'), END],
+  taquiSinusal: [R, D('act:ecg12', 'ECG de 12 derivaciones: ondas P delante de cada QRS.', 'Taquicardia sinusal: es la respuesta a la hemorragia, no el problema.', 'ecg de 12'), { t: 'No cardiovertir ni dar adenosina.', w: 'Quitarle la taquicardia lo hunde: trata la causa.' }, { t: 'Canaliza una vía venosa (mejor dos).', at: 'via venosa', ok: TU.acc }, D('act:fluid|act:blood', 'Volumen y sangre para TAS 90–100.', 'La FC bajará sola al reponer.', 'sangre'), TG('fc', 'FC < 125.', null, 'sangre'), END],
+  qtLargo: [R, D('act:ecg12', 'ECG de 12 derivaciones: mide el QT.', 'QTc > 500 con bradicardia y extrasístoles sobre la T: riesgo de torsades.', 'ecg de 12'), D('drug:mg', 'Sulfato de magnesio 2 g IV en 10 min.', 'Aunque el Mg sea normal; repetible.', 'magnesio'), { t: 'Sube la FC a 90–100: isoprenalina 2–10 mcg/min (o marcapasos).', w: 'Las torsades siguen a las pausas: con FC alta, el QT se acorta.', at: ['#pf_iso'], ok: 'perf:iso|act:pace' }, { t: 'Si una torsade no cede, desfibrila (no sincronizada).', w: 'Corrige el potasio y retira los fármacos que alargan el QT.' }, TG('sinus', 'Sin nuevas torsades.', null, 'magnesio'), END],
+  pmFallo: [R, D('act:ecg12', 'ECG: espículas de marcapasos sin QRS detrás.', 'Fallo de captura; el imán no lo arregla.', 'ecg de 12'), D('act:pace', 'Marcapasos transcutáneo a demanda, 70 lpm.', 'O adrenalina 2–10 mcg/min mientras tanto.', 'marcapasos'), { t: 'Sube los mA de 10 en 10 hasta la captura.', at: ['#zmA'], ok: () => S.pace.capture }, D('drug:fent|drug:mid', 'Analgesia: fentanilo.', 'Estimular duele.', 'fentanilo'), TG('tas', 'TAS ≥ 90.', null, 'pni'), END],
   pcrFv: [R, ...CPR, { t: 'Carga mientras se comprime y descarga 150–200 J.', at: ['#zCharge', '#zShock'], ok: () => track.shocks > 0 }, ...CPR, { t: 'Cada 2 min, «Comprobar pulso y ritmo» y descarga si sigue en FV.', at: 'comprobar pulso', ok: () => track.shocks >= 3 || TU.rosc() }, D('drug:adr', 'Tras la 3.ª descarga: adrenalina 1 mg.', null, 'adrenalina'), D('drug:amio|drug:lido', 'Y amiodarona 300 mg (o lidocaína 100 mg).', null, 'amiodarona'), { t: 'Sigue con ciclos de 2 min hasta la RCE.', at: 'comprobar pulso', ok: TU.rosc }, END],
   fvRefractaria: [R, ...CPR, { t: 'Descarga en cada análisis.', at: ['#zCharge', '#zShock'], ok: () => track.shocks >= 3 || TU.rosc() }, D('act:pads', 'Tras tres descargas: parches anteroposteriores.', 'Cambio de vector (ERC 2025).', 'parches'), D('drug:amio|drug:lido', 'Amiodarona 300 mg (o lidocaína).', null, 'amiodarona'), D('drug:adr', 'Adrenalina 1 mg cada 3–5 min.', null, 'adrenalina'), D('act:compMech', 'Compresor mecánico.', null, 'compresor mecanico'), { t: 'Sigue con ciclos de 2 min hasta la RCE.', at: 'comprobar pulso', ok: TU.rosc }, END],
   aespPtx: [R, ...CPR, X('Busca la causa: 4H y 4T.'), D('act:decomp|act:drain', 'Hemitórax hipoventilado y timpánico: descomprime.', null, 'descompresion'), D('act:fluid', 'Volumen.', null, 'cristaloide'), { t: '«Comprobar pulso y ritmo».', at: 'comprobar pulso', ok: TU.rosc }, END],
@@ -5551,6 +5665,12 @@ const TUT = {
   scaAnt: [R, D('act:ecg12', 'ECG de 12 derivaciones en menos de 10 minutos.', 'Diagnostica el SCACEST y su localización.', 'ecg de 12'), D('drug:aas', 'AAS 250 mg masticado.', null, 'aas'), D('drug:hnf|drug:enox', 'Heparina sódica 70 UI/kg.', 'Anticoagulación para la ICP.', 'heparina'), D('act:icp', 'Activa el código infarto: ICP primaria.', 'La hemodinámica está a 20 min: con la ICP a menos de 120 min no se fibrinoliza.', 'icp primaria'), { t: 'Vigila el monitor: la FV primaria es más frecuente en las primeras horas.', w: 'Parches puestos y desfibrilador preparado.' }, END],
   scaGomera: [R, D('act:ecg12', 'ECG de 12 derivaciones en menos de 10 minutos.', null, 'ecg de 12'), D('drug:aas', 'AAS 250 mg masticado.', null, 'aas'), D('drug:clopi', 'Clopidogrel 300 mg (75 mg si tiene más de 75 años).', null, 'clopidogrel'), D('drug:enox|drug:hnf', 'Enoxaparina 30 mg IV más 1 mg/kg SC.', null, 'enoxaparina'), D('drug:tnk', 'Tenecteplasa por peso, en menos de 10 minutos desde el diagnóstico.', 'Sin ICP posible en 120 min: fibrinólisis y traslado para coronariografía en 2–24 h.', 'tenecteplasa'), { t: 'Repite el ECG a los 60–90 min: el ST debe bajar más de un 50 %.', w: 'Si no reperfunde, ICP de rescate.', at: 'ecg de 12', ok: () => S.stemi && S.stemi.reperf }, END],
   scaVD: [R, D('act:ecg12', 'ECG de 12 derivaciones con V4R.', 'La elevación del ST en V4R indica afectación del VD.', 'ecg de 12'), { t: 'Nada de nitratos: con infarto de VD la TA se hunde.', w: 'El VD depende de la precarga.' }, D('act:fluid', 'Cristaloide en bolos de 250–500 mL.', null, 'cristaloide'), D('drug:aas', 'AAS 250 mg masticado.', null, 'aas'), D('act:icp', 'Activa el código infarto: ICP primaria.', null, 'icp primaria'), TG('tas', 'Mantén la TAS ≥ 90.', 'Si el volumen no basta, noradrenalina.', 'cristaloide noradrenalina'), END],
+  scasest: [R, D('act:ecg12', 'ECG de 12 derivaciones.', 'Descenso difuso del ST con elevación en aVR: no es un SCACEST, pero es de muy alto riesgo.', 'ecg de 12'), D('drug:aas', 'AAS 250 mg masticado.', null, 'aas'), D('drug:hnf|drug:enox', 'Heparina sódica 70 UI/kg.', null, 'heparina'), D('act:icp', 'Dolor refractario e inestabilidad: activa la coronariografía inmediata.', 'Sin elevación del ST no hay fibrinólisis.', 'icp primaria'), D('drug:fent|drug:morf', 'Analgesia: fentanilo.', null, 'fentanilo'), END],
+  scaContraindicada: [R, D('act:ecg12', 'ECG de 12 derivaciones.', null, 'ecg de 12'), { t: 'Ictus isquémico hace 2 meses: la fibrinólisis está contraindicada.', w: 'Riesgo de hemorragia intracraneal.' }, D('act:icp', 'Activa la ICP primaria y el traslado aéreo aunque supere los 120 min.', null, 'icp primaria'), D('drug:aas', 'AAS 250 mg masticado.', null, 'aas'), D('drug:hnf|drug:enox', 'Heparina sódica 70 UI/kg.', null, 'heparina'), END],
+  scaRescate: [R, D('act:ecg12', 'ECG de 12 derivaciones y compáralo con el previo.', 'El ST no ha bajado el 50 % y sigue el dolor: fibrinólisis fallida.', 'ecg de 12'), D('act:icp', 'Activa la ICP de rescate y traslada.', 'No repitas la fibrinólisis.', 'icp primaria'), D('drug:fent|drug:morf', 'Analgesia.', null, 'fentanilo'), END],
+  scaShock: [R, D('act:ecg12', 'ECG de 12 derivaciones.', null, 'ecg de 12'), { t: 'Noradrenalina para TAS ≥ 90.', w: 'Sin nitratos ni morfina; volumen solo si no hay congestión.', at: ['#pf_nor'], ok: 'perf:nor' }, D('act:icp', 'Activa la ICP primaria: en el shock, siempre.', null, 'icp primaria'), D('drug:aas', 'AAS 250 mg.', null, 'aas'), { t: 'Soporte respiratorio con cuidado: VMNI con PEEP 6–8.', w: 'La presión positiva baja la precarga: vigila la TA.', at: 'vmni', ok: () => S.iface === 'mask' || S.iface === 'tube' }, TG('tas', 'TAS ≥ 90.', null, 'noradrenalina'), END],
+  diseccionAorta: [R, X('Mira los pulsos y la TA en los dos brazos.'), D('act:ecg12', 'ECG de 12 derivaciones.', 'Descarta un SCACEST; si hay ST elevado, puede ser la disección que afecta a una coronaria.', 'ecg de 12'), D('drug:fent|drug:morf', 'Analgesia: fentanilo 1 mcg/kg.', 'El dolor sube la TA y la FC.', 'fentanilo'), D('drug:labet', 'Labetalol 20 mg IV; repite cada 5–10 min.', 'Primero la FC (< 60–70), después la TA.', 'labetalol'), { t: 'Si la TA sigue alta con la FC controlada: urapidilo 25 mg.', at: 'urapidilo', ok: () => TU.tg('tas')() || TU.used('drug:urap')() }, { t: 'Ni AAS, ni heparina, ni fibrinólisis.', w: 'Aumentan el riesgo de rotura y taponamiento.' }, TG('tas', 'TAS 100–130 y FC < 80.', null, 'labetalol'), END],
+  bavInferior: [R, D('act:ecg12', 'ECG de 12 derivaciones con V4R.', 'BAV completo con escape estrecho en un SCACEST inferior.', 'ecg de 12'), D('drug:atr', 'Atropina 0,5–1 mg.', 'El bloqueo nodal del infarto inferior suele responder.', 'atropina'), D('act:icp', 'Activa la ICP primaria.', null, 'icp primaria'), D('drug:aas', 'AAS 250 mg masticado.', null, 'aas'), TG('tas', 'TAS ≥ 90: si la atropina no basta, adrenalina 2–10 mcg/min o marcapasos.', null, 'atropina'), END],
   taponamiento: [R, X('Ingurgitación yugular, tonos apagados y pulso paradójico.'), D('act:eco', 'Ecografía clínica.', 'Confirma el derrame y el colapso del VD.', 'ecografia'), D('act:fluid', 'Cristaloide 500 mL mientras preparas.', 'Subir la precarga gana tiempo.', 'cristaloide'), D('act:pericardio', 'Pericardiocentesis ecoguiada.', 'Sacar 50–100 mL ya mejora la TA.', 'pericardiocentesis'), { t: 'Evita intubar y la PEEP alta.', w: 'La presión positiva reduce todavía más el llenado.' }, TG('tas', 'TAS ≥ 90.', null, 'cristaloide'), END],
   sepsisUrin: [R, X('Piel caliente, taquicardia y desorientación: piensa en sepsis.'), D('act:temp', 'Temperatura.', null, 'mide la temperatura'), D('act:gas', 'Gasometría venosa: mira el lactato.', 'Lactato > 2 con PAM < 65 = shock séptico.', 'gasometria'), D('act:fluid', 'Cristaloide 500 mL y reevalúa.', 'Hasta unos 30 mL/kg en bolos.', 'cristaloide'), D('drug:atb', 'Antibiótico en la primera hora: ceftriaxona 2 g.', null, 'ceftriaxona'), { t: 'Si tras 1–1,5 L la PAM sigue < 65: noradrenalina.', at: ['#pf_nor'], ok: 'perf:nor' }, TG('pam', 'PAM ≥ 65.', 'Ajusta la noradrenalina.', 'noradrenalina'), END],
   sepsisIC: [R, X('Crepitantes basales: este corazón tolera poco volumen.'), D('act:fluid', 'Un bolo pequeño (250–500 mL) y reevalúa.', 'Con FEVI 30 % no des los 30 mL/kg de golpe.', 'cristaloide'), { t: 'Noradrenalina precoz para PAM ≥ 65.', at: ['#pf_nor'], ok: 'perf:nor' }, D('drug:atb', 'Antibiótico en la primera hora: ceftriaxona 2 g.', null, 'ceftriaxona'), TG('pam', 'PAM ≥ 65.', null, 'noradrenalina'), { t: 'Si con reservorio no pasa de 90 %, VMNI con PEEP 6–8.', w: 'Vigila la PAM: la presión positiva baja la precarga.', at: 'vmni', ok: () => S.iface === 'mask' || S.spo2 >= .9 }, TG('spo2', 'SpO₂ 90–98 %.', 'Si cae, para el volumen.', 'fio2'), END],
