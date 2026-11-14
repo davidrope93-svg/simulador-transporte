@@ -1529,8 +1529,16 @@ function pathProgress(pk, hist, name) {
   return { stages, done, tot, pct: Math.round(done / tot * 100), avg: n ? sum / n : null, examAvg: exN ? exS / exN : null, finished: !cur, cur: cur ? cur.i : null, next: nx ? nx.k : null, nextExam: !!(cur && cur.exam) };
 }
 
+/* ---------- Revisión externa (v1.28): lotes de casos para los compañeros que revisan antes de la 2.0 ---------- */
+const LOTS = {
+  A: { t: 'VMI, VMNI y vía aérea', k: ['tce', 'asma', 'neumo', 'obesoVmi', 'epocIni', 'eap', 'fracaso', 'isrSeptico', 'viaDificil', 'isrAsma', 'laringoespasmo', 'secuenciaRetrasada'] },
+  B: { t: 'Cardiología, arritmias, shock y parada', k: ['scaGomera', 'scaRescate', 'taponamiento', 'diseccionAorta', 'faPreexcitada', 'qtLargo', 'bav', 'sepsisIC', 'pcrFv', 'pcrTep', 'pcrHipotermia', 'pcrGestante'] },
+  C: { t: 'Pediatría, neonatal y obstetricia', k: ['bronquiolitis', 'crup', 'asmaPed', 'neumoSepsis', 'convulsionFebril', 'tsvLactante', 'rnRcp', 'prematuro', 'distociaHombros', 'preeclampsiaGrave', 'hpp', 'emboliaLA'] },
+  D: { t: 'HEMS, traslados, trauma, tóxicos y neurología', k: ['ptxAltitud', 'tceGomera', 'hdaPalma', 'bavHierro', 'drenajePinzado', 'buceoDci', 'pelvis', 'aplastamiento', 'organofosf', 'cianuro', 'ictusIsq', 'hsa'] }
+};
 root.SIM_CASES = CASES;
 root.SIM_GROUPS = GROUPS;
+root.SIM_LOTS = LOTS;
 root.SIM_PATHS = PATHS;
 root.SIM_PATHPROG = pathProgress;
 root.SIM_PATHMIN = pathMin;

@@ -119,7 +119,7 @@ function pathReport() {
   const P = PATHS[pathSel], pr = pathOf(pathSel), d = new Date();
   const rows = pr.stages.map(s => `<h2>Etapa ${s.i + 1} · ${esc(s.t)}${s.exam ? ' (examen)' : ''} — ${s.passed ? 'superada' : s.open ? 'en curso' : 'bloqueada'} · ${s.ok}/${s.need}</h2><table class="dtable">${s.cases.map(c => `<tr><td>${esc(CASES[c.k].title)}<br><span class="small">${esc(CASES[c.k].teach || '')}</span></td><td class="n">${c.best == null ? '—' : fmt(c.best, 1)}${c.best != null && c.best >= P.pass ? ' ✓' : ''}</td></tr>`).join('')}</table>`).join('');
   const css = [...document.querySelectorAll('style')].map(x => x.textContent).join('\n');
-  download('itinerario-' + pathSel + '-' + (student || 'alumno').toLowerCase().replace(/[^a-z0-9áéíóúñü]+/gi, '-') + '-' + d.toISOString().slice(0, 10) + '.html',
+  download('itinerario-' + pathSel + '-' + (student || 'alumno').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-' + d.toISOString().slice(0, 10) + '.html',
     `<!doctype html><html lang="es" data-theme="light"><head><meta charset="utf-8"><title>Itinerario ${esc(P.t)} · ${esc(student || 'Alumno')}</title><style>${css}</style></head><body><main><div class="sheet" style="max-width:820px;margin:20px auto"><span class="eyebrow">Simulador docente · itinerario</span><h1 style="font-size:1.8rem">${esc(P.title)}</h1><p><b>${esc(student || 'Sin nombre')}</b> · ${d.toLocaleDateString('es-ES', { dateStyle: 'long' })}</p><p>Progreso <b>${pr.pct} %</b>${pr.avg != null ? ` · media de los casos <b>${fmt(pr.avg, 1)}</b>` : ''}${pr.examAvg != null ? ` · evaluación final <b>${fmt(pr.examAvg, 1)}</b>` : ''} · ${pr.finished ? '<b>itinerario superado</b>' : 'en curso'}</p><p class="small">${esc(P.who)} Un caso cuenta como superado con nota ≥ ${P.pass}; la evaluación final se hace en modo examen con variantes nuevas.</p>${rows}</div></main><script>window.onload=()=>print()<\/script></body></html>`, 'text/html');
 }
 function pathInit() {
@@ -137,3 +137,83 @@ function pathInit() {
     if (b.id === 'dbPathOpen') { pathSel = LS.get('simvmi.path', pathSel); pathOpen(); } else { pathSel = LS.get('simvmi.path', pathSel); pathLaunch(b.dataset.k, b.dataset.ex === '1'); }
   });
 }
+
+/* ===== Revisión externa (v1.28): valoración de casos por compañeros y consolidado para quien coordina la 2.0 ===== */
+const LOTS = window.SIM_LOTS || {};
+const RV_CRIT = [['fid', 'Fidelidad clínica', 'manejo, dosis y objetivos correctos'], ['fis', 'Realismo fisiológico', 'el paciente responde como esperarías'], ['doc', 'Valor docente', 'enseña lo que tiene que enseñar'], ['dif', 'Dificultad adecuada', 'para el nivel que indica']];
+const RV_FLAGS = [['dosis', 'Dosis o fármaco discutible'], ['obj', 'Objetivo o umbral discutible'], ['fisio', 'Respuesta fisiológica poco creíble'], ['texto', 'Texto confuso o errata'], ['sol', 'La solución de referencia no es la que yo haría'], ['tec', 'Fallo técnico']];
+const RV_ROLES = ['Médico de SVA', 'Enfermería de SVA', 'Médico HEMS', 'Enfermería HEMS', 'Residente', 'Técnico (TES)', 'Otro'];
+let rv = Object.assign({ name: '', role: '', lot: '', items: {}, general: '' }, LS.get('simvmi.review', {}));
+const rvSave = () => LS.set('simvmi.review', rv);
+const rvKey = () => { const c = CASES[caseKey]; return c && c.vbase ? c.vbase : caseKey; };
+const rvMean = it => { const v = RV_CRIT.map(([k]) => it.r && it.r[k]).filter(x => x); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+function rvRender() {
+  $('#rvName').value = rv.name; $('#rvRole').value = rv.role; $('#rvLotSel').value = rv.lot; $('#rvGeneral').value = rv.general || '';
+  const lot = LOTS[rv.lot], keys = lot ? lot.k : [], done = keys.filter(k => rv.items[k]).length;
+  $('#rvLot').innerHTML = lot ? `<p class="small">Lote ${rv.lot} · ${esc(lot.t)} · ${done} de ${keys.length} valorados</p><div class="rvchips">${keys.map(k => `<button class="rvc${rv.items[k] ? ' ok' : ''}${k === rvKey() ? ' cur' : ''}" data-k="${esc(k)}">${rv.items[k] ? '✓ ' : ''}${esc(CASES[k].title)}</button>`).join('')}</div>` : '<p class="small">Sin lote: puedes valorar cualquier caso que abras. Si te han asignado un lote, elígelo arriba.</p>';
+  const k = rvKey(), c = CASES[k], it = rv.items[k] || { r: {}, f: [], txt: '' };
+  if (!c || !c.pheno) { $('#rvForm').innerHTML = '<p class="small">Abre un caso para valorarlo.</p>'; return; }
+  $('#rvForm').innerHTML = `<h4>${esc(c.title)}${CASES[caseKey].vcode ? ' <span class="small">(valoras el caso original; estás en la variante ' + esc(CASES[caseKey].vcode) + ')</span>' : ''}</h4>
+    ${RV_CRIT.map(([ck, l, d]) => `<div class="rvrow"><span><b>${l}</b><br><span class="small">${d}</span></span><div class="seg" role="radiogroup" aria-label="${l}">${[1, 2, 3, 4, 5].map(n => `<button data-c="${ck}" data-n="${n}" role="radio" aria-checked="${it.r[ck] === n}" aria-pressed="${it.r[ck] === n}">${n}</button>`).join('')}</div></div>`).join('')}
+    <div class="rvflags">${RV_FLAGS.map(([fk, l]) => `<label class="small"><input type="checkbox" data-f="${fk}"${it.f.includes(fk) ? ' checked' : ''}> ${l}</label>`).join('')}</div>
+    <textarea id="rvTxt" rows="3" placeholder="Qué cambiarías: dosis, umbrales, textos, cómo responde el paciente, lo que echas en falta…">${esc(it.txt || '')}</textarea>
+    <div class="inrow"><button class="btn primary" id="rvSaveBtn">Guardar la valoración</button><span class="small" id="rvSaved">${it.ts ? 'Guardada ' + new Date(it.ts).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : 'Sin guardar'}</span>${lot && keys.some(x => !rv.items[x] && x !== k) ? '<button class="btn" id="rvNext">Siguiente del lote</button>' : ''}</div>`;
+}
+function rvOpen() { rvRender(); rvCoordRender(); $('#revModal').hidden = false; }
+function rvCollect() {
+  const k = rvKey(), c = CASES[k]; if (!c || !c.pheno) return null;
+  const r = {}; $$('#rvForm [data-c][aria-pressed="true"]').forEach(b => { r[b.dataset.c] = +b.dataset.n; });
+  return { k, it: { t: c.title, r, f: $$('#rvForm [data-f]').filter(x => x.checked).map(x => x.dataset.f), txt: $('#rvTxt').value.trim().slice(0, 2000), ts: new Date().toISOString() } };
+}
+function rvExportObj() { return { app: 'simulador-sva-hems', v: ($('.eyebrow') ? ($('.eyebrow').textContent.match(/v\d+\.\d+/) || [''])[0] : ''), at: new Date().toISOString(), reviewer: { name: rv.name, role: rv.role }, lot: rv.lot, general: rv.general, items: rv.items }; }
+function rvSummary() {
+  const its = Object.entries(rv.items), FL = Object.fromEntries(RV_FLAGS);
+  return `Revisión del simulador SVA/HEMS · ${rv.name || 'sin nombre'}${rv.role ? ' (' + rv.role + ')' : ''}${rv.lot ? ' · lote ' + rv.lot : ''}\n${rv.general ? '\nGeneral: ' + rv.general + '\n' : ''}\n` +
+    its.map(([, it]) => `• ${it.t}: ${RV_CRIT.map(([k, l]) => l.split(' ')[0] + ' ' + (it.r[k] || '–')).join(' · ')}${it.f.length ? ' · avisos: ' + it.f.map(f => FL[f]).join(', ') : ''}${it.txt ? '\n  ' + it.txt : ''}`).join('\n');
+}
+/* coordinador: importa los archivos de los revisores y consolida */
+function rvIn() { return LS.get('simvmi.reviewsIn', []); }
+function rvCoordRender() {
+  const all = rvIn(), FL = Object.fromEntries(RV_FLAGS), agg = {};
+  for (const R of all) for (const [k, it] of Object.entries(R.items || {})) { const a = agg[k] || (agg[k] = { t: it.t || (CASES[k] && CASES[k].title) || k, n: 0, s: {}, c: {}, f: {}, txt: [] }); a.n++;
+    for (const [ck] of RV_CRIT) if (it.r && it.r[ck]) { a.s[ck] = (a.s[ck] || 0) + it.r[ck]; a.c[ck] = (a.c[ck] || 0) + 1; }
+    for (const f of it.f || []) a.f[f] = (a.f[f] || 0) + 1; if (it.txt) a.txt.push([R.reviewer && R.reviewer.name || '¿?', it.txt]); }
+  const rows = Object.entries(agg).map(([k, a]) => { const m = RV_CRIT.map(([ck]) => a.c[ck] ? a.s[ck] / a.c[ck] : null), ok = m.filter(x => x != null); return { k, a, m, low: ok.length ? Math.min(...ok) : 9 }; }).sort((x, y) => x.low - y.low);
+  $('#rvInSum').textContent = all.length ? `${all.length} revisor${all.length > 1 ? 'es' : ''} (${all.map(R => (R.reviewer && R.reviewer.name) || '¿?').join(', ')}) · ${rows.length} casos valorados · primero los peor valorados` : 'Aún no has importado revisiones.';
+  $('#rvInCsv').disabled = !all.length;
+  $('#rvInBody').innerHTML = rows.length ? `<table class="dtable"><tr><th>Caso</th><th class="n">n</th>${RV_CRIT.map(([, l]) => `<th class="n">${l.split(' ')[0]}</th>`).join('')}<th>Avisos y comentarios</th></tr>${rows.map(({ a, m }) => `<tr><td>${esc(a.t)}</td><td class="n">${a.n}</td>${m.map(x => `<td class="n${x != null && x < 3 ? ' rvlow' : ''}">${x == null ? '–' : fmt(x, 1)}</td>`).join('')}<td>${Object.entries(a.f).map(([f, n]) => `<span class="lbs low">${esc(FL[f])} ×${n}</span>`).join(' ')}${a.txt.map(([nm, t]) => `<div class="small"><b>${esc(nm)}:</b> ${esc(t)}</div>`).join('')}</td></tr>`).join('')}</table>` : '';
+}
+function rvInit() {
+  $('#revBtn').addEventListener('click', rvOpen);
+  $('#rvClose').addEventListener('click', () => { $('#revModal').hidden = true; });
+  $('#revModal').addEventListener('click', e => { if (e.target.id === 'revModal') $('#revModal').hidden = true; });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#revModal').hidden) $('#revModal').hidden = true; });
+  $('#rvRole').innerHTML = '<option value="">Perfil</option>' + RV_ROLES.map(r => `<option>${r}</option>`).join('');
+  $('#rvLotSel').innerHTML = '<option value="">Sin lote: cualquier caso</option>' + Object.entries(LOTS).map(([k, l]) => `<option value="${k}">Lote ${k} · ${esc(l.t)} (${l.k.length})</option>`).join('');
+  $('#rvName').addEventListener('change', e => { rv.name = e.target.value.trim().slice(0, 60); rvSave(); if (!student && rv.name) { student = rv.name; LS.set('simvmi.name', student); $('#stuName').value = student; } });
+  $('#rvRole').addEventListener('change', e => { rv.role = e.target.value; rvSave(); });
+  $('#rvLotSel').addEventListener('change', e => { rv.lot = e.target.value; rvSave(); rvRender(); });
+  $('#rvGeneral').addEventListener('change', e => { rv.general = e.target.value.trim().slice(0, 3000); rvSave(); });
+  $('#revModal').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.c) { $$(`#rvForm [data-c="${b.dataset.c}"]`).forEach(x => { const on = x === b; x.setAttribute('aria-pressed', String(on)); x.setAttribute('aria-checked', String(on)); }); return; }
+    if (b.dataset.k) { $('#revModal').hidden = true; $('#caseSel').value = b.dataset.k; loadCase(b.dataset.k); toast('Juega el caso y, al terminar, valóralo desde el debrief o con «Revisión».'); return; }
+    if (b.id === 'rvSaveBtn') { const x = rvCollect(); if (!x) return; if (!Object.keys(x.it.r).length && !x.it.txt && !x.it.f.length) { $('#rvSaved').textContent = 'Marca al menos una puntuación o escribe un comentario.'; return; } rv.items[x.k] = x.it; rvSave(); rvRender(); $('#rvSaved').textContent = 'Guardada en este dispositivo. Cuando acabes, descarga tu revisión y envíala.'; return; }
+    if (b.id === 'rvNext') { const lot = LOTS[rv.lot], k = lot && lot.k.find(x => !rv.items[x] && x !== rvKey()); if (k) { $('#revModal').hidden = true; $('#caseSel').value = k; loadCase(k); } return; }
+    if (b.id === 'rvExport') { if (!Object.keys(rv.items).length) { $('#rvMsg').textContent = 'Todavía no has valorado ningún caso.'; return; } download(`revision-simulador-${(rv.name || 'revisor').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}${rv.lot ? '-lote-' + rv.lot : ''}-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(rvExportObj(), null, 2), 'application/json'); $('#rvMsg').textContent = 'Envía el archivo a quien coordina la revisión (correo o WhatsApp).'; return; }
+    if (b.id === 'rvCopy') { const t = rvSummary(); (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => { $('#rvMsg').textContent = 'Resumen copiado: pégalo en un correo o un mensaje.'; }, () => { $('#rvGeneral').value = t; $('#rvMsg').textContent = 'Copia el resumen del cuadro de comentario general.'; }); return; }
+    if (b.id === 'rvInCsv') { const FL = Object.fromEntries(RV_FLAGS), rows = [['revisor', 'perfil', 'lote', 'caso', 'clave'].concat(RV_CRIT.map(([, l]) => l), ['avisos', 'comentario']).join(';')];
+      for (const R of rvIn()) for (const [k, it] of Object.entries(R.items || {})) rows.push([(R.reviewer || {}).name || '', (R.reviewer || {}).role || '', R.lot || '', it.t || k, k].concat(RV_CRIT.map(([ck]) => (it.r || {})[ck] || ''), [(it.f || []).map(f => FL[f] || f).join(' | '), it.txt || '']).map(x => '"' + String(x).replace(/"/g, '""') + '"').join(';'));
+      download('revisiones-consolidadas-' + new Date().toISOString().slice(0, 10) + '.csv', '﻿' + rows.join('\n'), 'text/csv;charset=utf-8'); return; }
+    if (b.id === 'rvInClear') { if (b.dataset.armed) { LS.set('simvmi.reviewsIn', []); delete b.dataset.armed; b.textContent = 'Vaciar'; rvCoordRender(); } else { b.dataset.armed = '1'; b.textContent = 'Pulsa otra vez para vaciar'; setTimeout(() => { delete b.dataset.armed; b.textContent = 'Vaciar'; }, 4000); } return; }
+  });
+  $('#rvInFile').addEventListener('change', e => { const fs = [...e.target.files]; Promise.all(fs.map(f => f.text().then(t => JSON.parse(t)).catch(() => null))).then(list => {
+    const ok = list.filter(R => R && R.items && typeof R.items === 'object'), cur = rvIn(); for (const R of ok) { const clean = JSON.parse(JSON.stringify(R)); const i = cur.findIndex(x => x.reviewer && clean.reviewer && x.reviewer.name === clean.reviewer.name && x.lot === clean.lot); if (i >= 0) cur[i] = clean; else cur.push(clean); }
+    LS.set('simvmi.reviewsIn', cur); $('#rvInSum').textContent = `${ok.length} archivo${ok.length === 1 ? '' : 's'} importado${ok.length === 1 ? '' : 's'}${list.length > ok.length ? ` · ${list.length - ok.length} no válido${list.length - ok.length > 1 ? 's' : ''}` : ''}`; setTimeout(rvCoordRender, 800); }); e.target.value = ''; });
+  const m = location.hash.match(/^#revision=([A-Za-z])$/); if (m && LOTS[m[1].toUpperCase()]) { rv.lot = m[1].toUpperCase(); rvSave(); setTimeout(() => { rvOpen(); toast(`Lote ${rv.lot} de revisión: escribe tu nombre y tu perfil y abre el primer caso.`); }, 600); }
+}
+/* en el debrief del revisor: valorar el caso recién jugado */
+function rvDebrief() { if (!rv.lot && !rv.name) return; const k = rvKey(), done = !!rv.items[k]; const t = $('#dbBody .dtable');
+  const html = `<div class="ptdb"><b>Revisión</b> · ${done ? 'ya has valorado este caso; puedes cambiar la valoración' : 'valora este caso para la versión 2.0'}<div class="inrow"><button class="btn primary" id="dbRv">${done ? 'Ver mi valoración' : 'Valorar este caso'}</button></div></div>`;
+  if (t) t.insertAdjacentHTML('afterend', html); else $('#dbBody').insertAdjacentHTML('afterbegin', html);
+  $('#dbRv').addEventListener('click', () => { $('#debrief').hidden = true; paused = false; setPauseBtn(); rvOpen(); }); }

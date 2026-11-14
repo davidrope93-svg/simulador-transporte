@@ -93,7 +93,7 @@ function teachDebrief(reason) {
   const hist = LS.get('simvmi.hist', []); hist.push(att); while (hist.length > 500) hist.shift(); LS.set('simvmi.hist', hist);
   const idx = hist.length - 1;
   $('#dbName').addEventListener('change', e => { student = e.target.value.trim().slice(0, 60); LS.set('simvmi.name', student); $('#stuName').value = student; const h = LS.get('simvmi.hist', []); if (h[idx] && h[idx].d === att.d) { h[idx].name = student; LS.set('simvmi.hist', h); } });
-  pathDebrief(c); cmpStart(reason);
+  pathDebrief(c); rvDebrief(); cmpStart(reason);
   linkSend({ t: 'debrief', sid: SID, key: caseKey, vcode: c.vcode || null, exam, min: Math.round(S.clin * 10) / 10, title: c.title, reason: reason || '', score: sc.total, parts: sc.parts.map(p => [p.lab, Math.round(p.v * 100), p.det]), name: student });
 }
 

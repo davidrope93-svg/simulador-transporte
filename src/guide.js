@@ -27,7 +27,7 @@ const WHERE = [
   [/reconecta|pieza en y/, $a('reconnect')], [/balon/, $a('cuff')], [/aspira|secreciones/, $a('suction')], [/reclutamiento/, $a('recruit')], [/gasometria/, $a('gas')], [/explora|pupilas/, $a('explore')],
   [/recoloca|cambia la mascarilla/, $a('mask')], [/pinza/, $a('clamp')], [/desconecta 15 s/, $a('opencirc')], [/30:2|15:2/, $s('#cprRatio')],
   [/iniciar ventilacion/, $s('#sbyGo')], [/air mix/, $s('#vk_airmix')], [/tecla de o2|o2 al 100/, $s('#vk_o2boost', '#vk_o2full')], [/fio2/, $k('fio2')], [/\bpeep\b|cpap/, $k('peep')],
-  [/presion de soporte|\bps\b/, $k('ps')], [/\bvt\b/, $k('vt')], [/\bfr\b|frecuencia/, $k('fr')], [/trigger/, $k('trigI')], [/timax|ti max/, $k('timax')], [/ciclado/, $k('trigE')], [/inspiracion ti|\bi:e\b/, $k('ti', 'ie')], [/\bflow\b|flujo a \d|flujo \d/, $k('flow')], [/pasa a /, $s('#modes')], [/alarma de presion/, $s('#limBox')],
+  [/presion de soporte|\bps\b/, $k('ps')], [/\bpinsp\b|presion inspiratoria/, $k('pinsp')], [/\bvt\b/, $k('vt')], [/\bfr\b|frecuencia/, $k('fr')], [/trigger/, $k('trigI')], [/timax|ti max/, $k('timax')], [/ciclado/, $k('trigE')], [/inspiracion ti|\bi:e\b/, $k('ti', 'ie')], [/\bflow\b|flujo a \d|flujo \d/, $k('flow')], [/pasa a /, $s('#modes')], [/alarma de presion/, $s('#limBox')],
   [/cardioversion|sinc/, $s('#zSync', '#zCharge')], [/parches/, $s('#zPads')], [/marcapasos|ma por encima/, $s('#zPace', '#zmA')], [/descarga|desfibrila|\d+ j\b|j\/kg/, $s('#zJ', '#zCharge', '#zShock')],
   [/pausa inspiratoria/, $s('#vk_inhold')], [/pausa espiratoria/, $s('#vk_exhold')], [/pni|mide la ta/, $s('#zPniBtn')], [/programa la automatica/, $s('#zAuto')]
 ];
