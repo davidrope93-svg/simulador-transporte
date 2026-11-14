@@ -304,9 +304,9 @@ console.log('— Respiratorio y shock pediátricos (v1.13): asma, neumonía con 
   const over = run('neumoSepsis', [[.3, res], [.5, s => { s.S.access = 'io'; }], ...[1, 2, 3, 4, 5, 6, 7].map(t => [t, bolo])], 12); check('Siete bolos: sobrecarga con hígado palpable', /hígado palpable/.test(over.explore().join(' ')) ? 1 : 0, 1, 1); check('… y peor oxigenación que con cuatro', n2.S.spo2 * 100 - over.S.spo2 * 100, 1, 15, ' puntos');
   let d = run('deshidratacion', [], 6), d2 = run('deshidratacion', [[.5, s => { s.S.access = 'io'; }], [1.5, bolo], [4, bolo], [6.5, bolo]], 15); check('Lactante deshidratado: FC sin tratar (el niño compensa con taquicardia)', d.S.fc, 170, 200, ' lpm'); check('Tres bolos de 10 mL/kg: FC a los 15 min', d2.S.fc, 120, 155, ' lpm');
   check('G10 % 2 mL/kg en el lactante hipoglucémico', run('deshidratacion', [[.5, s => { s.S.access = 'io'; }], [1, give('gluc10')]], 3).S.glu, 80, 160, ' mg/dL');
-  const good = run('cadPed', [[.8, bolo], [14, give('manit')]], 30), bad = run('cadPed', [[.5, s => s.action('fluid', 20)], [3, s => s.action('fluid', 20)], [4, give('bic')], [5, give('ins')]], 25), none = run('cadPed', [[.8, bolo]], 30);
+  const good = run('cadPed', [[.8, bolo], [14, give('manit')]], 30), badA = [[.5, s => s.action('fluid', 20)], [3, s => s.action('fluid', 20)], [4, give('bic')], [5, give('ins')]], bad = run('cadPed', badA, 15), late = run('cadPed', badA, 22), none = run('cadPed', [[.8, bolo]], 30);
   check('Cetoacidosis: aparece el edema cerebral', good.S.ced.on ? 1 : 0, 1, 1); check('Manitol: Glasgow a los 30 min', good.S.gcs, 13, 15); check('Sin osmoterapia: Glasgow a los 30 min', none.S.gcs, 7, 12);
-  check('40 mL/kg, bicarbonato y bolo de insulina: edema grave (Glasgow)', bad.S.gcs, 3, 7); check('… con Cushing (TAS alta y bradicardia)', bad.S.tas > 120 && bad.S.fc < 85 ? 1 : 0, 1, 1);
+  check('40 mL/kg, bicarbonato y bolo de insulina: edema grave (Glasgow)', bad.S.gcs, 3, 7); check('… con Cushing (TAS alta y bradicardia)', bad.S.tas > 120 && bad.S.fc < 85 ? 1 : 0, 1, 1); check('… y si sigue sin tratarse, la herniación deja al niño sin respirar (SpO₂)', late.S.spo2 * 100, 0, 80, ' %');
   check('Adrenalina pediátrica en mcg/kg/min entre las perfusiones', DR.PERFS.some(p => p.id === 'adrIkg' && p.u === 'mcg/kg/min') ? 1 : 0, 1, 1); }
 
 console.log('— Parada y trauma pediátricos (v1.14): ventilaciones de rescate, 15:2, ahogamiento, trauma con TCE');
@@ -345,6 +345,17 @@ console.log('— Tanda de disnea y VMNI (v1.16): retenedor, neumotórax con pres
   a = run('crisisAnsiedad', [], 10); b = run('crisisAnsiedad', [[.3, s => s.action('calm')]], 15); check('Hiperventilación: pCO₂ baja sin intervenir', a.S.pco2, 15, 30, ' mmHg'); check('Tranquilizar y respiración guiada: pCO₂', b.S.pco2, 32, 48, ' mmHg');
   a = run('eapIntolerante', [], 12); check('EAP con intolerancia: se arranca la mascarilla (fuga)', a.S.mask.leak10, 60, 200, ' L/min');
   a = run('cloroPiscina', [[8, s => s.event('edema')]], 12); check('Cloro: aparece el edema lesional y desatura', a.S.spo2 * 100, 70, 92, ' %'); }
+
+console.log('— Tanda de trauma (v1.17): torniquete, parche valvulado, aplastamiento, tracción, útero y herniación');
+{ const run = (k, acts, m, seed) => { const L = load(k, { seed: seed || 4, scale: 10 }), s = L.sim; adv(s, .05); for (const [t, f] of acts) { if (s.S.clin < t) adv(s, t - s.S.clin); f(s); } adv(s, m - s.S.clin); return s; };
+  const act = (k, x) => s => s.action(k, x);
+  let a = run('amputacion', [], 15), b = run('amputacion', [[.1, act('hemo')], [.3, s => { s.S.access = 'io'; }], [1, act('blood')]], 10); check('Amputación sin torniquete: TAS a los 15 min', a.S.tas, 0, 80, ' mmHg'); check('Torniquete y sangre: TAS', b.S.tas, 80, 120, ' mmHg');
+  a = run('heridaSoplante', [], 6); b = run('heridaSoplante', [[.2, act('seal')]], 6); check('Herida soplante sin sellar: SpO₂ con reservorio', a.S.spo2 * 100, 75, 88, ' %'); check('… con parche valvulado sube', b.S.spo2 * 100 - a.S.spo2 * 100, 3, 30, ' puntos');
+  const rel = [8, s => s.event('release')]; a = run('aplastamiento', [rel], 12); b = run('aplastamiento', [[.3, act('fluid')], [1, act('fluid')], [2, act('fluid')], [3, act('fluid')], rel], 12); check('Aplastamiento liberado sin volumen previo: potasio', a.S.k, 7.5, 10, ' mEq/L'); check('… con 2 L antes de liberar', b.S.k, 5.5, 7.2, ' mEq/L'); check('… y sin hipotensión de reperfusión (TAS)', b.S.tas, 100, 160, ' mmHg');
+  a = run('femurBarranco', [], 3); b = run('femurBarranco', [[.3, act('hemo')]], 3); check('Fémur: la férula de tracción reduce el dolor', a.S.painEff - b.S.painEff, .2, 1); check('… y el sangrado', (a.S.bleedNow || 0) - (b.S.bleedNow || 0) > 0 ? 1 : 0, 1, 1);
+  a = run('traumaGestante', [], 3); b = run('traumaGestante', [[.1, act('lud')]], 3); check('Gestante: desplazar el útero sube la TAS', b.S.tas - a.S.tas, 10, 30, ' mmHg');
+  a = run('epidural', [], 20); check('Hematoma epidural sin tratar: la herniación deprime la respiración (pCO₂)', a.S.pco2, 50, 150, ' mmHg');
+  a = run('tetraplejia', [], 20); check('Lesión C4 sin soporte: hipercapnia por agotamiento a los 20 min', a.S.pco2, 48, 150, ' mmHg'); }
 
 console.log('— Instalable y sin conexión (v1.3): manifiesto, iconos y service worker');
 { const fs = require('fs'), path = require('path'), R = f => path.join(__dirname, '..', f);
