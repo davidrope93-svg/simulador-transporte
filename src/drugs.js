@@ -25,6 +25,11 @@ const DRUGSET = [
     { id: 'midCr', lab: 'Midazolam (crisis)', k: 'mid', mgkg: .15, max: 10, u: 'mg', route: ' IV o IM', noIV: true, note: 'repetible una vez a los 5 min' },
     { id: 'lev', lab: 'Levetiracetam', k: 'lev', mgkg: 60, max: 4500, u: 'mg', note: 'IV en 10 min' }, { id: 'vpa', lab: 'Valproato', k: 'vpa', mgkg: 40, max: 3000, u: 'mg', note: 'IV en 10 min' },
     { id: 'ssh3', lab: 'Salino hipertónico 3 %', k: 'ssh3', amt: 100, note: '100 mL en 10 min' }] },
+  { g: 'Tóxicos', items: [
+    { id: 'glucgIV', lab: 'Glucagón IV', k: 'glucg', dose: 5, u: 'mg', note: 'en 1–2 min; repetible a los 10 min (vómitos)' }, { id: 'insHD', lab: 'Insulina a dosis altas', k: 'insHD', mgkg: 1, u: 'UI', note: 'con glucosa; después 1 UI/kg/h' },
+    { id: 'atr2', lab: 'Atropina', k: 'atr', dose: 2, u: 'mg', note: 'organofosforados: dobla cada 5 min' }, { id: 'atr4', lab: 'Atropina', k: 'atr', dose: 4, u: 'mg' },
+    { id: 'atr8', lab: 'Atropina', k: 'atr', dose: 8, u: 'mg' }, { id: 'atr16', lab: 'Atropina', k: 'atr', dose: 16, u: 'mg' },
+    { id: 'prali', lab: 'Pralidoxima', k: 'prali', mgkg: 30, max: 2000, u: 'mg', note: 'en 30 min; después 8 mg/kg/h' }, { id: 'lipid', lab: 'Emulsión lipídica 20 %', k: 'lipid', mgkg: 1.5, u: 'mL', note: 'en 1 min; rescate' }] },
   { g: 'Síndrome coronario', items: [
     { id: 'aas', lab: 'AAS', k: 'aas', dose: 250, u: 'mg', route: ' oral, masticado', noIV: true }, { id: 'tica', lab: 'Ticagrelor', k: 'tica', dose: 180, u: 'mg', route: ' oral', noIV: true },
     { id: 'clopi300', lab: 'Clopidogrel', k: 'clopi', dose: 300, u: 'mg', route: ' oral', noIV: true }, { id: 'clopi600', lab: 'Clopidogrel', k: 'clopi', dose: 600, u: 'mg', route: ' oral', noIV: true },
@@ -65,10 +70,14 @@ const PERFS = [
   { id: 'iso', lab: 'Isoprenalina', u: 'mcg/min', d: 0, opts: [0, 1, 2, 4, 10], run: (sim, r, fW) => sim.perfSteady('iso', r) },
   { id: 'mgP', lab: 'Sulfato de magnesio', u: 'g/h', d: 0, opts: [0, 1, 2], run: (sim, r, fW) => sim.perf('mg', r / 60 * fW) },
   { id: 'g10', lab: 'Glucosa 10 %', u: 'mL/h', d: 0, opts: [0, 50, 100, 150, 250], run: (sim, r, fW) => sim.setGluPerf(r * .1 / 60 * fW) },
-  { id: 'cris', lab: 'Cristaloide en bomba', u: 'mL/h', d: 0, opts: [0, 125, 250, 500, 750, 1000], run: (sim, r) => sim.setFluidRate(r) }
+  { id: 'cris', lab: 'Cristaloide en bomba', u: 'mL/h', d: 0, opts: [0, 125, 250, 500, 750, 1000], run: (sim, r) => sim.setFluidRate(r) },
+  { id: 'glucgP', lab: 'Glucagón', u: 'mg/h', d: 0, opts: [0, 2, 3, 5], run: (sim, r, fW) => sim.perf('glucg', r / 60 * fW) },
+  { id: 'insP', lab: 'Insulina a dosis altas', u: 'UI/kg/h', d: 1, opts: [0, .5, 1, 2], run: (sim, r) => sim.perf('insHD', r / 60) },
+  { id: 'insD', lab: 'Insulina (cetoacidosis)', u: 'UI/kg/h', d: 2, opts: [0, .05, .1, .14], run: (sim, r) => sim.perf('ins', r * 75 / 10 / 60), extra: (r, peso, fmt) => r ? ` · ${fmt(r * peso, 1)} UI/h` : '' },
+  { id: 'atrP', lab: 'Atropina', u: 'mg/h', d: 0, opts: [0, 1, 2, 4, 8], run: (sim, r, fW) => sim.perf('atr', r / 60 * fW) }
 ];
 const roundDose = x => x >= 50 ? Math.round(x / 5) * 5 : x >= 10 ? Math.round(x) : x >= 1 ? Math.round(x * 10) / 10 : Math.round(x * 100) / 100;
-const PED = { midCr: { k: .15, max: 10, t: '0,15 mg/kg' }, lev: { k: 60, max: 4500, t: '60 mg/kg', u: 'mg' }, vpa: { k: 40, max: 3000, t: '40 mg/kg', u: 'mg' }, ceftri: { k: 80, max: 2000, t: '80 mg/kg', u: 'mg' }, pipta: { k: 100, max: 4000, t: '100 mg/kg', u: 'mg' }, mero: { k: 20, max: 1000, t: '20 mg/kg', u: 'mg' }, adr1: { k: .01, max: 1, t: '10 mcg/kg' }, adrP: { k: 1, max: 20, t: '1 mcg/kg' }, amio300: { k: 5, max: 300, t: '5 mg/kg' }, amio150: { k: 5, max: 150, t: '5 mg/kg' },
+const PED = { glucgIV: { k: .05, max: 5, t: '50 mcg/kg' }, atr2: { k: .05, max: 2, t: '0,05 mg/kg' }, atr4: { k: .1, max: 4, t: '0,1 mg/kg' }, atr8: { k: .2, max: 8, t: '0,2 mg/kg' }, atr16: { k: .4, max: 16, t: '0,4 mg/kg' }, prali: { k: 30, max: 2000, t: '30 mg/kg', u: 'mg' }, midCr: { k: .15, max: 10, t: '0,15 mg/kg' }, lev: { k: 60, max: 4500, t: '60 mg/kg', u: 'mg' }, vpa: { k: 40, max: 3000, t: '40 mg/kg', u: 'mg' }, ceftri: { k: 80, max: 2000, t: '80 mg/kg', u: 'mg' }, pipta: { k: 100, max: 4000, t: '100 mg/kg', u: 'mg' }, mero: { k: 20, max: 1000, t: '20 mg/kg', u: 'mg' }, adr1: { k: .01, max: 1, t: '10 mcg/kg' }, adrP: { k: 1, max: 20, t: '1 mcg/kg' }, amio300: { k: 5, max: 300, t: '5 mg/kg' }, amio150: { k: 5, max: 150, t: '5 mg/kg' },
   lido100: { k: 1, max: 100, t: '1 mg/kg' }, lido50: { k: .5, max: 50, t: '0,5 mg/kg' }, atr: { k: .02, min: .1, max: .5, t: '20 mcg/kg' }, aden6: { k: .1, max: 6, t: '0,1 mg/kg' },
   aden12: { k: .2, max: 12, t: '0,2 mg/kg' }, aden18: { k: .3, max: 18, t: '0,3 mg/kg' }, adrIM: { k: .01, max: .5, t: '10 mcg/kg' }, nalox: { k: .01, max: .4, t: '10 mcg/kg' },
   mid: { k: .05, max: 2, t: '0,05 mg/kg' }, morf: { k: .05, max: 3, t: '0,05 mg/kg' }, mg: { k: .04, max: 2, t: '40 mg/kg' }, dexclor: { k: .15, max: 5, t: '0,15 mg/kg' },

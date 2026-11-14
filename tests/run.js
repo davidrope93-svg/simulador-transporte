@@ -211,6 +211,30 @@ console.log('— Neurología (v1.7): estatus epiléptico, ictus e hiponatremia')
   let sz = 0; for (let i = 1; i <= 10; i++) { const a = mk({ seed: i, na: 116, sex: 'm', peso: 58, talla: 165 }); adv(a, 25); if (a.S.seizures > 0) sz++; } check('Na 116 sin tratar: convulsiona en 25 min', sz / 10 * 100, 50, 100, ' %');
   sz = 0; for (let i = 1; i <= 10; i++) { const a = mk({ seed: i, na: 126, sex: 'm', peso: 58, talla: 165 }); adv(a, 25); if (a.S.seizures > 0) sz++; } check('Na 126: no convulsiona', sz, 0, 0); }
 
+console.log('— Tóxicos y cetoacidosis (v1.8): calcioantagonistas, betabloqueantes, organofosforados, cocaína y cetoacidosis intubada');
+{ const adv2 = (L, m) => adv(L.sim, m);
+  let L = load('verapamilo', { seed: 4, scale: 10 }); adv2(L, .5); check('Verapamilo: FC', L.S.fc, 32, 46, ' lpm'); check('Verapamilo: TAS', L.S.tas, 55, 75, ' mmHg');
+  const v0 = L.S.tas; L.sim.drug('atr', 1); adv2(L, 5); check('Atropina: casi no sube la TAS', L.S.tas - v0, -3, 8, ' mmHg');
+  L = load('verapamilo', { seed: 4, scale: 10 }); adv2(L, .5); L.sim.drug('ca', 1); adv2(L, 3); const vc = L.S.tas; check('Calcio: sube algo la TAS', vc - v0, 5, 25, ' mmHg');
+  L.sim.drug('insHD', 75); L.sim.perf('insHD', 1 / 60); adv2(L, 3); const v3 = L.S.tas; adv2(L, 22); check('Insulina a dosis altas: efecto tardío pero grande', L.S.tas - v3, 15, 50, ' mmHg'); check('… y baja la glucemia', L.S.glu, 150, 270, ' mg/dL'); check('… y el potasio', L.S.k, 3, 4.2, ' mmol/L');
+  const bb = glu => { const a = load('betabloq', { seed: 4, scale: 10 }); adv2(a, .5); const t0 = a.S.tas; if (glu) a.sim.drug('glucg', 5 * 75 / 82); else a.sim.drug('ca', 1); adv2(a, 8); return a.S.tas - t0; };
+  check('Betabloqueante: el glucagón rinde más que el calcio', bb(true) - bb(false), 10, 40, ' mmHg');
+  L = load('organofosf', { seed: 4, scale: 10 }); adv2(L, .5); check('Organofosforado: bradicardia', L.S.fc, 38, 55, ' lpm'); check('Broncorrea: SpO₂ con reservorio', L.S.spo2 * 100, 84, 92, ' %');
+  check('Exploración: secreciones y miosis', /puntiformes/.test(L.sim.explore().join(' ')) ? 1 : 0, 1, 1);
+  const op0 = L.S.op; adv2(L, 15); check('Sin descontaminar, sigue absorbiéndose', L.S.op - op0, .08, .2);
+  L = load('organofosf', { seed: 4, scale: 10 }); adv2(L, .5); L.sim.action('decont'); [2, 4, 8].forEach(d => L.sim.drug('atr', d)); adv2(L, 3); check('14 mg de atropina: aún no atropinizado', L.S.opM, .2, .5); L.sim.drug('atr', 16); adv2(L, 3);
+  check('30 mg: atropinizado (FC > 80)', L.S.fc, 80, 130, ' lpm'); check('… y el tórax seco (SpO₂)', L.S.spo2 * 100, 94, 100, ' %');
+  L = load('organofosf', { seed: 4, scale: 10 }); adv2(L, .5); L.sim.drug('sux', 15); adv2(L, 10); check('Succinilcolina con organofosforado: sigue relajado a los 10 min', L.S.relTot, .6, 1);
+  L = load('cocaina', { seed: 4, scale: 10 }); adv2(L, .5); check('Cocaína: FC', L.S.fc, 140, 180, ' lpm'); check('Cocaína: TAS', L.S.tas, 180, 230, ' mmHg');
+  const c0 = L.S.temp; adv2(L, 10); check('Sin tratar, la temperatura sigue subiendo', L.S.temp - c0, .5, 1.2, ' °C');
+  L = load('cocaina', { seed: 4, scale: 10 }); adv2(L, .5); L.sim.drug('mid', 10 * 75 / 80); L.sim.action('cool'); adv2(L, 10); check('Midazolam: baja la FC', L.S.fc, 85, 125, ' lpm'); check('Enfriamiento: −1 °C en 10 min', c0 - L.S.temp, .8, 1.8, ' °C');
+  check('QRS algo ancho con cocaína', L.S.ecg.qrs * 1000, 115, 135, ' ms');
+  const dka = fr => { const a = load('cadIntubada', { seed: 4, scale: 10 }); adv2(a, .3); a.sim.setCfg(Object.assign({}, a.S.cfg, { fr, vt: 440, ti: .8 })); adv2(a, 15); return a.S; };
+  const d14 = dka(14), d28 = dka(28); check('Cetoacidosis intubada con FR 14: pH', d14.ph, 6.7, 6.95); check('Con FR 28: pH (mantiene su compensación)', d28.ph, 7.05, 7.2); check('Con FR 28: pCO₂', d28.pco2, 18, 26, ' mmHg');
+  check('Con FR 14: hipotensión por la acidemia', d14.tas, 50, 92, ' mmHg');
+  L = load('cadIntubada', { seed: 4, scale: 10 }); adv2(L, .3); L.sim.setCfg(Object.assign({}, L.S.cfg, { fr: 28, vt: 440, ti: .8 })); const g0 = L.S.glu, k0 = L.S.k; L.sim.perf('ins', .1 * 75 / 10 / 60); adv2(L, 30);
+  check('Insulina 0,1 UI/kg/h: la glucemia baja 50–75 por hora', (g0 - L.S.glu) * 2, 40, 100, ' mg/dL/h'); check('… y baja el potasio', k0 - L.S.k, .3, 1.2, ' mmol/L'); }
+
 console.log('— Instalable y sin conexión (v1.3): manifiesto, iconos y service worker');
 { const fs = require('fs'), path = require('path'), R = f => path.join(__dirname, '..', f);
   const man = JSON.parse(fs.readFileSync(R('manifest.webmanifest'), 'utf8'));
