@@ -137,5 +137,16 @@ console.log('— Variantes (v1.0): reproducibles, sin valores imposibles y cada 
     check(`Parada por ${ck} (variante): RCE tratando la causa`, g * 10, 50, 100, ' %'); check(`Parada por ${ck} (variante): RCE sin tratarla`, b * 10, 0, 25, ' %'); }
   delete CASES.v_t; }
 
+console.log('— Validador (v1.2): cada caso se resuelve con su solución de referencia y no se aprueba sin hacer nada');
+{ const { validate, play } = require('./validar'); const keys = Object.keys(CASES).filter(k => k !== 'libre' && CASES[k].pheno);
+  const noSol = keys.filter(k => !global.SIM_SOL[k]); if (noSol.length) console.log('   sin solución:', noSol.join(', ')); check('Casos sin solución de referencia', noSol.length, 0, 0);
+  const res = validate(keys), bad = res.filter(r => !r.ok);
+  for (const r of bad) console.log(`   ${r.k}: solución ${r.sol.toFixed(1)}, sin hacer nada ${r.idle.toFixed(1)}${r.missing.length ? ', falta ' + r.missing.join(' ') : ''}`);
+  check('Casos que no se resuelven con su solución', res.filter(r => !(r.sol >= 7 || (CASES[r.k].arrest && r.rosc >= .4))).length, 0, 0);
+  check('Casos que se aprueban sin hacer nada (nota > 5)', res.filter(r => r.idle > 5).length, 0, 0);
+  require('../src/variants.js'); let ok = 0, tot = 0;
+  for (const k of keys) for (let s = 1; s <= 3; s++) { CASES.v_val = global.SIM_VARIANT.make(k, s * 9973 + 5); tot++; if (play('v_val', { seed: s }).score >= 7) ok++; }
+  delete CASES.v_val; check(`Variantes resueltas con la solución del original (de ${tot})`, ok / tot * 100, 85, 100, ' %'); }
+
 console.log(`\n${n - fails} de ${n} pruebas correctas`);
 process.exit(fails ? 1 : 0);

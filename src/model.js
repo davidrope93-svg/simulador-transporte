@@ -148,14 +148,14 @@ function create(opts) {
     const boyle = 760 / S.pbar;
     const ptxEff = S.ptxActive ? S.ptx : Math.min(1, S.ptx * boyle);
     S.croupEff = S.croup * (1 - .65 * E.adrN) * (S.clin < S.anxUntil ? 1.3 : 1);
-    const croupR = 62 * Math.pow(1 / S.kW, .5) * S.croupEff;
+    const croupR = 62 * Math.pow(1 / S.kW, .5) * S.croupEff + 55 * clamp((S.edAir - .45) / .4, 0, 1); // crup o edema de la vía aérea (humo, angioedema): obstrucción si no hay tubo
     const b = .6 + .4 * S.bs, a = S.air, sv = Math.min(1, S.sev), pe = (S.iface === 'tube' || S.iface === 'mask') ? S.cfg.peep : (S.iface === 'nasal' ? hfPaw() : 0);
     S.mech = {
-      C: P.C * (a.sel ? .55 : 1) * (1 - .5 * ptxEff) * (1 - .5 * sv) * (1 - .3 * S.asp) * (1 - .2 * S.derec),
+      C: P.C * (a.sel ? .55 : 1) * (1 - .5 * ptxEff) * (1 - .5 * sv) * (1 - .4 * S.asp) * (1 - .2 * S.derec),
       Ri: P.Ri * b + (a.obst ? 25 : 0) + (a.sel ? 2 : 0) + (S.iface === 'o2' || S.iface === 'nasal' ? -3 : 0) + (S.iface !== 'tube' ? croupR : 0),
       Re: P.Re * b + (a.obst ? 25 : 0) + (S.iface !== 'tube' ? .3 * croupR : 0),
       Pcrit: P.Pcrit * b + 6 * Math.max(0, S.bs - 1),
-      shunt: clamp(P.shunt0 - P.shuntPeep * (pe - 5), P.shuntMin, .5) + (a.sel ? .22 : 0) + .25 * ptxEff + (P.edema ? clamp(.3 * S.sev - .025 * (pe - 5) * Math.min(1, S.sev + .2), 0, .4) : 0) + clamp(.2 * S.asp - .012 * (pe - 5) * S.asp, 0, .25) + .14 * S.derec + .06 * S.tep,
+      shunt: clamp(P.shunt0 - P.shuntPeep * (pe - 5), P.shuntMin, .5) + (a.sel ? .22 : 0) + .25 * ptxEff + (P.edema ? clamp(.3 * S.sev - .025 * (pe - 5) * Math.min(1, S.sev + .2), 0, .4) : 0) + clamp(.33 * S.asp - .015 * (pe - 5) * S.asp, 0, .38) + .14 * S.derec + .06 * S.tep,
       frc: P.frc * (a.sel ? .6 : 1) * (1 - .4 * ptxEff) * (1 - .4 * sv),
       ptxEff
     };
@@ -458,6 +458,8 @@ function create(opts) {
     S.ecg = { qrs: .08 + .1 * kM + .1 * tcaE, t: 1 + 2.4 * clamp((S.k - 5.5) / 2, 0, 1), p: 1 - clamp((S.k - 6.5) / 1.5, 0, 1), j: clamp((33 - S.temp) / 4, 0, 1) };
     S.mx = { kM, tcaE, tf, seiz, met: clamp(1 - .065 * (36.6 - S.temp), .35, 1.4) * (seiz ? 1.4 : 1) };
     if (S.arrest) S.gcs = 3;
+    // acceso vascular en curso (también durante la parada)
+    if (S.accessPend && S.clin >= S.accessPend.until) { const a = S.accessPend; S.accessPend = null; if (!a.fail) S.access = a.kind; if (S.onAccess) S.onAccess(a.kind, !a.fail); }
     if (dtc <= 0 || S.arrest) return;
     // convulsiones: eclampsia (protege el magnesio), tricíclicos, hipoglucemia grave y herniación
     const gluN = clamp((60 - S.glu) / 35, 0, 1);
@@ -469,8 +471,6 @@ function create(opts) {
     if (kM > .75 && rnd() < dtc * .12 * (kM - .7)) enterArrest('hyperk');
     else if (S.ecg.qrs > .16 && rnd() < dtc * .04 * clamp((S.ecg.qrs - .15) / .04, 0, 1.5)) { if (S.tas < 70) enterArrest('tca'); else if (!S.arr.type) { S.arr.type = 'tvp'; S.log.push([S.clin, 'TV por QRS ancho']); } }
     else if (S.temp < 30 && rnd() < dtc * .006 * (30 - S.temp)) enterArrest('hypoT');
-    // acceso vascular en curso
-    if (S.accessPend && S.clin >= S.accessPend.until) { const a = S.accessPend; S.accessPend = null; if (!a.fail) S.access = a.kind; if (S.onAccess) S.onAccess(a.kind, !a.fail); }
     // escala de Glasgow aproximada
     let g = 15 - 12 * S.sedTot - 3 * S.opi - 9 * gluN - 1.3 * clamp(32 - S.temp, 0, 8) - (S.pco2 > 80 ? (S.pco2 - 80) / 5 : 0) - (S.oxEff < .75 ? (.75 - S.oxEff) * 30 : 0) - (S.tas < 70 ? (70 - S.tas) / 5 : 0) - (S.cohb > .2 ? (S.cohb - .2) * 25 : 0) - (S.icp && S.icp.v > 22 ? (S.icp.v - 20) / 3 : 0);
     if (seiz) g = Math.min(g, 5); else if (S.clin < S.postIctUntil) g -= 4;
@@ -709,7 +709,7 @@ function create(opts) {
         case 'bag': S.bag = !S.bag; break;
         case 'fluid': { const mlkg = arg || 500 / (S.peso || 75); S.fluidPend += .15 * mlkg / 7; S.fluidKg += mlkg; break; } // 500 mL en el adulto
         case 'blood': S.fluidPend += .12 * (arg || 1); S.bloodU = (S.bloodU || 0) + 1; break; // concentrado de hematíes: repone sin diluir
-        case 'iv': if (S.access !== true && !S.accessPend) { const pf = clamp((S.arrest ? .45 : S.deficit > .3 ? .4 : .12) + (S.temp < 32 ? .2 : 0) + (S.ped ? .2 : 0) + (S.pk === 'obeso' ? .2 : 0), 0, .9); S.accessPend = { kind: 'iv', until: S.clin + 1.5, fail: rnd() < pf }; } break;
+        case 'iv': if (!S.access && !S.accessPend) { const pf = clamp((S.arrest ? .45 : S.deficit > .3 ? .4 : .12) + (S.temp < 32 ? .2 : 0) + (S.ped ? .2 : 0) + (S.pk === 'obeso' ? .2 : 0), 0, .9); S.accessPend = { kind: 'iv', until: S.clin + 1.5, fail: rnd() < pf }; } break;
         case 'io': if (!S.access && !S.accessPend) S.accessPend = { kind: 'io', until: S.clin + .75, fail: rnd() < .05 }; break;
         case 'warm': S.warm = !S.warm; break;
         case 'hemo': if (S.bleedSrc) S.hemo = true; break;
