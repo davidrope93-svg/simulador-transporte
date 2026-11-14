@@ -512,7 +512,7 @@ console.log('— Revisión externa (v1.28): lotes para los compañeros y consoli
   check('Casos de los lotes: existen, tienen solución y no se repiten', ks.filter(k => !CASES[k] || !global.SIM_SOL[k]).length + (ks.length - new Set(ks).size), 0, 0);
   check('Los lotes cubren al menos 12 de los grupos de casos', new Set(ks.map(k => CASES[k].lvl)).size, 12, 30);
   const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'src', 'library.js'), 'utf8');
-  check('Revisión: valoración por caso, exportación, resumen, importación del coordinador y enlace #revision=', ['rvSaveBtn', 'rvExport', 'rvCopy', 'rvInFile', 'rvInCsv', '#revision='].every(x => src.includes(x)) ? 1 : 0, 1, 1); }
+  check('Revisión: valoración por caso, exportación, resumen, importación del coordinador y enlace #revision=', ['rvSaveBtn', 'rvExport', 'rvCopy', 'rvInFile', 'rvInCsv', '#revision=', 'rvPlay', 'tourAfter'].every(x => src.includes(x)) ? 1 : 0, 1, 1); }
 
 console.log('— Instalable y sin conexión (v1.3): manifiesto, iconos y service worker');
 { const fs = require('fs'), path = require('path'), R = f => path.join(__dirname, '..', f);

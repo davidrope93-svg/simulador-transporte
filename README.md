@@ -95,6 +95,7 @@ Cada versión tiene que pasar 462 pruebas con rangos de referencia: regresión d
 
 - Fase 4, sesión 25 (revisión externa): modo revisión con 4 lotes de 12 casos (48 casos que cubren 15 grupos), rúbrica de 4 criterios de 1 a 5, marcas de problema por tipo y comentarios; exportación en JSON o texto e importación del coordinador con tabla consolidada y CSV. Los nombres de los archivos exportados quedan sin tildes ni espacios.
 - Barrido de los 197 casos en el navegador (cargar, simular, terminar y debrief comparado): ningún error de JavaScript, todos tienen tutorial y comparación. Se corrigen 16 anclas de tutorial que no señalaban su mando (temperatura, calor activo, hemoderivados, compresor mecánico, recolocar la mascarilla, ECG de 12 derivaciones, presión inspiratoria).
+- Primera visita con el enlace de revisión: la visita guiada espera a que se abra el primer caso y la indicación va dentro de la ventana; antes la visita y el aviso tapaban el nombre, sobre todo en el móvil. Flujo completo probado en iPhone y Android (sin desbordes, botones de 44 px, descarga del JSON).
 - 4 pruebas nuevas (462 en total).
 
 ## Cambios en la v1.27

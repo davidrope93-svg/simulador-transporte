@@ -150,7 +150,7 @@ const rvMean = it => { const v = RV_CRIT.map(([k]) => it.r && it.r[k]).filter(x 
 function rvRender() {
   $('#rvName').value = rv.name; $('#rvRole').value = rv.role; $('#rvLotSel').value = rv.lot; $('#rvGeneral').value = rv.general || '';
   const lot = LOTS[rv.lot], keys = lot ? lot.k : [], done = keys.filter(k => rv.items[k]).length;
-  $('#rvLot').innerHTML = lot ? `<p class="small">Lote ${rv.lot} · ${esc(lot.t)} · ${done} de ${keys.length} valorados</p><div class="rvchips">${keys.map(k => `<button class="rvc${rv.items[k] ? ' ok' : ''}${k === rvKey() ? ' cur' : ''}" data-k="${esc(k)}">${rv.items[k] ? '✓ ' : ''}${esc(CASES[k].title)}</button>`).join('')}</div>` : '<p class="small">Sin lote: puedes valorar cualquier caso que abras. Si te han asignado un lote, elígelo arriba.</p>';
+  $('#rvLot').innerHTML = (!rv.name || !Object.keys(rv.items).length ? '<p class="rvhint">Escribe tu nombre y tu perfil y pulsa un caso para jugarlo. Al terminar, lo valoras desde el debrief.</p>' : '') + (lot ? `<p class="small">Lote ${rv.lot} · ${esc(lot.t)} · ${done} de ${keys.length} valorados</p><div class="rvchips">${keys.map(k => `<button class="rvc${rv.items[k] ? ' ok' : ''}${k === rvKey() ? ' cur' : ''}" data-k="${esc(k)}">${rv.items[k] ? '✓ ' : ''}${esc(CASES[k].title)}</button>`).join('')}</div>` : '<p class="small">Sin lote: puedes valorar cualquier caso que abras. Si te han asignado un lote, elígelo arriba.</p>');
   const k = rvKey(), c = CASES[k], it = rv.items[k] || { r: {}, f: [], txt: '' };
   if (!c || !c.pheno) { $('#rvForm').innerHTML = '<p class="small">Abre un caso para valorarlo.</p>'; return; }
   $('#rvForm').innerHTML = `<h4>${esc(c.title)}${CASES[caseKey].vcode ? ' <span class="small">(valoras el caso original; estás en la variante ' + esc(CASES[caseKey].vcode) + ')</span>' : ''}</h4>
@@ -159,7 +159,10 @@ function rvRender() {
     <textarea id="rvTxt" rows="3" placeholder="Qué cambiarías: dosis, umbrales, textos, cómo responde el paciente, lo que echas en falta…">${esc(it.txt || '')}</textarea>
     <div class="inrow"><button class="btn primary" id="rvSaveBtn">Guardar la valoración</button><span class="small" id="rvSaved">${it.ts ? 'Guardada ' + new Date(it.ts).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : 'Sin guardar'}</span>${lot && keys.some(x => !rv.items[x] && x !== k) ? '<button class="btn" id="rvNext">Siguiente del lote</button>' : ''}</div>`;
 }
-function rvOpen() { rvRender(); rvCoordRender(); $('#revModal').hidden = false; }
+/* al abrir un caso del lote: la primera vez, la visita guiada (pausa el caso) y después el aviso */
+function rvPlay() { const t = () => toast('Juega el caso y, al terminar, valóralo desde el debrief o con «Revisión».');
+  if (!LS.get('simvmi.tour', 0) && !INSTR) { tourAfter = t; setTimeout(tourStart, 400); } else t(); }
+function rvOpen() { rvRender(); rvCoordRender(); $('#toast').hidden = true; $('#revModal').hidden = false; }
 function rvCollect() {
   const k = rvKey(), c = CASES[k]; if (!c || !c.pheno) return null;
   const r = {}; $$('#rvForm [data-c][aria-pressed="true"]').forEach(b => { r[b.dataset.c] = +b.dataset.n; });
@@ -197,9 +200,9 @@ function rvInit() {
   $('#revModal').addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.c) { $$(`#rvForm [data-c="${b.dataset.c}"]`).forEach(x => { const on = x === b; x.setAttribute('aria-pressed', String(on)); x.setAttribute('aria-checked', String(on)); }); return; }
-    if (b.dataset.k) { $('#revModal').hidden = true; $('#caseSel').value = b.dataset.k; loadCase(b.dataset.k); toast('Juega el caso y, al terminar, valóralo desde el debrief o con «Revisión».'); return; }
+    if (b.dataset.k) { $('#revModal').hidden = true; $('#caseSel').value = b.dataset.k; loadCase(b.dataset.k); rvPlay(); return; }
     if (b.id === 'rvSaveBtn') { const x = rvCollect(); if (!x) return; if (!Object.keys(x.it.r).length && !x.it.txt && !x.it.f.length) { $('#rvSaved').textContent = 'Marca al menos una puntuación o escribe un comentario.'; return; } rv.items[x.k] = x.it; rvSave(); rvRender(); $('#rvSaved').textContent = 'Guardada en este dispositivo. Cuando acabes, descarga tu revisión y envíala.'; return; }
-    if (b.id === 'rvNext') { const lot = LOTS[rv.lot], k = lot && lot.k.find(x => !rv.items[x] && x !== rvKey()); if (k) { $('#revModal').hidden = true; $('#caseSel').value = k; loadCase(k); } return; }
+    if (b.id === 'rvNext') { const lot = LOTS[rv.lot], k = lot && lot.k.find(x => !rv.items[x] && x !== rvKey()); if (k) { $('#revModal').hidden = true; $('#caseSel').value = k; loadCase(k); rvPlay(); } return; }
     if (b.id === 'rvExport') { if (!Object.keys(rv.items).length) { $('#rvMsg').textContent = 'Todavía no has valorado ningún caso.'; return; } download(`revision-simulador-${(rv.name || 'revisor').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}${rv.lot ? '-lote-' + rv.lot : ''}-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(rvExportObj(), null, 2), 'application/json'); $('#rvMsg').textContent = 'Envía el archivo a quien coordina la revisión (correo o WhatsApp).'; return; }
     if (b.id === 'rvCopy') { const t = rvSummary(); (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => { $('#rvMsg').textContent = 'Resumen copiado: pégalo en un correo o un mensaje.'; }, () => { $('#rvGeneral').value = t; $('#rvMsg').textContent = 'Copia el resumen del cuadro de comentario general.'; }); return; }
     if (b.id === 'rvInCsv') { const FL = Object.fromEntries(RV_FLAGS), rows = [['revisor', 'perfil', 'lote', 'caso', 'clave'].concat(RV_CRIT.map(([, l]) => l), ['avisos', 'comentario']).join(';')];
@@ -210,7 +213,7 @@ function rvInit() {
   $('#rvInFile').addEventListener('change', e => { const fs = [...e.target.files]; Promise.all(fs.map(f => f.text().then(t => JSON.parse(t)).catch(() => null))).then(list => {
     const ok = list.filter(R => R && R.items && typeof R.items === 'object'), cur = rvIn(); for (const R of ok) { const clean = JSON.parse(JSON.stringify(R)); const i = cur.findIndex(x => x.reviewer && clean.reviewer && x.reviewer.name === clean.reviewer.name && x.lot === clean.lot); if (i >= 0) cur[i] = clean; else cur.push(clean); }
     LS.set('simvmi.reviewsIn', cur); $('#rvInSum').textContent = `${ok.length} archivo${ok.length === 1 ? '' : 's'} importado${ok.length === 1 ? '' : 's'}${list.length > ok.length ? ` · ${list.length - ok.length} no válido${list.length - ok.length > 1 ? 's' : ''}` : ''}`; setTimeout(rvCoordRender, 800); }); e.target.value = ''; });
-  const m = location.hash.match(/^#revision=([A-Za-z])$/); if (m && LOTS[m[1].toUpperCase()]) { rv.lot = m[1].toUpperCase(); rvSave(); setTimeout(() => { rvOpen(); toast(`Lote ${rv.lot} de revisión: escribe tu nombre y tu perfil y abre el primer caso.`); }, 600); }
+  const m = location.hash.match(/^#revision=([A-Za-z])$/); if (m && LOTS[m[1].toUpperCase()]) { rv.lot = m[1].toUpperCase(); rvSave(); setTimeout(() => { rvOpen(); }, 600); }
 }
 /* en el debrief del revisor: valorar el caso recién jugado */
 function rvDebrief() { if (!rv.lot && !rv.name) return; const k = rvKey(), done = !!rv.items[k]; const t = $('#dbBody .dtable');

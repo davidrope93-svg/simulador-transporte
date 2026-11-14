@@ -149,7 +149,8 @@ function tourShow() {
   });
 }
 function tourStart() { if (INSTR) return; tourI = 0; $('#tour').hidden = false; paused = true; setPauseBtn(); tourShow(); }
-function tourEnd() { $('#tour').hidden = true; tourI = -1; LS.set('simvmi.tour', 1); paused = false; setPauseBtn(); }
+let tourAfter = null; // algo que hacer al acabar la visita (p. ej. el aviso del revisor)
+function tourEnd() { $('#tour').hidden = true; tourI = -1; LS.set('simvmi.tour', 1); paused = false; setPauseBtn(); if (tourAfter) { const f = tourAfter; tourAfter = null; f(); } }
 
 function guideInit() {
   $('#guideBtn').addEventListener('click', tourStart);
@@ -174,5 +175,5 @@ function guideInit() {
     if (e.target.closest('#coachToggle')) { coachMin = !coachMin; LS.set('simvmi.coachMin', coachMin); coachKey = ''; coachUpdate(); }
     else if (e.target.closest('#coachAll')) spot([$('.readc')], true);
   });
-  if (!LS.get('simvmi.tour', 0)) setTimeout(tourStart, 900);
+  if (!LS.get('simvmi.tour', 0) && !/^#revision=/i.test(location.hash)) setTimeout(tourStart, 900); // con el enlace de revisión, la visita espera al primer caso
 }
