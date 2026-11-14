@@ -55,6 +55,7 @@ function play(key, { seed = 1, idle = false } = {}) {
     o2: dev => { mark('o2:' + dev); if (S.iface === 'o2') cfg({ o2dev: dev }); },
     isr: (o = {}) => { if (!hasAcc()) { access(() => OPS.isr(o)); return; } give(o.ind || 'ket'); give('roc'); if (o.vl) act('vl'); if (o.apox) act('apox'); at(S.clin + 1.1, intubate); },
     cv: J => { give('eto'); const go = (n, j) => { mark('shock'); sim.shock(j, true); if (S.arr.type && !S.arrest) { if (n < 3) at(S.clin + .5, () => go(n + 1, Math.min(200, j + 50))); else give('amio300'); } }; at(S.clin + .3, () => go(1, J)); },
+    shk: J => { if (S.arrest && (S.rhythm === 'vf' || S.rhythm === 'tvsp')) { mark('shock'); sim.shock(J || 200, false); } }, // v1.15: descarga puntual (FV monitorizada)
     pace: (rate, mA) => { mark('act:pace'); sim.pace(true, rate, mA, 'demand'); },
     mech: () => { mark('act:compMech'); sim.compress('mech'); },
     alt: h => { if (h <= 300) mark('alt'); sim.setAltitude(h); }
@@ -130,9 +131,9 @@ function play(key, { seed = 1, idle = false } = {}) {
   const tk = Object.values(tgt);
   if (tk.length) parts.push([4, tk.reduce((a, b) => a + b, 0) / tk.length, 'objetivos']);
   const arrested = c.arrest || R.arrestAt != null;
-  const done = tok => tok.split('|').some(t => (t.startsWith('no:') ? !used.has(t.slice(3)) : used.has(t)) || (t === 'rosc' && R.roscAt != null) || (t === 'intub' && S._intubAt != null) || (t === 'noarrest' && !S.arrest && (!arrested || R.roscAt != null)));
+  const done = tok => tok.split('|').some(t => (t.startsWith('no:') ? !used.has(t.slice(3)) : used.has(t)) || (t === 'rosc' && R.roscAt != null) || (t === 'stacked' && S.cpr.stacked) || (t === 'intub' && S._intubAt != null) || (t === 'noarrest' && !S.arrest && (!arrested || R.roscAt != null)));
   if (chk.length) parts.push([3, chk.filter(done).length / chk.length, 'acciones']);
-  if (arrested) parts.push([3, S.arrest ? 0 : 1, 'parada']);
+  if (arrested) parts.push([3, S.arrest ? (c.noRosc && S.cpr.comp !== 'off' ? 1 : 0) : 1, 'parada']); // noRosc: el éxito es trasladar con RCP de calidad
   const score = parts.length ? 10 * parts.reduce((a, p) => a + p[0] * p[1], 0) / parts.reduce((a, p) => a + p[0], 0) : null;
   return { score, parts, tgt, chkFrac: chk.length ? chk.filter(done).length / chk.length : 1, missing: chk.filter(t => !done(t)), notes, rosc: !S.arrest && arrested, nan: R.nan.length + R.weird.filter(w => !/pH (6\.|7\.0)/.test(w)).length };
 }

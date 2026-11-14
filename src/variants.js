@@ -53,7 +53,7 @@ const CAUSE = {
     chk: [['drug:ca', 'Calcio'], ['drug:ins|drug:bic', 'Insulina con glucosa o bicarbonato']], why: 'Hiperpotasemia: cloruro cálcico 10 % 10 mL IV, insulina 10 UI con 25 g de glucosa y bicarbonato; considera prolongar la RCP.' },
   tca: { r: ['aesp'], p: { arrestCause: 'tca', tca: .7 }, clue: f => `A su lado, blísteres vacíos de amitriptilina; hace una hora estaba ${f ? 'somnolienta' : 'somnoliento'}.`,
     chk: [['drug:bic', 'Bicarbonato']], why: 'Tricíclicos: bicarbonato 1 mEq/kg en bolos hasta estrechar el QRS (pH 7,45–7,55) y RCP prolongada.' },
-  hypoT: { r: ['vf'], p: { arrestCause: 'hypoT', temp: 27, tempRate: 0 }, clue: f => `${f ? 'Encontrada' : 'Encontrado'} de madrugada en el monte tras perderse; la piel está helada.`,
+  hypoT: { r: ['vf'], p: { arrestCause: 'hypoT', temp: 27, tempRate: 0, noRosc: true }, clue: f => `${f ? 'Encontrada' : 'Encontrado'} de madrugada en el monte tras perderse; la piel está helada.`,
     chk: [['act:temp', 'Medir la temperatura'], ['act:warm', 'Recalentamiento'], ['act:compMech', 'Compresor mecánico']], why: 'Hipotermia por debajo de 30 °C: mide la temperatura, máximo 3 descargas y sin adrenalina hasta los 30 °C; recalentamiento, compresor mecánico y traslado a un centro con ECMO.' },
   tamp: { r: ['aesp'], p: { arrestCause: 'tamp', tamp: .93, tampRate: .005 }, clue: f => `${f ? 'Herida' : 'Herido'} por arma blanca en el hemitórax izquierdo hace 20 minutos; antes de pararse tenía las yugulares ingurgitadas.`,
     chk: [['act:pericardio', 'Pericardiocentesis']], why: 'Taponamiento cardiaco: pericardiocentesis ecoguiada durante la RCP (en el traumático, toracotomía si hay equipo) y volumen.' },
@@ -107,12 +107,13 @@ function make(baseKey, seed) {
   if (c.arrest && !c.ped && b0.lvl === 'Parada') {
     const ck = pick(Object.keys(CAUSE)), C = CAUSE[ck], rhy = pick(C.r);
     for (const k of ARREST_KEYS) delete c[k];
+    for (const k of ['preg', 'tdp', 'witnessed', 'noRosc', 'anaf', 'tamp', 'tampRate', 'tca', 'opioid', 'hco3Off', 'drown', 'tep', 'ptx', 'ptxTension', 'arrestCause2', 'bleed', 'bleedSrc']) delete c[k]; // v1.15: la variante cambia de causa: fuera la fisiopatología de la original
     Object.assign(c, { pheno: 'sano', arrest: rhy }, JSON.parse(JSON.stringify(C.p)));
     const tubed = iface === 'tube';
     const demoTxt = demo ? `${f ? 'Mujer' : 'Varón'} de ${demo.age} años, ${demo.talla} cm, ${demo.peso} kg.` : '';
     c.goal = `${demoTxt} ${C.clue(f)} ${RHY[rhy]} Tu compañero comprime; ${tubed ? `ya está ${f ? 'intubada' : 'intubado'} y ${f ? 'conectada' : 'conectado'} al ventilador.` : 'aún no tiene vía aérea avanzada.'}`.trim();
     c.title = `Parada · variante ${code}`;
-    c.checks = [...(rhy === 'vf' ? [['shock', 'Descarga precoz']] : [['drug:adr', 'Adrenalina precoz']]), ...C.chk.filter(x => !(rhy === 'vf' && x[0] === 'shock') && !(tubed && x[0] === 'act:bag|intub')), ...(rhy === 'vf' && ck !== 'hypoT' ? [['drug:adr', 'Adrenalina']] : []), ['rosc', 'RCE']];
+    c.checks = [...(rhy === 'vf' ? [['shock', 'Descarga precoz']] : [['drug:adr', 'Adrenalina precoz']]), ...C.chk.filter(x => !(rhy === 'vf' && x[0] === 'shock') && !(tubed && x[0] === 'act:bag|intub')), ...(rhy === 'vf' && ck !== 'hypoT' ? [['drug:adr', 'Adrenalina']] : []), ...(c.noRosc ? [] : [['rosc', 'RCE']])];
     c.hint = [ALS[rhy === 'vf' ? 'vf' : 'nf'], C.why].join(' ');
     c.events = (c.events || []).filter(e => e.alt != null);
     cause = ck; c.vcause = ck; c.vwhy = C.why;

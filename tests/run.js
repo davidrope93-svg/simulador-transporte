@@ -319,6 +319,21 @@ console.log('— Parada y trauma pediátricos (v1.14): ventilaciones de rescate,
   check('Trauma pediátrico sin tratar: TAS a los 30 min', none.S.tas, 60, 89, ' mmHg'); check('… lesión cerebral secundaria (Glasgow)', none.S.gcs, 6, 10); check('Con sangre 10 mL/kg, tranexámico y calor: TAS', care.S.tas, 95, 125, ' mmHg'); check('… y Glasgow conservado', care.S.gcs, 10, 12); check('… normotermia', care.S.temp, 35.5, 37.5, ' °C');
   check('Ácido tranexámico en el niño de 20 kg: 15 mg/kg', DR.doseOf(DR.DRUGITEMS.txa, 20, true) * (DR.DRUGITEMS.txa.u === 'g' ? 1000 : 1), 300, 300, ' mg'); }
 
+console.log('— Tanda de parada (v1.15): descargas seguidas, gestante, torsade, hipotermia y causas reversibles');
+{ global.window = global; require('../src/drugs.js'); const DR = global.SIM_DRUGS;
+  const rate = (k, setup, n = 24) => { let ok = 0; for (let seed = 1; seed <= n; seed++) { const L = load(k, { seed, scale: 1 }), s = L.sim; adv(s, .05); setup(s); for (let i = 0; i < 6 && s.S.arrest; i++) { adv(s, 2); if (s.S.rhythm === 'vf' || s.S.rhythm === 'tvsp') s.shock(200, false); else s.check(); } if (!s.S.arrest) ok++; } return ok / n; };
+  let L = load('fvMonitorizada', { seed: 3, scale: 1 }), s = L.sim; adv(s, .05); for (let i = 0; i < 3 && s.S.arrest && (s.S.rhythm === 'vf'); i++) s.shock(200, false); check('FV monitorizada: descargas seguidas sin RCP registradas', s.S.cpr.stacked ? 1 : 0, 1, 1);
+  const cpr = s => { s.compress('manual'); s.setRatio(30); s.action('bag'); };
+  const preg = rate('pcrGestante', s => { cpr(s); s.action('lud'); s.S.access = 'io'; for (let i = 0; i < 4; i++) s.action('fluid'); s.action('blood'); s.drug('adr', 1); }), pregNo = rate('pcrGestante', s => { cpr(s); s.S.access = 'io'; for (let i = 0; i < 4; i++) s.action('fluid'); s.action('blood'); s.drug('adr', 1); });
+  check('Gestante: RCE con desplazamiento uterino', preg * 100, 40, 100, ' %'); check('… frente a sin desplazarlo', (preg - pregNo) * 100, 15, 100, ' puntos');
+  const tdpMg = (() => { let re = 0; for (let seed = 1; seed <= 16; seed++) { const L = load('pcrTorsades', { seed, scale: 1 }), s = L.sim; adv(s, .05); cpr(s); s.drug('mg', DR.amountOf(DR.DRUGITEMS.mgso4, 60, false)); for (let i = 0; i < 6 && s.S.arrest; i++) { s.shock(200, false); adv(s, 1); } adv(s, 8); if (s.S.arrest) re++; } return re / 16; })();
+  const tdpNo = (() => { let re = 0; for (let seed = 1; seed <= 16; seed++) { const L = load('pcrTorsades', { seed, scale: 1 }), s = L.sim; adv(s, .05); cpr(s); for (let i = 0; i < 6 && s.S.arrest; i++) { s.shock(200, false); adv(s, 1); } adv(s, 8); if (s.S.arrest) re++; } return re / 16; })();
+  check('Torsade: sin magnesio recurre más que con él', (tdpNo - tdpMg) * 100, 20, 100, ' puntos');
+  L = load('pcrHipotermia', { seed: 4, scale: 1 }); s = L.sim; adv(s, .05); cpr(s); for (let i = 0; i < 3; i++) s.shock(200, false); adv(s, 4); check('Hipotermia < 30 °C: las descargas apenas funcionan', s.S.arrest ? 1 : 0, 1, 1);
+  const hk = rate('pcrHiperK', s => { cpr(s); s.drug('ca', 1); s.drug('ins', 1); s.drug('bic', 75); }), hkNo = rate('pcrHiperK', s => { cpr(s); s.drug('adr', 1); });
+  check('Hiperpotasemia: RCE con calcio, insulina y bicarbonato', hk * 100, 40, 100, ' %'); check('… y casi nada solo con adrenalina', hkNo * 100, 0, 15, ' %');
+  check('Opiáceos: exploración en la parada con pupilas puntiformes', /puntiformes/.test(load('pcrOpi', { seed: 4, scale: 10 }).sim.explore().join(' ')) ? 1 : 0, 1, 1); }
+
 console.log('— Instalable y sin conexión (v1.3): manifiesto, iconos y service worker');
 { const fs = require('fs'), path = require('path'), R = f => path.join(__dirname, '..', f);
   const man = JSON.parse(fs.readFileSync(R('manifest.webmanifest'), 'utf8'));

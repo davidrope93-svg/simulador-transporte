@@ -15,7 +15,7 @@ const markUse = tok => { if (track && track.used) { track.used.add(tok); (track.
 
 /* ---------- nota ---------- */
 function checksOf(c) { return (c.checks || []).map(x => Array.isArray(x) ? x : [x, x]); }
-function checkDone(tok) { return tok.split('|').some(t => (t.startsWith('no:') ? !track.used.has(t.slice(3)) : track.used.has(t)) || (t === 'rosc' && track.roscAt != null) || (t === 'intub' && track.intubAt != null) || (t === 'noarrest' && !S.arrest && (track.arrestAt == null || track.roscAt != null))); }
+function checkDone(tok) { return tok.split('|').some(t => (t.startsWith('no:') ? !track.used.has(t.slice(3)) : track.used.has(t)) || (t === 'rosc' && track.roscAt != null) || (t === 'stacked' && S.cpr.stacked) || (t === 'intub' && track.intubAt != null) || (t === 'noarrest' && !S.arrest && (track.arrestAt == null || track.roscAt != null))); }
 function examScore() {
   const c = CASES[caseKey], parts = [];
   const tg = Object.values(track.t).filter(v => v.tot > 0);
@@ -24,7 +24,7 @@ function examScore() {
   if (ch.length) { const done = ch.filter(([t]) => checkDone(t)); parts.push({ lab: 'Acciones clave', v: done.length / ch.length, w: 3, det: ch.map(([t, l]) => (checkDone(t) ? '✓ ' : '✗ ') + l).join(' · ') }); }
   if (track.arrestAt != null) {
     const cp = S.cpr, ccf = cp.cprTime + cp.noFlow > 0 ? cp.cprTime / (cp.cprTime + cp.noFlow) : 0;
-    let v = clamp(ccf / .8, 0, 1) * .5 + (track.roscAt != null ? .35 : 0);
+    let v = clamp(ccf / .8, 0, 1) * .5 + (track.roscAt != null || (c.noRosc && S.cpr.comp !== 'off') ? .35 : 0); // v1.15: en la hipotermia, el objetivo es llegar con RCP de calidad
     const shockable = c.arrest === 'vf' || track.shocks > 0;
     if (shockable) v += track.firstShock != null && track.firstShock <= 2 ? .15 : 0; else v += .15 * (track.adr.length ? 1 : 0);
     parts.push({ lab: 'Parada', v: clamp(v, 0, 1), w: 3, det: `fracción de compresión ${fmt(ccf * 100)} %${track.roscAt != null ? ' · RCE' : ' · sin RCE'}` });
