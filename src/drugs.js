@@ -11,7 +11,7 @@ const DRUGSET = [
     { id: 'roc', lab: 'Rocuronio', k: 'rel', mgkg: 1.2, u: 'mg', amt: 18 }, { id: 'sux', lab: 'Succinilcolina', k: 'sux', mgkg: 1.5, u: 'mg', amt: 15 }] },
   { g: 'Sedoanalgesia y antídoto', items: [
     { id: 'mid', lab: 'Midazolam', k: 'mid', dose: 2, u: 'mg' }, { id: 'propS', lab: 'Propofol', k: 'prop', mgkg: .5, u: 'mg' },
-    { id: 'fentS', lab: 'Fentanilo', k: 'fent', mgkg: 1, u: 'mcg' }, { id: 'morf', lab: 'Morfina', k: 'morf', dose: 3, u: 'mg' },
+    { id: 'fentS', lab: 'Fentanilo', k: 'fent', mgkg: 1, u: 'mcg' }, { id: 'morf', lab: 'Morfina', k: 'morf', dose: 3, u: 'mg' }, { id: 'ketA', lab: 'Ketamina analgésica', k: 'ket', mgkg: .3, u: 'mg', note: 'IV lenta; 0,5–1 mg/kg IM o IN' },
     { id: 'nalox', lab: 'Naloxona', k: 'nalox', dose: .4, u: 'mg' }, { id: 'sedB', lab: 'Bolo de la bomba de sedación', k: 'sed', amt: 2, note: 'midazolam + fentanilo' },
     { id: 'sedperf', lab: 'Reanudar la bomba de sedación', act: 'sedperf' }] },
   { g: 'Hemodinámica y parada', items: [
@@ -56,11 +56,12 @@ const PERFS = [
   { id: 'prop', lab: 'Propofol', u: 'mg/h', d: 0, opts: [0, 50, 100, 150, 200, 300], run: (sim, r, fW) => sim.perf('prop', r / 60 * fW) },
   { id: 'mid', lab: 'Midazolam', u: 'mg/h', d: 0, opts: [0, 2, 5, 10], run: (sim, r, fW) => sim.perf('mid', r / 60 * fW) },
   { id: 'fent', lab: 'Fentanilo', u: 'mcg/h', d: 0, opts: [0, 50, 100, 150, 200], run: (sim, r, fW) => sim.perf('fent', r / 60 * fW) },
-  { id: 'ketP', lab: 'Ketamina', u: 'mg/kg/h', d: 1, opts: [0, .5, 1, 1.5, 2], run: (sim, r, fW) => sim.perf('ket', r * 75 / 60), extra: (r, peso, fmt) => r ? ` · ${fmt(r * peso)} mg/h` : '' },
+  { id: 'ketP', lab: 'Ketamina', u: 'mg/kg/h', d: 2, opts: [0, .15, .3, .5, 1, 1.5, 2], run: (sim, r, fW) => sim.perf('ket', r * 75 / 60), extra: (r, peso, fmt) => r ? ` · ${fmt(r * peso)} mg/h` : '' },
   { id: 'rocP', lab: 'Rocuronio', u: 'mg/kg/h', d: 1, opts: [0, .3, .6], run: (sim, r, fW) => sim.perf('rel', r * 15 / 60), extra: (r, peso, fmt) => r ? ` · ${fmt(r * peso)} mg/h` : '' },
   { id: 'iso', lab: 'Isoprenalina', u: 'mcg/min', d: 0, opts: [0, 1, 2, 4, 10], run: (sim, r, fW) => sim.perfSteady('iso', r) },
   { id: 'mgP', lab: 'Sulfato de magnesio', u: 'g/h', d: 0, opts: [0, 1, 2], run: (sim, r, fW) => sim.perf('mg', r / 60 * fW) },
-  { id: 'g10', lab: 'Glucosa 10 %', u: 'mL/h', d: 0, opts: [0, 50, 100, 150, 250], run: (sim, r, fW) => sim.setGluPerf(r * .1 / 60 * fW) }
+  { id: 'g10', lab: 'Glucosa 10 %', u: 'mL/h', d: 0, opts: [0, 50, 100, 150, 250], run: (sim, r, fW) => sim.setGluPerf(r * .1 / 60 * fW) },
+  { id: 'cris', lab: 'Cristaloide en bomba', u: 'mL/h', d: 0, opts: [0, 125, 250, 500, 750, 1000], run: (sim, r) => sim.setFluidRate(r) }
 ];
 const roundDose = x => x >= 50 ? Math.round(x / 5) * 5 : x >= 10 ? Math.round(x) : x >= 1 ? Math.round(x * 10) / 10 : Math.round(x * 100) / 100;
 const PED = { ceftri: { k: 80, max: 2000, t: '80 mg/kg', u: 'mg' }, pipta: { k: 100, max: 4000, t: '100 mg/kg', u: 'mg' }, mero: { k: 20, max: 1000, t: '20 mg/kg', u: 'mg' }, adr1: { k: .01, max: 1, t: '10 mcg/kg' }, adrP: { k: 1, max: 20, t: '1 mcg/kg' }, amio300: { k: 5, max: 300, t: '5 mg/kg' }, amio150: { k: 5, max: 150, t: '5 mg/kg' },

@@ -166,6 +166,30 @@ console.log('— Shock distributivo (v1.5): sepsis, sobrecarga de volumen y neur
   s = mk({ neurog: .8, peso: 78 }); adv(s, 1); check('Shock neurogénico: FC sin taquicardia', s.S.fc, 38, 58, ' lpm'); check('Shock neurogénico: PAM', s.S.pam, 50, 70, ' mmHg');
   s.drug('atr', .5); adv(s, 3); check('Atropina: sube la FC', s.S.fc, 55, 80, ' lpm'); s.setNor(.2); adv(s, 4); check('Noradrenalina 0,2: PAM ≥ 80', s.S.pam, 78, 100, ' mmHg'); }
 
+console.log('— Trauma torácico y quemado (v1.6): hemotórax, volet, analgesia y fluidos del gran quemado');
+{ const avg = (sim, min, f) => { let a = 0, n = 0; adv(sim, min, S => { a += f(S); n++; }); return a / n; };
+  let L = load('hemotorax', { seed: 4, scale: 10 }), s = L.sim; adv(s, .5);
+  check('Hemotórax: SpO₂ con reservorio al empezar', s.S.spo2 * 100, 84, 91, ' %'); check('Hemotórax: TAS al empezar', s.S.tas, 75, 95, ' mmHg');
+  const ex0 = s.explore().join(' '), sp0 = s.S.spo2; check('Exploración: matidez y murmullo abolido', /matidez/.test(ex0) ? 1 : 0, 1, 1); check('Ecografía: hemotórax', /hemotórax/.test(s.eco()) ? 1 : 0, 1, 1);
+  s.action('drain'); adv(s, 3); check('Drenaje: sale el hemotórax', s.S.htxFirst, 1200, 1700, ' mL'); check('Drenaje: sube la SpO₂', (s.S.spo2 - sp0) * 100, 4, 12, ' puntos');
+  check('Tras el drenaje, el registro lo anota', s.S.log.some(x => /Drenaje torácico: salen/.test(x[1])) ? 1 : 0, 1, 1); check('Sigue drenando (criterio de toracotomía)', s.S.bleedNow * 240000, 300, 1100, ' mL/h');
+  const exD = s.explore().join(' '); check('La exploración muestra el débito del drenaje', /mL\/h/.test(exD) && !/matidez/.test(exD) ? 1 : 0, 1, 1);
+  const vol = txa => { const a = load('hemotorax', { seed: 4, scale: 10 }).sim; adv(a, .5); a.action('drain'); if (txa) a.drug('txa', 1); adv(a, 15); return a.S.bleedNow * 240000; }; check('El tranexámico reduce el débito', vol(false) - vol(true), 60, 400, ' mL/h');
+  L = load('volet', { seed: 4, scale: 10 }); s = L.sim; adv(s, 1); const rr0 = s.S.pat.rr, pe0 = s.S.painEff;
+  check('Volet: taquipnea con dolor', rr0, 28, 45, ' rpm'); check('Volet: exploración con respiración paradójica', /paradójica/.test(s.explore().join(' ')) ? 1 : 0, 1, 1);
+  s.drug('ket', .3 * 75); adv(s, 2); check('Ketamina 0,3 mg/kg: alivia el dolor', pe0 - s.S.painEff, .35, .85); check('Ketamina analgésica: casi no seda', s.S.sedTot, 0, .1); check('Analgesia: baja la FR', rr0 - s.S.pat.rr, 2, 20, ' rpm');
+  const spA = avg(s, 2, S => S.spo2 * 100); s.setIface('mask'); s.S.mask.leak10 = 15; s.setCfg(Object.assign({}, s.S.cfg, { mode: 'PSV', ps: 6, peep: 8, rise: .15, trigE: 40, timax: 1.2, trigI: 2, fio2: 60, pmax: 30, fr: 12 })); s.setStandby(false);
+  adv(s, 2); check('VMNI con PEEP 8: recluta la contusión (SpO₂)', avg(s, 3, S => S.spo2 * 100) - spA, 3, 12, ' puntos');
+  const ind = load('volet', { seed: 4, scale: 10 }).sim; adv(ind, .5); ind.drug('ket', 1.5 * 75); adv(ind, 1.5); check('Ketamina de inducción: sí seda', ind.S.sedTot, .45, 1);
+  L = load('granQuemado', { seed: 4, scale: 10 }); s = L.sim; adv(s, .5); check('Quemado: exploración con la superficie quemada', /36 % de superficie/.test(s.explore().join(' ')) ? 1 : 0, 1, 1);
+  s.drug('fent', 75 * L.fW); adv(s, 4); check('Fentanilo 1 mcg/kg con dolor: casi no deprime la respiración', s.S.opiR, 0, .15); check('Fentanilo: alivia el dolor', s.S.painEff, 0, .5);
+  const burn = (rate, warm) => { const a = load('granQuemado', { seed: 4, scale: 10 }).sim; adv(a, .5); const d0 = a.S.deficit; if (rate) a.setFluidRate(rate); if (warm) a.action('warm'); adv(a, 30); return { dd: a.S.deficit - d0, t: a.S.temp, fk: a.S.fluidKg }; };
+  const b0 = burn(0, false), b1 = burn(500, true);
+  check('Sin fluidos: la fuga capilar sube el déficit en 30 min', b0.dd, .05, .14); check('500 mL/h: déficit estable', b1.dd, -.03, .03); check('500 mL/h durante 30 min', b1.fk * 80, 220, 280, ' mL');
+  check('Sin aislar: hipotermia a los 30 min', b0.t, 33.5, 35.2, ' °C'); check('Con manta y calor: temperatura mantenida', b1.t, 35.8, 37, ' °C');
+  const V = global.SIM_VARIANT; let rb = 0, px = 0; for (let k = 1; k <= 12; k++) { if (V.make('hemotorax', k * 7919).vev === 'rebleed') rb++; if (V.make('volet', k * 7919).vev === 'ptx') px++; }
+  check('Variantes del hemotórax: sin «resangrado» (no hay hemostasia posible)', rb, 0, 0); check('Variantes del volet: neumotórax a tensión añadido', px, 4, 12); }
+
 console.log('— Instalable y sin conexión (v1.3): manifiesto, iconos y service worker');
 { const fs = require('fs'), path = require('path'), R = f => path.join(__dirname, '..', f);
   const man = JSON.parse(fs.readFileSync(R('manifest.webmanifest'), 'utf8'));

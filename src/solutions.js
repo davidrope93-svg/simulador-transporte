@@ -80,6 +80,9 @@ const SOL = {
   scaGomera: { s: [[.3, 'a', 'ecg12'], [.5, 'd', 'aas'], [.6, 'd', 'clopi300'], [.8, 'd', 'enox'], [1, 'd', 'tnk']], atr: true },
   scaVD: { s: [[.3, 'a', 'ecg12'], [.5, 'a', 'fluid'], [.6, 'd', 'aas'], [.8, 'd', 'hnf'], [1, 'a', 'icp'], [3, 'a', 'fluid']], atr: true, nor: 90 },
   taponamiento: { s: [[.3, 'a', 'eco'], [.4, 'a', 'fluid'], [.8, 'a', 'pericardio']] },
+  hemotorax: { s: [[.3, 'a', 'eco'], [.5, 'a', 'drain'], [.7, 'a', 'iv'], [2.4, 'd', 'txa'], [2.6, 'd', 'ketA'], [3, 'a', 'blood'], [6, 'a', 'blood']], permissive: true },
+  volet: { s: [[.3, 'a', 'eco'], [.5, 'd', 'fentS'], [3, 'niv', { peep: 8, ps: 6 }]] },
+  granQuemado: { s: [[.3, 'a', 'warm'], [.5, 'a', 'iv'], [2.2, 'p', 'cris', 500], [2.4, 'd', 'fentS']] },
   rceInestable: { s: [[.3, 'a', 'fluid'], [.4, 'p', 'nor', .1], [.5, 'vt', 7], [.6, 'cfg', { fr: 14 }], [3, 'a', 'fluid']], nor: 100 }
 };
 root.SIM_SOL = SOL;
