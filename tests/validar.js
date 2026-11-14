@@ -8,7 +8,7 @@ const DR = global.SIM_DRUGS, SOL = global.SIM_SOL;
 const r10 = x => Math.round(x / 10) * 10;
 const O2LAD = ['gafas', 'venturi28', 'venturi35', 'venturi50', 'reserv'];
 const NOR = [0, .05, .1, .15, .2, .3, .5], ADRI = [0, 2, 5, 10, 20];
-const RND = { spo2: 0, et: 0, tas: 0, vtkg: 1, pplat: 0, dp: 0, peepi: 0, pco2: 0, rr: 0, ie: 2, auto: 2, leak: 0, o2: 0, fight: 2, sinus: 0, glu: 0, qrs: 0, fio2: 0, spco: 0, reperf: 0 };
+const RND = { spo2: 0, et: 0, tas: 0, pam: 0, vtkg: 1, pplat: 0, dp: 0, peepi: 0, pco2: 0, rr: 0, ie: 2, auto: 2, leak: 0, o2: 0, fight: 2, sinus: 0, glu: 0, qrs: 0, fio2: 0, spco: 0, reperf: 0 };
 
 function play(key, { seed = 1, idle = false } = {}) {
   const c = CASES[key], sol = SOL[c.vbase || key] || { s: [] }, L = load(key, { scale: 10, seed });
@@ -94,8 +94,8 @@ function play(key, { seed = 1, idle = false } = {}) {
       if (tg.et && S.iface === 'tube' && !S.standby && airOk && M.et > 15 && S.clin >= (tNext.et || 0)) { const [lo, hi] = tg.et, mid = (lo + hi) / 2, fr = S.cfg.fr || 14; if (M.et > hi || M.et < lo) { tNext.et = S.clin + 3; const d = Math.max(-4, Math.min(4, Math.round(fr * (M.et - mid) / mid * .7))) || Math.sign(M.et - mid); cfg({ fr: Math.max(8, Math.min(30, fr + d)) }); } }
     }
     if (S.clin >= tNext.nor) { tNext.nor += 1;
-      for (const [flag, id, steps] of [['nor', 'nor', NOR], ['adrI', 'adrI', ADRI]]) if (sol[flag]) { const cur = perfNow[id] || 0, i = steps.indexOf(cur);
-        if (S.tas < sol[flag] && i < steps.length - 1) perf(id, steps[i + 1]); else if (S.tas > sol[flag] + 50 && i > 0) perf(id, steps[i - 1]); } }
+      for (const [flag, id, steps, v, up] of [['nor', 'nor', NOR, S.tas, 50], ['adrI', 'adrI', ADRI, S.tas, 50], ['norPam', 'nor', NOR, S.pam, 30]]) if (sol[flag]) { const cur = perfNow[id] || 0, i = steps.indexOf(cur);
+        if (v < sol[flag] && i < steps.length - 1) perf(id, steps[i + 1]); else if (v > sol[flag] + up && i > 0) perf(id, steps[i - 1]); } }
     if (sol.labet && S.clin >= tNext.labet) { tNext.labet += 4; if (S.tas > 160) give('labet'); }
     if (sol.bicQrs && S.clin >= tNext.bic) { tNext.bic += 3; if (S.ecg.qrs * 1000 > 120) give('bic'); }
     if (sol.nalox && S.clin >= tNext.nalox) { tNext.nalox += 2.5; if ((M.effN >= 2 ? M.effRR : 0) < 10) give('nalox'); }
@@ -136,7 +136,7 @@ function play(key, { seed = 1, idle = false } = {}) {
 }
 function val(k, S, M) {
   switch (k) {
-    case 'spo2': return S.spo2 * 100; case 'et': return M.et; case 'tas': return S.arrest ? null : S.tas; case 'vtkg': return M.vtkg;
+    case 'spo2': return S.spo2 * 100; case 'et': return M.et; case 'tas': return S.arrest ? null : S.tas; case 'pam': return S.arrest ? null : S.pam; case 'vtkg': return M.vtkg;
     case 'pplat': return M.pplat; case 'dp': return M.dp; case 'peepi': return M.peepi; case 'pco2': return S.pco2;
     case 'rr': return S.arrest ? null : (M.effN >= 2 ? M.effRR : 0); case 'ie': return M.effN >= 4 ? M.ies / M.effN : null;
     case 'auto': return M.nB >= 4 ? M.auto / M.nB : null; case 'leak': return M.leak; case 'o2': return S.o2.supply ? 1 : 0;

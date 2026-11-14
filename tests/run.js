@@ -152,6 +152,20 @@ console.log('— Cardiología (v1.4): SCACEST, infarto de VD y taponamiento');
   check('Taponamiento: subir la PEEP de 5 a 12 baja la TAS', peepDrop(), 10, 60, ' mmHg');
   s = mk({ tamp: .62 }); check('Ecografía clínica: ve el taponamiento', /taponamiento/.test(s.eco()) ? 1 : 0, 1, 1); s = mk({ stemi: { loc: 'inf', rv: true } }); check('ECG de 12 derivaciones: SCACEST inferior con VD', /inferior/.test(s.ecg12()) && /V4R, elevaci/.test(s.ecg12()) ? 1 : 0, 1, 1); }
 
+console.log('— Shock distributivo (v1.5): sepsis, sobrecarga de volumen y neurogénico');
+{ const mk = o => { const s = VMI.create(Object.assign({ pheno: 'sano', seed: 3, scale: 10, iface: 'o2', relCe: 0, sedE: 0, sedStopped: true, peso: 62, cfg: { mode: 'VCV', vt: 450, fr: 14, peep: 5, fio2: 50, o2dev: 'gafas' } }, o)); s.warm(12); return s; };
+  const sep = () => mk({ vaso: .45, vasoRate: .006, deficit: .4 });
+  let s = sep(); adv(s, 1); check('Shock séptico: PAM al empezar', s.S.pam, 50, 64, ' mmHg'); check('Presión de pulso ancha (vasoplejia)', s.S.tas - s.S.tad, 33, 60, ' mmHg'); check('Taquicardia', s.S.fc, 105, 140, ' lpm');
+  adv(s, 20); check('Sin tratar: PAM a los 21 min', s.S.pam, 30, 55, ' mmHg'); check('Sin tratar: lactato sube', s.S.lact, 4.5, 9, ' mmol/L');
+  s = sep(); adv(s, 1); const p0 = s.S.pam; for (let i = 0; i < 3; i++) { s.action('fluid', 500 / 62); adv(s, 4); } const p15 = s.S.pam; s.action('fluid', 500 / 62); adv(s, 4);
+  check('1,5 L de cristaloide: sube la PAM', p15 - p0, 7, 20, ' mmHg'); check('El cuarto bolo ya casi no la sube', s.S.pam - p15, -5, 3, ' mmHg');
+  s.setNor(.1); adv(s, 4); check('Con noradrenalina 0,1: PAM ≥ 65', s.S.pam, 65, 95, ' mmHg');
+  const over = tol => { const a = mk({ vaso: .35, deficit: .15, fluidTol: tol, peso: 76, cfg: { mode: 'VCV', vt: 450, fr: 14, peep: 5, fio2: 50, o2dev: 'venturi35' } }); adv(a, 1); const s0 = a.S.spo2; for (let i = 0; i < 4; i++) { a.action('fluid', 500 / 76); adv(a, 2); } adv(a, 4); return (s0 - a.S.spo2) * 100; };
+  check('Cardiópata (tolera 10 mL/kg): 2 L bajan la SpO₂', over(10), 3, 15, ' puntos'); check('Sin cardiopatía: casi no la bajan', over(35), -1, 1.5, ' puntos');
+  const atb = (on) => { const a = sep(); adv(a, .5); if (on) a.drug('atb', 2); adv(a, 40); return a.S.vaso; }; check('Antibiótico precoz: la vasoplejia deja de progresar', atb(false) - atb(true), .08, .3);
+  s = mk({ neurog: .8, peso: 78 }); adv(s, 1); check('Shock neurogénico: FC sin taquicardia', s.S.fc, 38, 58, ' lpm'); check('Shock neurogénico: PAM', s.S.pam, 50, 70, ' mmHg');
+  s.drug('atr', .5); adv(s, 3); check('Atropina: sube la FC', s.S.fc, 55, 80, ' lpm'); s.setNor(.2); adv(s, 4); check('Noradrenalina 0,2: PAM ≥ 80', s.S.pam, 78, 100, ' mmHg'); }
+
 console.log('— Instalable y sin conexión (v1.3): manifiesto, iconos y service worker');
 { const fs = require('fs'), path = require('path'), R = f => path.join(__dirname, '..', f);
   const man = JSON.parse(fs.readFileSync(R('manifest.webmanifest'), 'utf8'));

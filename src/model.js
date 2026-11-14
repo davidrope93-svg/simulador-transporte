@@ -37,7 +37,7 @@ const DRUGS = {
   nor: { h: 2.5, on: 2, ec50: .12 }, adr: { h: 2.5, on: 1, ec50: 10 }, atr: { h: 60, on: 1, ec50: .4 },
   ntg: { h: 3, on: 2, ec50: 300 }, furo: { h: 90, on: 20, ec50: 40 }, amio: { h: 600, on: 2, ec50: 150 },
   aden: { h: .15, on: .05, ec50: 6 }, tnk: { h: 20, on: 2, ec50: .3 }, shs: { h: 120, on: 5, ec50: 1 }, manit: { h: 90, on: 10, ec50: 1 },
-  aas: { h: 600, on: 5, ec50: 1 }, tica: { h: 500, on: 30, ec50: 1 }, clopi: { h: 500, on: 120, ec50: 1 }, hnf: { h: 90, on: 1, ec50: 1 }, enox: { h: 300, on: 10, ec50: 1 },
+  atb: { h: 120, on: 10, ec50: .5 }, aas: { h: 600, on: 5, ec50: 1 }, tica: { h: 500, on: 30, ec50: 1 }, clopi: { h: 500, on: 120, ec50: 1 }, hnf: { h: 90, on: 1, ec50: 1 }, enox: { h: 300, on: 10, ec50: 1 },
   hidroxo: { h: 300, on: 5, ec50: 2.5 }, dexclor: { h: 300, on: 10, ec50: 2.5 }, lido: { h: 90, on: 1, ec50: 100 },
   // v0.7: calcio (1 = 10 mL de cloruro cálcico 10 %), insulina (1 = 10 UI), ácido tranexámico (g), isoprenalina, urapidilo, labetalol,
   // oxitocina (UI), adrenalina nebulizada (1 = 0,5 mg/kg), dexametasona (1 = 0,6 mg/kg) y glucagón (mg)
@@ -99,7 +99,9 @@ function create(opts) {
     access: o.access !== false, accessPend: null, ecg: { qrs: .08, t: 1, p: 1, j: 0, st: 0, amp: 1 }, gcs: 15,
     // v1.4: SCACEST (localización, VD, minutos de evolución al empezar, minutos hasta la ICP primaria) y taponamiento (0–1 y crecimiento por minuto)
     stemi: o.stemi ? { loc: o.stemi.loc || 'ant', rv: !!o.stemi.rv, onset: o.stemi.onset || 60, pci: o.stemi.pci != null ? o.stemi.pci : 30, reperf: false, reperfAt: null, tnkAt: null, icp: null } : null,
-    tamp: o.tamp || 0, tampRate: o.tampRate || 0, pericPend: null
+    tamp: o.tamp || 0, tampRate: o.tampRate || 0, pericPend: null,
+    // v1.5: shock distributivo — vasoplejia séptica (0–1 y progresión por minuto hasta el antibiótico), neurogénico (0–1) y volumen que tolera el pulmón (mL/kg)
+    vaso: o.vaso || 0, vasoRate: o.vasoRate || 0, neurog: o.neurog || 0, fluidTol: o.fluidTol || 35, atbAt: null, tad: 70, pam: 90
   };
   S.etAlv = S.pco2 * (1 - P.vdAlv);
   for (const k in DRUGS) S.drug[k] = { cp: 0, ce: 0, R: 0 };
@@ -159,7 +161,7 @@ function create(opts) {
       Ri: P.Ri * b + (a.obst ? 25 : 0) + (a.sel ? 2 : 0) + (S.iface === 'o2' || S.iface === 'nasal' ? -3 : 0) + (S.iface !== 'tube' ? croupR : 0),
       Re: P.Re * b + (a.obst ? 25 : 0) + (S.iface !== 'tube' ? .3 * croupR : 0),
       Pcrit: P.Pcrit * b + 6 * Math.max(0, S.bs - 1),
-      shunt: clamp(P.shunt0 - P.shuntPeep * (pe - 5), P.shuntMin, .5) + (a.sel ? .22 : 0) + .25 * ptxEff + (P.edema ? clamp(.3 * S.sev - .025 * (pe - 5) * Math.min(1, S.sev + .2), 0, .4) : 0) + clamp(.33 * S.asp - .015 * (pe - 5) * S.asp, 0, .38) + .14 * S.derec + .06 * S.tep,
+      shunt: clamp(P.shunt0 - P.shuntPeep * (pe - 5), P.shuntMin, .5) + (a.sel ? .22 : 0) + .25 * ptxEff + (P.edema ? clamp(.3 * S.sev - .025 * (pe - 5) * Math.min(1, S.sev + .2), 0, .4) : 0) + clamp(.33 * S.asp - .015 * (pe - 5) * S.asp, 0, .38) + clamp(.009 * Math.max(0, (S.fluidKg || 0) - S.fluidTol), 0, .2) + .14 * S.derec + .06 * S.tep,
       frc: P.frc * (a.sel ? .6 : 1) * (1 - .4 * ptxEff) * (1 - .4 * sv),
       ptxEff
     };
@@ -421,6 +423,9 @@ function create(opts) {
     const tE = tampEff();
     if (tE > 0) { tas -= 80 * Math.pow(tE, 1.3) + 4.5 * tE * Math.max(0, S.pmeanAlv - 5) - Math.min(20, 1.2 * (S.fluidKg || 0)) * tE; fc += 60 * tE; }
     if (S.stemi && S.stemi.rv) tas -= 40 * E.ntg;
+    // v1.5: vasoplejia séptica (taquicardia) y neurogénica (sin taquicardia refleja y con bradicardia)
+    if (S.vaso > 0) { tas -= 62 * S.vaso - 30 * E.nor * S.vaso; fc += 40 * S.vaso; } // la noradrenalina rinde más en la vasoplejia
+    if (S.neurog > 0) { tas -= 55 * S.neurog - 45 * E.nor * S.neurog; fc -= S.neurog * (22 * clamp((100 - S.tas) / 40, 0, 1) + 38); }
     const ar = S.arr.type;
     if (ar && !S.pace.capture) {
       fc = ar === 'tsv' ? 186 : ar === 'flutter' ? 150 - 20 * E.amio : ar === 'fa' ? 158 - 45 * E.amio : ar === 'tvp' ? 178 - 15 * E.amio : 36 + 55 * E.atr + 40 * E.adr + 45 * E.iso;
@@ -475,6 +480,12 @@ function create(opts) {
       if (!m.reperf && m.reperfAt != null && S.clin >= m.reperfAt) { m.reperf = true; S.log.push([S.clin, 'Reperfusión: cede el dolor y baja el ST']); }
       if (!m.reperf && rnd() < dtc * (m.loc === 'ant' ? .006 : .004)) enterArrest('vf');
       else if (!m.reperf && m.loc === 'inf' && !S.arr.type && rnd() < dtc * .006) { S.arr.type = 'sbrady'; S.arr.pen = 35; }
+    }
+    // v1.5: sepsis — la vasoplejia progresa hasta unos 20 min después del antibiótico; la fuga capilar consume el volumen
+    if (S.vaso > 0 && dtc > 0 && !S.arrest) {
+      if (S.E.atb > .3 && S.atbAt == null) S.atbAt = S.clin;
+      S.vaso = clamp(S.vaso + (S.atbAt != null && S.clin - S.atbAt > 20 ? 0 : S.vasoRate) * dtc, 0, 1);
+      S.deficit = clamp(S.deficit + .0025 * S.vaso * dtc, 0, .6);
     }
     // taponamiento: el derrame crece; muy grande, AESP
     if (S.tamp > 0 && dtc > 0) { S.tamp = clamp(S.tamp + S.tampRate * dtc, 0, 1); if (!S.arrest && S.tamp > .88 && rnd() < dtc * .5) enterArrest('tamp'); }
@@ -554,7 +565,7 @@ function create(opts) {
     if (S.cohb > 0) { const th = 300 / (1 + 3 * clamp((S.fiEff - .21) / .79, 0, 1)) * clamp(4.5 / Math.max(vaE, .5), .8, 1.6); S.cohb = Math.max(0, S.cohb - S.cohb * Math.LN2 / th * dtc); }
     S.oxEff = S.spo2 * (1 - S.cohb) - .25 * S.cn; // el pulsioxímetro no distingue la COHb
     // lactato (hipoperfusión, hipoxia tisular, sepsis, cianuro, CO, anafilaxia, parada) y equilibrio ácido-base con tampón agudo
-    const lt = 1 + 4 * clamp((90 - S.tas) / 40, 0, 1.2) + 4 * clamp((.85 - S.oxEff) / .25, 0, 1.2) + (S.pk === 'sepsis' ? 3 : 0) + 8 * S.cn + 6 * S.cohb + 3 * S.anaf;
+    const lt = 1 + 4 * clamp((90 - S.tas) / 40, 0, 1.2) + 4 * clamp((.85 - S.oxEff) / .25, 0, 1.2) + (S.pk === 'sepsis' ? 3 : 0) + 5 * S.vaso + 8 * S.cn + 6 * S.cohb + 3 * S.anaf;
     if (!S.lactInit) { S.lactInit = true; S.lact = S.lact0 = S.arrest ? 2 : lt; }
     if (S.arrest) S.lact += (S.cpr.comp !== 'off' ? .25 : .6) * dtc; else S.lact += (lt - S.lact) * Math.min(1, dtc / (lt > S.lact ? 6 : 40));
     S.hco3m = P.hco3 - .9 * (S.lact - S.lact0) + S.bicKg / .4 + (S.hco3Off || 0);
@@ -581,6 +592,7 @@ function create(opts) {
       const tg = targets();
       S.tas += (tg.tas - S.tas) * Math.min(1, dtc / 1.5);
       S.fc += (tg.fc - S.fc) * Math.min(1, dtc / 1.5);
+      S.tad = clamp(S.tas * .55 + 8 - 18 * S.vaso - 6 * S.neurog, 15, 140); S.pam = (S.tas + 2 * S.tad) / 3; // la vasoplejia baja sobre todo la diastólica
       const ago = S.clin - S.cpr.roscAt;
       S.etAlv = S.pco2 * (1 - alvDS()) + (ago < 4 ? 14 * Math.exp(-ago / 1.5) : 0);
       if (S.postRosc && S.clin - S.cpr.roscAt < 30 && (S.tas < 75 || S.spo2 < .85) && rnd() < dtc * .04) enterArrest(rnd() < .5 ? 'vf' : 'primary'); // nueva parada en el post-RCE inestable
@@ -855,7 +867,8 @@ function create(opts) {
       if (S.ptxActive || (S.ptx > .2 && !S.drained)) f.push('Sin deslizamiento pleural en un hemitórax: neumotórax.');
       if (S.tep > .3) f.push('VD dilatado (VD/VI > 1) con septo aplanado: sobrecarga de VD.');
       if (S.stemi && !S.arrest) f.push(S.stemi.loc === 'ant' ? 'Acinesia anteroapical con FEVI reducida.' : 'Hipocinesia inferior' + (S.stemi.rv ? ' y del VD, que está dilatado.' : '.'));
-      if (S.deficit > .25 && tE < .2) f.push('Vena cava inferior pequeña y colapsable; VI hiperdinámico.');
+      if ((S.deficit > .25 || (S.vaso > .25 && S.deficit > .12)) && tE < .2) f.push('Vena cava inferior pequeña y colapsable; VI hiperdinámico: probablemente responde a volumen.');
+      if ((S.fluidKg || 0) > S.fluidTol + 5) f.push('Líneas B nuevas en ambos campos: ya no tolera más volumen.');
       if (P.edema && S.sev > .4) f.push('Líneas B difusas en ambos campos.');
       if (S.arrest && S.rhythm === 'aesp') f.push(tE > .3 ? 'Hay actividad cardiaca, pero el corazón está comprimido por el derrame.' : 'Actividad mecánica cardiaca mínima.');
       if (S.arrest && S.rhythm === 'asys') f.push('Sin actividad mecánica cardiaca.');
@@ -882,6 +895,9 @@ function create(opts) {
         if (ie >= 2) f.push('Ves esfuerzos inspiratorios que el ventilador no acompaña.');
       } else if (S.iface !== 'tube' && !S.bag && !seiz) f.push('No respira.');
       if (S.opi > .4) f.push('Pupilas puntiformes.');
+      if (S.vaso > .25) f.push(S.lact > 4 && S.tas < 90 ? 'Piel moteada en las rodillas, frialdad acra y relleno capilar de más de 3 s.' : 'Piel caliente y enrojecida, pulsos saltones y relleno capilar rápido.');
+      if (S.neurog > .25) f.push('Piel caliente y seca; no mueve ni siente por debajo del cuello; respiración abdominal.');
+      if ((S.fluidKg || 0) > S.fluidTol + 8) f.push('Crepitantes bilaterales nuevos.');
       if (tampEff() > .25) f.push('Ingurgitación yugular, tonos cardiacos apagados y pulso paradójico.');
       if (S.stemi && !S.stemi.reperf) f.push('Dolor torácico opresivo con sudoración fría' + (S.stemi.rv && S.tas < 100 ? '; campos pulmonares limpios con ingurgitación yugular.' : '.'));
       if (isMask()) f.push(S.mask.leak10 > 45 ? 'Fuga perimascarilla audible; el aire sale hacia los ojos.' : S.mask.leak10 > 25 ? 'Pequeña fuga por la comisura.' : 'Mascarilla bien sellada.');
@@ -900,7 +916,7 @@ function create(opts) {
       if (a.sga) f.push('Dispositivo supraglótico colocado' + (S.Paw > 25 ? '; se oye fuga por la boca en las inspiraciones con presión alta.' : ', sella bien.'));
       if (S.bmv < .6 && (S.iface === 'o2' || S.iface === 'mask') && S.bag) f.push('Cuesta sellar la mascarilla y el tórax apenas se mueve con el ambú.');
       if (S.iface === 'tube' && S.awake > .35 && S.relTot < .5) f.push('Abre los ojos, tose con el tubo y lleva las manos hacia él.');
-      if (S.deficit > .35) f.push('Piel fría y pálida, relleno capilar enlentecido.');
+      if (S.deficit > .35 && S.vaso < .25 && S.neurog < .25) f.push('Piel fría y pálida, relleno capilar enlentecido.'); // en el shock distributivo la piel está caliente
       if (S.pace.on) f.push(S.pace.capture ? 'Pulso femoral a la frecuencia del marcapasos: hay captura mecánica.' : 'Espigas sin captura: el pulso no sigue al marcapasos.');
       if (S.anaf > .15) f.push('Habones generalizados' + (S.anaf > .4 ? ', angioedema de labios y lengua, voz ronca' : '') + '.');
       if (S.edAir > .25 && S.iface !== 'tube') f.push('Hollín en fosas nasales, vibrisas chamuscadas, voz ronca' + (S.edAir > .55 ? ' y estridor inspiratorio.' : '.'));

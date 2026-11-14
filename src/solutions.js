@@ -12,7 +12,7 @@
    o2 (dispositivo), isr (inducción, relajante e intubación; opciones ind, vl, apox, post), cv (cardioversión sincronizada, J),
    pace (frecuencia, mA), pads, mech (compresor mecánico).
    Opciones del caso: nor (TAS con noradrenalina), adrI (TAS con adrenalina), labet (TAS > 160 con labetalol), bicQrs (QRS > 120 con
-   bicarbonato), atr (bradicardia con TAS < 90: atropina), nalox (FR < 10 con naloxona), permissive (TAS 80–90: volumen solo si baja de 80), noAuto (sin ajuste automático de FiO₂). */
+   bicarbonato), atr (bradicardia con TAS < 90: atropina), norPam (PAM objetivo con noradrenalina), nalox (FR < 10 con naloxona), permissive (TAS 80–90: volumen solo si baja de 80), noAuto (sin ajuste automático de FiO₂). */
 (function (root) {
 'use strict';
 const SOL = {
@@ -73,6 +73,9 @@ const SOL = {
   asistolia: { s: [] },
   pcrTep: { s: [[.3, 'mech'], [.5, 'd', 'tnk']] },
   pcrPedFv: { s: [] },
+  sepsisUrin: { s: [[.4, 'a', 'fluid'], [.6, 'd', 'ceftri'], [2.5, 'a', 'fluid'], [4.5, 'a', 'fluid'], [6, 'p', 'nor', .1]], norPam: 65 },
+  sepsisIC: { s: [[.4, 'a', 'fluid'], [.8, 'p', 'nor', .1], [1, 'd', 'ceftri'], [2, 'niv', { mode: 'PSV', peep: 8, ps: 6, fio2: 60 }]], norPam: 65 },
+  shockNeuro: { s: [[.4, 'a', 'fluid'], [.6, 'd', 'atr'], [1, 'p', 'nor', .1]], norPam: 80 },
   scaAnt: { s: [[.3, 'a', 'ecg12'], [.5, 'd', 'aas'], [.7, 'd', 'hnf'], [1, 'a', 'icp']] },
   scaGomera: { s: [[.3, 'a', 'ecg12'], [.5, 'd', 'aas'], [.6, 'd', 'clopi300'], [.8, 'd', 'enox'], [1, 'd', 'tnk']], atr: true },
   scaVD: { s: [[.3, 'a', 'ecg12'], [.5, 'a', 'fluid'], [.6, 'd', 'aas'], [.8, 'd', 'hnf'], [1, 'a', 'icp'], [3, 'a', 'fluid']], atr: true, nor: 90 },

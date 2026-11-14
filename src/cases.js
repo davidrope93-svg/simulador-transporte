@@ -24,6 +24,7 @@
      targets  { clave: [mín, máx] } con claves spo2, et, tas, vtkg, pplat, dp, peepi, pco2, rr, ie, auto, leak, o2, fight, sinus
      duration minutos clínicos hasta el final automático (opcional)
      stemi    SCACEST: { loc: 'ant' | 'inf' | 'lat', rv: afectación de VD, onset: minutos de evolución al empezar, pci: minutos hasta la ICP primaria }; tamp y tampRate, taponamiento (0–1 y por minuto)
+     vaso y vasoRate: vasoplejia séptica (0–1 y progresión por minuto hasta el antibiótico); neurog: shock neurogénico (0–1); fluidTol: mL/kg que tolera el pulmón
      goal     lo que se cuenta al empezar; hint, una solución posible
      Biblioteca (al final del archivo, en META): scope ('t' terrestre, 'h' HEMS, 'i' interhospitalario), diff (1 básico, 2 intermedio,
               3 avanzado) y teach (qué enseña, una línea) */
@@ -34,7 +35,7 @@ const NIV = Object.assign({ iface: 'mask' }, AWAKE);
 const O2 = Object.assign({ iface: 'o2' }, AWAKE);
 const inv = (o) => Object.assign({ mode: 'VCV', vt: 480, fr: 16, ti: 1.0, tplat: 0, peep: 5, fio2: 100, pmax: 40, flow: 50 }, o || {});
 
-const GROUPS = ['VMI · SVA', 'VMI · HEMS', 'VMNI', 'Vía aérea', 'Oxigenoterapia e intoxicaciones', 'Pediatría', 'Trauma y obstetricia', 'Metabólico y ambiental', 'Cardiología', 'Arritmias', 'Parada', 'Libre'];
+const GROUPS = ['VMI · SVA', 'VMI · HEMS', 'VMNI', 'Vía aérea', 'Oxigenoterapia e intoxicaciones', 'Pediatría', 'Trauma y obstetricia', 'Metabólico y ambiental', 'Shock', 'Cardiología', 'Arritmias', 'Parada', 'Libre'];
 
 const CASES = {
   /* ---------- VMI · SVA ---------- */
@@ -310,6 +311,26 @@ const CASES = {
     hint: 'EtCO₂ mucho más baja que la pCO₂ (espacio muerto). Evita intubar si puedes: la inducción y la presión positiva pueden hundir el VD; si hay que hacerlo, PEEP baja y noradrenalina antes. Noradrenalina para TAS ≥ 90, volumen prudente y fibrinólisis (tenecteplasa) en el TEP de alto riesgo.',
     targets: { tas: [90, 200], spo2: [90, 100] } }, O2),
 
+  /* ---------- Shock (v1.5) ---------- */
+  sepsisUrin: Object.assign({ lvl: 'Shock', title: 'Shock séptico de origen urinario', pheno: 'sano', sex: 'm', talla: 158, peso: 62, vaso: .45, vasoRate: .006, deficit: .4, temp: 39.4, speed: 5, duration: 30,
+    cfg: { o2dev: 'gafas' },
+    goal: 'Mujer de 78 años con fiebre desde ayer y molestias al orinar; hoy está desorientada. Piel caliente, TAS 80, FC 115.',
+    hint: 'Shock séptico: PAM < 65 con lactato > 2. Dos vías, cristaloide en bolos de 500 mL reevaluando (hasta unos 30 mL/kg, ≈ 1,5–2 L aquí) y, si la PAM sigue < 65, noradrenalina sin esperar a terminar el volumen (por vía periférica es seguro un tiempo). Antibiótico en la primera hora (ceftriaxona 2 g si el foco es urinario). Mide la temperatura y el lactato (gasometría) para seguir la respuesta. O₂ solo si la SpO₂ baja de 92 %.',
+    checks: [['drug:atb', 'Antibiótico en la primera hora'], ['act:fluid', 'Volumen'], ['perf:nor', 'Noradrenalina'], ['act:gas', 'Lactato'], ['act:temp', 'Temperatura']],
+    targets: { pam: [65, 110], spo2: [92, 100] } }, O2),
+  sepsisIC: Object.assign({ lvl: 'Shock', title: 'Shock séptico en un cardiópata', pheno: 'sepsis', sex: 'h', talla: 170, peso: 76, vaso: .35, vasoRate: .005, deficit: .15, fluidTol: 10, temp: 38.6, speed: 5, duration: 30,
+    cfg: { o2dev: 'venturi35' },
+    goal: 'Varón de 81 años con insuficiencia cardiaca (FEVI 30 %). Tres días de tos y fiebre; hoy, mal estado general. TAS 84, FC 112, crepitantes basales derechos, SpO₂ 90 % con Venturi al 35 %.',
+    hint: 'Shock séptico con un corazón que tolera poco volumen: bolo pequeño (250–500 mL) reevaluando con la clínica y la ecografía (líneas B), y noradrenalina precoz para PAM ≥ 65. Antibiótico en la primera hora (neumonía: ceftriaxona 2 g). Si das los 30 mL/kg de golpe, aparecen crepitantes y cae la SpO₂. Si no oxigena con reservorio, VMNI con PEEP 6–8 vigilando la PAM.',
+    checks: [['drug:atb', 'Antibiótico en la primera hora'], ['perf:nor', 'Noradrenalina precoz']],
+    targets: { pam: [65, 110], spo2: [90, 98] } }, O2),
+  shockNeuro: Object.assign({ lvl: 'Shock', title: 'Shock neurogénico tras lesión medular cervical', pheno: 'sano', sex: 'h', talla: 180, peso: 78, neurog: .8, speed: 5, duration: 20,
+    cfg: { o2dev: 'gafas' },
+    goal: 'Varón de 24 años, caída de moto. Consciente, no mueve ni siente por debajo del cuello. TAS 85, FC 47, piel caliente y seca. Sin sangrado visible.',
+    hint: 'Hipotensión con bradicardia y piel caliente tras una lesión medular alta: shock neurogénico (pérdida del tono simpático). Antes, descarta la hemorragia: el shock hemorrágico da taquicardia y frialdad. Inmovilización, volumen prudente (500–1.000 mL), atropina si la FC baja de 50 y noradrenalina para PAM ≥ 80–85, que protege la médula. Vigila la ventilación: las lesiones altas debilitan la respiración.',
+    checks: [['act:fluid', 'Volumen prudente'], ['drug:atr', 'Atropina'], ['perf:nor', 'Noradrenalina']],
+    targets: { pam: [75, 110] } }, O2),
+
   /* ---------- Cardiología (v1.4) ---------- */
   scaAnt: Object.assign({ lvl: 'Cardiología', title: 'SCACEST anterior con hemodinámica cerca', pheno: 'sano', sex: 'h', talla: 174, peso: 86, stemi: { loc: 'ant', onset: 60, pci: 20 }, tasAdj: -10, speed: 5, duration: 20,
     cfg: { o2dev: 'gafas' },
@@ -483,7 +504,10 @@ const META = {
   scaAnt: ['t', 1, 'SCACEST con ICP primaria a tiempo: ECG, antiagregación, heparina y código infarto'],
   scaGomera: ['t', 2, 'SCACEST sin ICP en 120 min: fibrinólisis en menos de 10 min y estrategia farmacoinvasiva'],
   scaVD: ['t', 2, 'Infarto de VD: V4R, sin nitratos y volumen'],
-  taponamiento: ['t', 2, 'Taponamiento: ecografía, volumen, pericardiocentesis y sin presión positiva']
+  taponamiento: ['t', 2, 'Taponamiento: ecografía, volumen, pericardiocentesis y sin presión positiva'],
+  sepsisUrin: ['t', 1, 'Shock séptico: volumen en bolos, noradrenalina para PAM ≥ 65 y antibiótico en la primera hora'],
+  sepsisIC: ['t', 2, 'Sepsis en un cardiópata: poco volumen y noradrenalina precoz'],
+  shockNeuro: ['t', 2, 'Shock neurogénico: bradicardia sin frialdad, atropina y noradrenalina para PAM ≥ 80']
 };
 for (const [k, m] of Object.entries(META)) if (CASES[k]) Object.assign(CASES[k], { scope: m[0], diff: m[1], teach: m[2] });
 

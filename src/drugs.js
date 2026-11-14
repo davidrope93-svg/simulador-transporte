@@ -19,6 +19,8 @@ const DRUGSET = [
     { id: 'adrP', lab: 'Adrenalina en bolo', k: 'adr', dose: 20, u: 'mcg', amt: 4 }, { id: 'amio300', lab: 'Amiodarona', k: 'amio', dose: 300, u: 'mg' },
     { id: 'amio150', lab: 'Amiodarona', k: 'amio', dose: 150, u: 'mg' },
     { id: 'lido100', lab: 'Lidocaína', k: 'lido', dose: 100, u: 'mg' }, { id: 'lido50', lab: 'Lidocaína', k: 'lido', dose: 50, u: 'mg' }, { id: 'tnk', lab: 'Tenecteplasa', k: 'tnk', amt: 1, tnk: true, u: 'mg' }] },
+  { g: 'Sepsis', items: [
+    { id: 'ceftri', lab: 'Ceftriaxona', k: 'atb', dose: 2, u: 'g' }, { id: 'pipta', lab: 'Piperacilina-tazobactam', k: 'atb', dose: 4, u: 'g' }, { id: 'mero', lab: 'Meropenem', k: 'atb', dose: 1, u: 'g' }] },
   { g: 'Síndrome coronario', items: [
     { id: 'aas', lab: 'AAS', k: 'aas', dose: 250, u: 'mg', route: ' oral, masticado', noIV: true }, { id: 'tica', lab: 'Ticagrelor', k: 'tica', dose: 180, u: 'mg', route: ' oral', noIV: true },
     { id: 'clopi300', lab: 'Clopidogrel', k: 'clopi', dose: 300, u: 'mg', route: ' oral', noIV: true }, { id: 'clopi600', lab: 'Clopidogrel', k: 'clopi', dose: 600, u: 'mg', route: ' oral', noIV: true },
@@ -61,7 +63,7 @@ const PERFS = [
   { id: 'g10', lab: 'Glucosa 10 %', u: 'mL/h', d: 0, opts: [0, 50, 100, 150, 250], run: (sim, r, fW) => sim.setGluPerf(r * .1 / 60 * fW) }
 ];
 const roundDose = x => x >= 50 ? Math.round(x / 5) * 5 : x >= 10 ? Math.round(x) : x >= 1 ? Math.round(x * 10) / 10 : Math.round(x * 100) / 100;
-const PED = { adr1: { k: .01, max: 1, t: '10 mcg/kg' }, adrP: { k: 1, max: 20, t: '1 mcg/kg' }, amio300: { k: 5, max: 300, t: '5 mg/kg' }, amio150: { k: 5, max: 150, t: '5 mg/kg' },
+const PED = { ceftri: { k: 80, max: 2000, t: '80 mg/kg', u: 'mg' }, pipta: { k: 100, max: 4000, t: '100 mg/kg', u: 'mg' }, mero: { k: 20, max: 1000, t: '20 mg/kg', u: 'mg' }, adr1: { k: .01, max: 1, t: '10 mcg/kg' }, adrP: { k: 1, max: 20, t: '1 mcg/kg' }, amio300: { k: 5, max: 300, t: '5 mg/kg' }, amio150: { k: 5, max: 150, t: '5 mg/kg' },
   lido100: { k: 1, max: 100, t: '1 mg/kg' }, lido50: { k: .5, max: 50, t: '0,5 mg/kg' }, atr: { k: .02, min: .1, max: .5, t: '20 mcg/kg' }, aden6: { k: .1, max: 6, t: '0,1 mg/kg' },
   aden12: { k: .2, max: 12, t: '0,2 mg/kg' }, aden18: { k: .3, max: 18, t: '0,3 mg/kg' }, adrIM: { k: .01, max: .5, t: '10 mcg/kg' }, nalox: { k: .01, max: .4, t: '10 mcg/kg' },
   mid: { k: .05, max: 2, t: '0,05 mg/kg' }, morf: { k: .05, max: 3, t: '0,05 mg/kg' }, mg: { k: .04, max: 2, t: '40 mg/kg' }, dexclor: { k: .15, max: 5, t: '0,15 mg/kg' },

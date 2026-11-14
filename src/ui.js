@@ -6,7 +6,7 @@ const fmt = (x, d = 0) => (x == null || !isFinite(x)) ? '–' : x.toFixed(d).rep
 const { SPEC, PKEYS, KEYS, DEVS, KEYLAB, MONS } = window.SIM_DEV;
 const CASES = window.SIM_CASES, GROUPS = window.SIM_GROUPS;
 const N = 750, SR = .02, GAP = 12, ZN = 750, ZSR = .008, ZGAP = 20;
-const MODEL_KEYS = ['pco2', 'deficit', 'bs', 'opioid', 'rhythm', 'arrPen', 'tep', 'anaf', 'cohb', 'cn', 'icp', 'icpGrow', 'weak', 'dav', 'edAir', 'edAirRate', 'asp', 'arrest', 'arrestCause', 'comp', 'bav', 'tasAdj', 'fcAdj', 'sevFloor', 'bottleL', 'bottleBar', 'leak10', 'relCe', 'sedE', 'sedStopped', 'sev', 'ptx', 'ptxTension', 'shockMul', 'bmv', 'sgaFail', 'peso', 'k', 'kRate', 'glu', 'gluT', 'temp', 'tempRate', 'bleed', 'bleedSrc', 'tca', 'ecl', 'croup', 'postRosc', 'access', 'arrestCause2', 'hco3Off', 'stemi', 'tamp', 'tampRate'];
+const MODEL_KEYS = ['pco2', 'deficit', 'bs', 'opioid', 'rhythm', 'arrPen', 'tep', 'anaf', 'cohb', 'cn', 'icp', 'icpGrow', 'weak', 'dav', 'edAir', 'edAirRate', 'asp', 'arrest', 'arrestCause', 'comp', 'bav', 'tasAdj', 'fcAdj', 'sevFloor', 'bottleL', 'bottleBar', 'leak10', 'relCe', 'sedE', 'sedStopped', 'sev', 'ptx', 'ptxTension', 'shockMul', 'bmv', 'sgaFail', 'peso', 'k', 'kRate', 'glu', 'gluT', 'temp', 'tempRate', 'bleed', 'bleedSrc', 'tca', 'ecl', 'croup', 'postRosc', 'access', 'arrestCause2', 'hco3Off', 'stemi', 'tamp', 'tampRate', 'vaso', 'vasoRate', 'neurog', 'fluidTol'];
 const O2LAB = { gafas: 'gafas nasales 2 L/min', venturi28: 'Venturi 28 %', venturi35: 'Venturi 35 %', venturi50: 'Venturi 50 %', reserv: 'mascarilla con reservorio 15 L/min' };
 const IFLAB = { tube: 'tubo endotraqueal', mask: 'mascarilla oronasal', nasal: 'cánula nasal de alto flujo', o2: 'paciente sin conectar' };
 const IFSHORT = { tube: 'intubado', mask: 'VMNI', nasal: 'alto flujo', o2: 'oxigenoterapia' };
@@ -24,7 +24,7 @@ const doseOf = it => SIM_DRUGS.doseOf(it, peso, isPed());
 
 const TGT = {
   spo2: { lab: 'SpO₂', u: '%', get: () => S.spo2 * 100, d: 0 }, et: { lab: 'EtCO₂', u: 'mmHg', get: () => M.et, d: 0 },
-  tas: { lab: 'TAS', u: 'mmHg', get: () => S.arrest ? null : S.tas, d: 0 }, vtkg: { lab: 'Vt/kg', u: 'mL/kg', get: () => M.vtkg, d: 1 },
+  tas: { lab: 'TAS', u: 'mmHg', get: () => S.arrest ? null : S.tas, d: 0 }, pam: { lab: 'PAM', u: 'mmHg', get: () => S.arrest ? null : S.pam, d: 0 }, vtkg: { lab: 'Vt/kg', u: 'mL/kg', get: () => M.vtkg, d: 1 },
   pplat: { lab: 'Meseta', u: 'cmH₂O', get: () => real().pplat, d: 0 }, dp: { lab: 'Driving', u: 'cmH₂O', get: () => real().dp, d: 0 },
   peepi: { lab: 'Auto-PEEP', u: 'cmH₂O', get: () => real().peepi, d: 0 }, pco2: { lab: 'PaCO₂', u: 'mmHg', get: () => S.pco2, d: 0 },
   rr: { lab: 'FR del paciente', u: 'rpm', get: () => S.arrest ? null : (M.effN >= 2 ? M.effRR : 0), d: 0 },
@@ -612,7 +612,7 @@ function measurePni(silent) {
 function finishPni() {
   pniMeas = 0; $('#zPniBtn').setAttribute('aria-pressed', 'false');
   if (S.arrest || S.tas < 45) { pni = { at: S.clin, sys: null }; logIt('PNI: sin medida'); return; }
-  const sys = S.tas * (1 + (Math.random() - .5) * .04); pni = { at: S.clin, sys, dia: sys * .55 + 8 };
+  const sys = S.tas * (1 + (Math.random() - .5) * .04); pni = { at: S.clin, sys, dia: (S.tad || S.tas * .55 + 8) * sys / Math.max(1, S.tas) }; // la vasoplejia ensancha la presión de pulso
   logIt(`PNI ${fmt(pni.sys)}/${fmt(pni.dia)} mmHg`);
 }
 $('#zPniBtn').addEventListener('click', () => measurePni(false));
@@ -768,6 +768,12 @@ function readings() {
     if (track.ecg12At != null && !(track.used && track.used.has('drug:aas'))) out.push(['warn', 'Antiagregación', 'Aún sin AAS.', 'AAS 150–300 mg masticado (o IV) y anticoagulación (heparina o enoxaparina).']);
     if (m.rv && S.E.ntg > .1) out.push(['bad', 'Nitratos con infarto de VD', `TAS ${fmt(S.tas)} mmHg.`, 'Suspende los nitratos y da volumen: el VD depende de la precarga.']);
   }
+  if (!S.arrest && S.vaso > .2) {
+    if (S.pam < 65) out.push(['bad', 'Shock distributivo', `PAM ≈ ${fmt(S.pam)} mmHg con piel caliente y diastólica baja.`, (S.fluidKg || 0) < 25 ? 'Cristaloide en bolos de 500 mL reevaluando (hasta ≈ 30 mL/kg) y noradrenalina si la PAM sigue < 65; no esperes a terminar el volumen.' : 'Ya lleva volumen: noradrenalina para PAM ≥ 65 (por vía periférica es seguro un tiempo).']);
+    if (!(track.used && track.used.has('drug:atb'))) out.push(['warn', 'Sepsis sin antibiótico', 'Cada hora de retraso empeora el pronóstico en el shock séptico.', 'Antibiótico IV en la primera hora: ceftriaxona 2 g si el foco es urinario o respiratorio comunitario.']);
+  }
+  if (!S.arrest && (S.fluidKg || 0) > S.fluidTol + 5) out.push(['warn', 'Sobrecarga de volumen', 'Crepitantes nuevos y peor oxigenación.', 'No más volumen: noradrenalina para la PAM y O₂ o VMNI si hace falta.']);
+  if (!S.arrest && S.neurog > .2 && S.pam < 80) out.push(['bad', 'Shock neurogénico', `PAM ≈ ${fmt(S.pam)} con FC ${fmt(S.fc)} y piel caliente.`, 'Descarta la hemorragia; volumen prudente, atropina si FC < 50 y noradrenalina para PAM ≥ 80–85.']);
   if (!S.arrest && S.tamp > .35 && S.tas < 100) out.push(['bad', 'Shock obstructivo', 'Hipotensión con ingurgitación yugular y tonos apagados.', 'Ecografía clínica; si hay taponamiento, volumen y pericardiocentesis. Evita intubar y la PEEP alta.']);
   if (!S.arrest && S.tep > .3) out.push(['warn', 'Patrón de TEP', `EtCO₂ ${fmt(M.et)} frente a PaCO₂ ≈ ${fmt(S.pco2)} mmHg: espacio muerto.`, 'Noradrenalina para TAS ≥ 90, volumen prudente, PEEP baja y fibrinólisis si es de alto riesgo.']);
   if (!S.arrest && S.anaf > .2) out.push([S.tas < 90 ? 'bad' : 'warn', 'Anafilaxia activa', `TAS ${fmt(S.tas)}, broncoespasmo y angioedema.`, 'Adrenalina IM 0,5 mg (repite a los 5 min), volumen; perfusión de adrenalina si es refractaria.']);
