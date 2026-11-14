@@ -809,7 +809,7 @@ function readings() {
     if (!S.decont) out.push(['bad', 'Riesgo para el equipo', 'Ropa y piel impregnadas de organofosforado: sigue absorbiéndose.', 'Guantes y protección; retira la ropa y lava la piel (Descontaminar).']);
     if (S.opM > .2) out.push(['bad', 'Síndrome colinérgico sin atropinizar', `FC ${fmt(S.fc)}, broncorrea, SpO₂ ${fmt(S.spo2 * 100)} %.`, 'Atropina 2 mg IV doblando la dosis cada 5 min (2, 4, 8, 16…) hasta tórax seco, FC > 80 y TAS > 80; la miosis no es el objetivo.']);
     else if (+($('#pf_atrP') || {}).value === 0 || !$('#pf_atrP')) out.push(['warn', 'Atropinizado', 'Tórax seco y FC por encima de 80.', 'Mantén la atropinización: perfusión del 10–20 % de la dosis total por hora.']);
-    if ((S.E.prali || 0) < .2) out.push(['warn', 'Sin oxima', 'La debilidad nicotínica puede acabar en parada respiratoria.', 'Pralidoxima 30 mg/kg en 30 min y 8 mg/kg/h. Si hay que intubar: rocuronio, nunca succinilcolina.']); }
+    if (S.opN > .3 && (S.E.prali || 0) < .2) out.push(['warn', 'Debilidad nicotínica', 'La atropina no la corrige: puede acabar en parada respiratoria.', 'Pre-aviso al hospital para la pralidoxima. Si hay que intubar: rocuronio, nunca succinilcolina.']); }
   if (!S.arrest && S.cocaine > 0) {
     if (S.cocE > .35) out.push(['bad', 'Síndrome simpaticomimético', `FC ${fmt(S.fc)} y TAS ${fmt(S.tas)}, agitado.`, `Benzodiacepinas primero y sin miedo: midazolam ${isPed() ? '0,15 mg/kg' : '5–10 mg'} IV o IM, repetible. Evita los betabloqueantes.`]);
     if (S.temp > 40 && !S.cool) out.push(['bad', 'Hipertermia grave', track.tempAt != null ? `${fmt(S.temp, 1)} °C.` : 'Piel muy caliente.', 'Enfriamiento activo ya (desnudar, agua pulverizada y ventilación, hielo en ingles y axilas) hasta 38,5 °C.']);
@@ -1085,7 +1085,7 @@ function showDebrief(reason) {
   if (c7.tca) extra.push(['QRS al final', fmt(S.ecg.qrs * 1000) + ' ms'], ['pH al final', fmt(S.ph, 2)]);
   if (c7.bleedSrc === 'thor') extra.push(['Drenaje torácico', S.drained ? `sí: ${fmt(S.htxFirst || 0)} mL al colocarlo, ${fmt(Math.round((S.htxOut || 0) / 50) * 50)} mL en total` : 'no']);
   if (c7.cv) extra.push(['FC / TAS al final', `${fmt(S.fc)} lpm / ${fmt(S.tas)} mmHg`], ['Insulina a dosis altas', (S.E.insHD || 0) > .1 ? 'sí' : 'no'], ['Glucemia al final', fmt(S.glu) + ' mg/dL']);
-  if (c7.op) extra.push(['Descontaminación', S.decont ? 'sí' : 'no'], ['Atropina total', `≈ ${fmt(track.atrMg || 0)} mg`], ['Pralidoxima', (S.E.prali || 0) > .1 ? 'sí' : 'no']);
+  if (c7.op) extra.push(['Descontaminación', S.decont ? 'sí' : 'no'], ['Atropina total', `≈ ${fmt(track.atrMg || 0)} mg`]);
   if (c7.cocaine) extra.push(['Temperatura al final', fmt(S.temp, 1) + ' °C'], ['Enfriamiento activo', S.cool ? 'sí' : 'no']);
   if (c7.dka) extra.push(['pH / pCO₂ al final', `${fmt(S.ph, 2)} / ${fmt(S.pco2)} mmHg`], ['K⁺ al final', fmt(S.k, 1) + ' mmol/L'], ['Glucemia al final', fmt(S.glu) + ' mg/dL']);
   if (c7.se) extra.push(['Crisis controlada', S.se.ctrlAt != null ? 'a los ' + fmt(S.se.ctrlAt, 1) + ' min' : 'no'], ['Convulsiona al terminar', S.clin < S.seizUntil ? 'sí' : 'no']);

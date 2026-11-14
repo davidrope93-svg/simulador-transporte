@@ -94,6 +94,7 @@ Cada versión tiene que pasar 207 pruebas con rangos de referencia: regresión d
 - Organofosforados: síndrome muscarínico (broncorrea, bradicardia, miosis) y nicotínico (fasciculaciones, debilidad), absorción que sigue hasta descontaminar (acción nueva «Descontaminar»), atropina en dosis dobles (2, 4, 8, 16 mg y perfusión) hasta atropinizar, pralidoxima y bloqueo prolongado si se usa succinilcolina.
 - Cocaína: taquicardia, HTA, hipertermia progresiva, agitación, convulsiones, QRS algo ancho e isquemia en el ECG; las benzodiacepinas frenan el cuadro; acción nueva «Enfriamiento activo».
 - Cetoacidosis: acidemia grave que hunde la TA y puede parar el corazón si el intubado no mantiene su compensación respiratoria; tampón agudo proporcional al bicarbonato que queda; insulina en perfusión (0,1 UI/kg/h) que baja la glucemia y el potasio. Objetivos nuevos de FC y K⁺.
+- Revisión clínica: la pralidoxima sale del maletín (el SUC no la lleva; queda como pre-aviso al hospital) y el caso de organofosforados pide mantener la perfusión de atropina.
 - 5 casos nuevos: calcioantagonistas, betabloqueantes, organofosforados y cocaína en «Oxigenoterapia e intoxicaciones», y cetoacidosis intubada trasladada desde El Hierro en «Metabólico y ambiental», con tutorial, solución y validados. 28 pruebas nuevas (207 en total).
 
 ## Cambios en la v1.7

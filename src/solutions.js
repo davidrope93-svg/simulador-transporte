@@ -89,7 +89,7 @@ const SOL = {
   hiponatremia: { s: [[.3, 'a', 'iv'], [1.9, 'd', 'ssh3'], [6, 'd', 'ssh3'], [11, 'd', 'ssh3']] },
   verapamilo: { s: [[.3, 'a', 'iv'], [.5, 'd', 'ca'], [.8, 'd', 'insHD'], [1, 'p', 'insP', 1], [1.2, 'p', 'nor', .1], [3, 'd', 'ca'], [6, 'p', 'g10', 100]], nor: 90 },
   betabloq: { s: [[.3, 'a', 'iv'], [.5, 'd', 'glucgIV'], [1, 'p', 'adrI', 5], [3, 'p', 'glucgP', 3], [10, 'd', 'glucgIV']], adrI: 90 },
-  organofosf: { s: [[.2, 'a', 'decont'], [.3, 'a', 'io'], [1.1, 'd', 'atr2'], [4, 'd', 'atr4'], [7, 'd', 'atr8'], [10, 'd', 'atr16'], [10.5, 'd', 'prali'], [14, 'p', 'atrP', 4]] },
+  organofosf: { s: [[.2, 'a', 'decont'], [.3, 'a', 'io'], [1.1, 'd', 'atr2'], [4, 'd', 'atr4'], [7, 'd', 'atr8'], [10, 'd', 'atr16'], [14, 'p', 'atrP', 4]] },
   cocaina: { s: [[.3, 'd', 'midCr'], [.5, 'a', 'cool'], [.6, 'a', 'iv'], [1, 'a', 'temp'], [1.2, 'a', 'ecg12'], [16, 'a', 'cool']] },
   cadIntubada: { s: [[.4, 'cfg', { vt: 'ibw8', fr: 28, ti: .8 }], [1, 'p', 'cris', 750], [3, 'p', 'insD', .1]] },
   rceInestable: { s: [[.3, 'a', 'fluid'], [.4, 'p', 'nor', .1], [.5, 'vt', 7], [.6, 'cfg', { fr: 14 }], [3, 'a', 'fluid']], nor: 100 }
