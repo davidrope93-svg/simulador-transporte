@@ -97,7 +97,7 @@ Cada versión tiene que pasar 272 pruebas con rangos de referencia: regresión d
 - Neumotórax a tensión en el recién nacido: desaturación, shock obstructivo y bradicardia; exploración con asimetría y transiluminación; punción en el 2.º espacio intercostal.
 - Lectura neonatal ampliada: bolsa de plástico, dificultad respiratoria del prematuro (CPAP), FiO₂ inicial 30 % en < 28 semanas, más PEEP antes que más oxígeno, presión alta para un prematuro, hiperoxia (objetivo 90–95 %), glucemia, hipoglucemia y perfusión, incubadora, hipo e hipertermia y neumotórax.
 - Dos casos nuevos en «Neonatal»: prematuro de 27 semanas nacido en el domicilio y traslado interhospitalario de un prematuro de 32 semanas en CPAP con neumotórax en vuelo; con tutorial, solución y validados. Sus variantes cambian la edad gestacional y el peso.
-- Corrección: el umbral de volumen de cada respiración era fijo (30 mL) y descartaba las del recién nacido pequeño; ahora es proporcional al peso. 22 pruebas nuevas (272 en total).
+- Correcciones: el umbral de volumen de cada respiración era fijo (30 mL) y descartaba las del recién nacido pequeño; ahora es proporcional al peso. Y el ritmo se etiquetaba como taquicardia sinusal con cualquier FC > 100 en el niño; ahora usa la normalidad de su edad (180 en el recién nacido). 22 pruebas nuevas (272 en total).
 
 ## Cambios en la v1.11
 
