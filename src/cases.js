@@ -23,7 +23,9 @@
               eventos: extub, disc, sel, obst, leak, bronco, ptx, o2, wake, anx, cough, vf, aspir, tep, anaf, tsv, fa, tvp
      targets  { clave: [mín, máx] } con claves spo2, et, tas, vtkg, pplat, dp, peepi, pco2, rr, ie, auto, leak, o2, fight, sinus
      duration minutos clínicos hasta el final automático (opcional)
-     goal     lo que se cuenta al empezar; hint, una solución posible */
+     goal     lo que se cuenta al empezar; hint, una solución posible
+     Biblioteca (al final del archivo, en META): scope ('t' terrestre, 'h' HEMS, 'i' interhospitalario), diff (1 básico, 2 intermedio,
+              3 avanzado) y teach (qué enseña, una línea) */
 (function (root) {
 'use strict';
 const AWAKE = { sedE: 0, sedStopped: true, relCe: 0 };
@@ -386,6 +388,69 @@ const CASES = {
 CASES.asistolia.goal = 'Niña de 13 años sacada de una piscina tras varios minutos sumergida. Asistolia. Tu compañero comprime; aún no tiene vía aérea avanzada.';
 CASES.asistolia.hint = 'En la parada por hipoxia la ventilación es la prioridad: ambú con O₂ al 100 % (5 insuflaciones de rescate) y compresiones 15:2; adrenalina 10 mcg/kg (≈ 0,45 mg) IV/IO cuanto antes en ritmo no desfibrilable y cada 3–5 min; si aparece un ritmo desfibrilable, 4 J/kg. Dosis por peso (ERC soporte vital pediátrico). Intubación cuando sea posible sin interrumpir las compresiones.';
 CASES.asistolia.targets = {};
+
+/* ---------- biblioteca: ámbito, dificultad y qué enseña cada caso ---------- */
+const META = {
+  tce: ['t', 1, 'Vt por peso ideal, normocapnia, FiO₂ mínima y TAS ≥ 110 en el TCE'],
+  htic: ['t', 2, 'Herniación: hiperventilación breve, osmoterapia y vuelta a la normocapnia'],
+  pcr: ['t', 1, 'Tras la RCE: normoxia, normocapnia, TAS y sedación'],
+  neumo: ['t', 2, 'Ventilación protectora con PEEP alta en el pulmón que no oxigena'],
+  ahogado: ['t', 2, 'Ahogamiento con edema pulmonar: PEEP y FiO₂ tras la RCE'],
+  aspiracion: ['t', 2, 'Broncoaspiración tras la ISR: aspirado, PEEP y ventilación protectora'],
+  asma: ['t', 3, 'Atrapamiento aéreo: auto-PEEP, desconexión, FR baja y espiración larga'],
+  trauma: ['t', 2, 'PEEP en el hipovolémico y neumotórax a tensión con presión positiva'],
+  traslado: ['i', 1, 'Autonomía de la botella y FiO₂ mínima en un traslado largo'],
+  despierta: ['t', 1, 'Desadaptación al pasarse la sedación: reconocerla y tratarla'],
+  cambioVent: ['i', 3, 'SDRA: paso al ventilador de transporte sin desreclutar'],
+  movil: ['h', 2, 'Desaturación al movilizar: DOPE e intubación selectiva'],
+  hemsApv: ['h', 2, 'Modo adaptativo en vuelo: sube la presión y el Vt no cae'],
+  epocHems: ['h', 3, 'EPOC intubado: auto-PEEP, hipercapnia permisiva y altitud'],
+  ptxAltitud: ['h', 3, 'Neumotórax sin drenar y altitud: drenar antes de volar o volar bajo'],
+  extubVuelo: ['h', 2, 'Extubación accidental en vuelo: reconocerla y reintubar'],
+  epocIni: ['t', 1, 'Primera conexión a VMNI en el EPOC: PS, PEEP, trigger y FiO₂'],
+  epocAsinc: ['t', 3, 'Esfuerzos ineficaces en VMNI: auto-PEEP, ciclado y Ti máx'],
+  eap: ['t', 1, 'EAP hipertensivo: CPAP y nitratos a dosis altas'],
+  eapShock: ['t', 3, 'EAP con shock cardiogénico: sin nitratos, noradrenalina y PEEP prudente'],
+  neumoVmni: ['t', 2, 'Reconocer el fracaso de la VMNI e intubar a tiempo'],
+  fuga: ['t', 1, 'Fuga de la mascarilla: verla en las curvas y corregirla'],
+  fracaso: ['t', 2, 'EPOC con acidosis grave: optimizar la VMNI y decidir la intubación'],
+  miastenia: ['t', 2, 'Crisis miasténica: fatiga muscular, VMNI o intubación'],
+  isrSeptico: ['t', 3, 'ISR en shock séptico: inductor, vasopresor y preoxigenación'],
+  obesoIsr: ['t', 3, 'ISR en obesidad mórbida: rampa, preoxigenación y apnea corta'],
+  viaDificil: ['t', 3, 'No intubable, no oxigenable: supraglótico y cricotiroidotomía'],
+  quemado: ['t', 3, 'Inhalación de humo: intubación precoz, monóxido y cianuro'],
+  bronquiolitis: ['t', 1, 'Alto flujo a 2 L/kg/min en el lactante y cuándo escalar'],
+  crup: ['t', 2, 'Crup grave: dexametasona, adrenalina nebulizada y no agitar al niño'],
+  anafPed: ['t', 2, 'Anafilaxia pediátrica: adrenalina IM por peso, volumen y vía aérea'],
+  pelvis: ['t', 2, 'Shock hemorrágico por pelvis: cinturón, hipotensión permisiva, tranexámico y sangre'],
+  pcrTrauma: ['t', 3, 'Parada traumática: hemorragia y neumotórax antes que las compresiones'],
+  eclampsia: ['t', 2, 'Eclampsia: magnesio, control de la TA y vía aérea'],
+  hpp: ['t', 2, 'Hemorragia posparto: masaje uterino, oxitocina, tranexámico y volumen'],
+  hiperK: ['t', 2, 'Hiperpotasemia: calcio, insulina con glucosa y salbutamol'],
+  hipotermia: ['t', 3, 'Hipotermia grave: movilización cuidadosa, recalentamiento y riesgo de FV'],
+  hipoglucemia: ['t', 1, 'Hipoglucemia grave sin vía y recurrencia por sulfonilureas'],
+  opiaceos: ['t', 1, 'Depresión respiratoria por opiáceos: ventilar y naloxona titulada'],
+  triciclicos: ['t', 2, 'Tricíclicos: QRS ancho y bicarbonato'],
+  hfnc: ['h', 2, 'Alto flujo en vuelo e índice ROX'],
+  epocO2: ['t', 1, 'EPOC con hiperoxia: SpO₂ objetivo 88–92 %'],
+  co: ['t', 1, 'Monóxido de carbono: la SpO₂ engaña; O₂ al 100 %'],
+  anafilaxia: ['t', 1, 'Anafilaxia: adrenalina IM, volumen y broncodilatadores'],
+  tepPulso: ['t', 3, 'TEP de alto riesgo: fibrinólisis y cuidado con la presión positiva'],
+  tsvInestable: ['t', 2, 'TSV inestable: cardioversión sincronizada con sedación'],
+  tsvEstable: ['t', 1, 'TSV estable: maniobras vagales y adenosina'],
+  faRapida: ['t', 2, 'FA rápida con hipotensión: cardioversión y control de frecuencia'],
+  tvPulso: ['t', 2, 'TV con pulso: cardioversión o amiodarona según la estabilidad'],
+  bradiSinusal: ['t', 1, 'Bradicardia sintomática: atropina y escalada'],
+  bav: ['t', 2, 'BAV completo: marcapasos transcutáneo y adrenalina'],
+  pcrFv: ['t', 1, 'Algoritmo de la FV: descarga precoz, adrenalina y antiarrítmico'],
+  fvRefractaria: ['t', 3, 'FV refractaria: cambio de vector, compresor mecánico y causas'],
+  aespPtx: ['t', 2, 'AESP por neumotórax: buscar la causa reversible'],
+  asistolia: ['t', 2, 'Parada hipóxica pediátrica: ventilar primero, 15:2 y adrenalina por peso'],
+  pcrTep: ['t', 3, 'PCR por TEP: fibrinólisis y RCP prolongada'],
+  pcrPedFv: ['t', 2, 'FV pediátrica: 4 J/kg, intraósea y dosis por peso'],
+  rceInestable: ['t', 2, 'RCE inestable: volumen, noradrenalina y evitar una nueva parada']
+};
+for (const [k, m] of Object.entries(META)) if (CASES[k]) Object.assign(CASES[k], { scope: m[0], diff: m[1], teach: m[2] });
 
 root.SIM_CASES = CASES;
 root.SIM_GROUPS = GROUPS;

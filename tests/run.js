@@ -117,6 +117,10 @@ console.log('— Todos los casos, 20 min sin tratar: sin valores imposibles');
 let bad = 0; for (const k of Object.keys(CASES)) { if (k === 'libre') continue; const L = load(k, { scale: 10 }); const R = run(L, CASES[k].duration || 20); if (R.nan.length || R.weird.some(w => !/pH (6\.|7\.0)/.test(w))) { bad++; console.log('   ', k, R.nan.slice(0, 2), R.weird.slice(0, 2)); } }
 check('Casos con NaN o valores fuera de rango fisiológico', bad, 0, 0);
 
+console.log('— Biblioteca (v1.1): cada caso con ámbito, dificultad y qué enseña');
+{ const miss = Object.entries(CASES).filter(([k, c]) => k !== 'libre' && !(['t', 'h', 'i'].includes(c.scope) && [1, 2, 3].includes(c.diff) && c.teach && c.teach.length > 15)).map(([k]) => k);
+  if (miss.length) console.log('   sin ficha:', miss.join(', ')); check('Casos sin ficha de biblioteca', miss.length, 0, 0); }
+
 console.log('— Variantes (v1.0): reproducibles, sin valores imposibles y cada causa de parada pide su tratamiento');
 { const V = global.SIM_VARIANT, keys = Object.keys(CASES).filter(k => k !== 'libre' && CASES[k].pheno);
   check('Misma semilla, misma variante', keys.filter(k => JSON.stringify(V.make(k, 4242)) !== JSON.stringify(V.make(k, 4242))).length, 0, 0);

@@ -89,7 +89,7 @@ function qItems() {
   $$('#vkeys .vbtn').forEach(b => it.push({ lab: b.textContent.trim(), where: devOf().short + ' · teclas', kw: '', el: b, run: () => b.click() }));
   if ($('#sbyGo')) it.push({ lab: 'Iniciar ventilación', where: devOf().short, kw: 'empezar arrancar standby espera', el: $('#sbyGo'), run: () => $('#sbyGo').click() });
   QMON.forEach(([sel, lab, kw]) => { const e = $(sel); if (e) it.push({ lab, where: 'Monitor', kw, el: e, run: e.tagName === 'BUTTON' ? () => e.click() : null }); });
-  [['#tutBtn', 'Guíame en este caso (tutorial)', 'tutorial guia paso a paso ayuda perdido'], ['#varBtn', 'Nueva variante de este caso', 'variante otro paciente distinto generar aleatorio cambiar caso'], ['#endBtn', 'Terminar caso', 'acabar debrief nota'], ['#pauseBtn', 'Pausa', 'parar'], ['#resetBtn', 'Reiniciar el caso', 'repetir'], ['#guideBtn', 'Guía de la pantalla', 'ayuda tutorial'], ['#histBtn', 'Historial', 'notas'], ['#edBtn', 'Mis casos', 'editor crear caso']]
+  [['#libBtn', 'Biblioteca de casos', 'biblioteca casos lista filtros aleatorio elegir caso buscar caso'], ['#tutBtn', 'Guíame en este caso (tutorial)', 'tutorial guia paso a paso ayuda perdido'], ['#varBtn', 'Nueva variante de este caso', 'variante otro paciente distinto generar aleatorio cambiar caso'], ['#endBtn', 'Terminar caso', 'acabar debrief nota'], ['#pauseBtn', 'Pausa', 'parar'], ['#resetBtn', 'Reiniciar el caso', 'repetir'], ['#guideBtn', 'Guía de la pantalla', 'ayuda tutorial'], ['#histBtn', 'Historial', 'notas'], ['#edBtn', 'Mis casos', 'editor crear caso']]
     .forEach(([sel, lab, kw]) => { const e = $(sel); if (e) it.push({ lab, where: 'Barra superior', kw, el: e, run: () => e.click() }); });
   return it;
 }

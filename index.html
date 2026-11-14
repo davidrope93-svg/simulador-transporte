@@ -261,7 +261,7 @@ details.box>summary{cursor:pointer;font-weight:600;font-family:var(--display);te
 .inrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 
 /* debrief */
-.modal{position:fixed;inset:0;background:rgba(5,12,16,.55);display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));z-index:20}
+.modal{position:fixed;inset:0;background:rgba(5,12,16,.55);display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));z-index:50}
 .sheet{background:var(--surface);color:var(--ink);border-radius:14px;max-width:640px;width:100%;max-height:100%;overflow:auto;padding:18px 20px;display:flex;flex-direction:column;gap:12px;border:1px solid var(--line)}
 .dtable{width:100%;border-collapse:collapse;font-size:.88rem}
 .dtable td,.dtable th{padding:5px 6px;border-bottom:1px solid var(--line);text-align:left}
@@ -398,6 +398,25 @@ body.proj .coach{display:none}
 .tour-card{position:fixed;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:12px 14px;box-shadow:0 10px 30px rgba(0,0,0,.3);display:flex;flex-direction:column;gap:8px}
 .tour-card b{font-family:var(--display);text-transform:uppercase;letter-spacing:.05em}
 
+/* ===== v1.1: biblioteca de casos ===== */
+.caserow{display:flex;gap:6px;align-items:center}.caserow select{flex:1;min-width:0}
+.sheet.lib{max-width:880px;height:min(88vh,900px);overflow:hidden}
+#lbQ{width:100%;min-height:42px}
+.lbf summary{cursor:pointer;font:12px/1.4 var(--mono);color:var(--muted);letter-spacing:.04em;padding:2px 0}
+.libbar{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.libbar select{flex:1 1 150px;min-height:40px;min-width:0}
+.lbv{display:flex;gap:6px;align-items:center;margin-left:auto}
+.lblist{display:flex;flex-direction:column;gap:8px;overflow:auto;min-height:0;flex:1;padding-right:2px}
+.lbi{display:flex;flex-direction:column;gap:4px;text-align:left;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface2);color:var(--ink);font:inherit;cursor:pointer}
+.lbi:hover,.lbi:focus-visible{border-color:var(--accent)}
+.lbi.cur{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.lbh{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.lbm{font:12px/1.35 var(--mono);color:var(--muted);letter-spacing:.02em}
+.lbd{font-size:.93rem}
+.lbs{font:12px/1.2 var(--mono);white-space:nowrap;padding:2px 8px;border-radius:999px;border:1px solid var(--line)}
+.lbs.ok{color:var(--ok);border-color:currentColor}.lbs.mid{color:var(--warn);border-color:currentColor}.lbs.low{color:var(--bad);border-color:currentColor}.lbs.new{color:var(--muted)}
+@media (max-width:720px){.libbar select{flex-basis:40%}.sheet.lib{height:100%}.lbv{margin-left:0;flex-basis:100%}}
+
 /* ===== v0.9: tutorial por caso ===== */
 .caseact{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline}
 .caseact .vnote{flex-basis:100%;margin:0;color:var(--muted)}.vlink{flex-basis:100%;font:12px/1.4 var(--mono,monospace);padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
@@ -416,11 +435,11 @@ body.exam #tutBtn{display:none}
 <main>
   <header class="top">
     <div class="brand">
-      <span class="eyebrow">Simulador docente · SVA terrestre y HEMS · v1.0</span>
+      <span class="eyebrow">Simulador docente · SVA terrestre y HEMS · v1.1</span>
       <h1>Ventilación, monitor y RCP</h1>
     </div>
     <div class="toolbar">
-      <div class="field"><label for="caseSel">Caso</label><select id="caseSel"></select></div>
+      <div class="field"><label for="caseSel">Caso</label><div class="caserow"><select id="caseSel"></select><button class="btn" id="libBtn" title="Todos los casos con buscador, filtros y caso aleatorio">Biblioteca</button></div></div>
       <div class="field" id="phenoField" hidden><label for="phenoSel">Paciente</label><select id="phenoSel"></select></div>
       <div class="field" id="ifaceField" hidden><label for="ifaceSel">Interfaz</label><select id="ifaceSel"><option value="tube">Tubo endotraqueal</option><option value="mask">Mascarilla (VMNI)</option><option value="nasal">Alto flujo</option><option value="o2">Oxigenoterapia</option></select></div>
       <div class="field" data-tabsec="case"><label for="ventSel">Ventilador</label><select id="ventSel"><option value="monnal">Monnal T60</option><option value="medumat">Medumat Standard²</option><option value="t1">Hamilton T1</option></select></div>
@@ -601,6 +620,23 @@ body.exam #tutBtn{display:none}
       <h3 id="dbH" style="font-size:1.4rem"></h3>
       <div id="dbBody"></div>
       <div class="inrow"><button class="btn primary" id="dbRepeat">Repetir caso</button><button class="btn" id="dbClose">Seguir simulando</button><button class="btn" id="dbPdf">Exportar PDF</button></div>
+    </div>
+  </div>
+
+  <div class="modal" id="libModal" hidden role="dialog" aria-modal="true" aria-labelledby="lbH">
+    <div class="sheet lib">
+      <span class="eyebrow" id="lbSum"></span>
+      <h3 id="lbH" style="font-size:1.4rem">Biblioteca de casos</h3>
+      <input id="lbQ" type="search" placeholder="Buscar: asma, HEMS, niño, cardioversión…" autocomplete="off" aria-label="Buscar un caso">
+      <details class="lbf" id="lbF" open><summary id="lbFs">Filtros</summary><div class="libbar">
+        <select id="lbG" aria-label="Grupo"></select>
+        <select id="lbS" aria-label="Ámbito"><option value="">Todo ámbito</option><option value="t">Terrestre</option><option value="h">HEMS</option><option value="i">Interhospitalario</option></select>
+        <select id="lbD" aria-label="Dificultad"><option value="">Toda dificultad</option><option value="1">Básico</option><option value="2">Intermedio</option><option value="3">Avanzado</option></select>
+        <select id="lbP" aria-label="Paciente"><option value="">Todo paciente</option><option value="a">Adulto</option><option value="p">Pediátrico</option><option value="o">Obstétrico</option></select>
+        <select id="lbE" aria-label="Estado"><option value="">Hechos y sin hacer</option><option value="new">Sin hacer</option><option value="done">Hechos</option><option value="redo">Para repetir (nota &lt; 6)</option></select>
+      </div></details>
+      <div class="inrow"><span class="small" id="lbN"></span><label class="small lbv"><input type="checkbox" id="lbVar"> Cargar como variante nueva</label><button class="btn" id="lbClear">Quitar filtros</button><button class="btn primary" id="lbRand">Caso aleatorio</button><button class="btn" id="lbClose">Cerrar</button></div>
+      <div id="lbList" class="lblist"></div>
     </div>
   </div>
 
@@ -1702,7 +1738,9 @@ root.SIM_DEV = { SPEC, PKEYS, KEYS, DEVS, KEYLAB, MONS };
               eventos: extub, disc, sel, obst, leak, bronco, ptx, o2, wake, anx, cough, vf, aspir, tep, anaf, tsv, fa, tvp
      targets  { clave: [mín, máx] } con claves spo2, et, tas, vtkg, pplat, dp, peepi, pco2, rr, ie, auto, leak, o2, fight, sinus
      duration minutos clínicos hasta el final automático (opcional)
-     goal     lo que se cuenta al empezar; hint, una solución posible */
+     goal     lo que se cuenta al empezar; hint, una solución posible
+     Biblioteca (al final del archivo, en META): scope ('t' terrestre, 'h' HEMS, 'i' interhospitalario), diff (1 básico, 2 intermedio,
+              3 avanzado) y teach (qué enseña, una línea) */
 (function (root) {
 'use strict';
 const AWAKE = { sedE: 0, sedStopped: true, relCe: 0 };
@@ -2065,6 +2103,69 @@ const CASES = {
 CASES.asistolia.goal = 'Niña de 13 años sacada de una piscina tras varios minutos sumergida. Asistolia. Tu compañero comprime; aún no tiene vía aérea avanzada.';
 CASES.asistolia.hint = 'En la parada por hipoxia la ventilación es la prioridad: ambú con O₂ al 100 % (5 insuflaciones de rescate) y compresiones 15:2; adrenalina 10 mcg/kg (≈ 0,45 mg) IV/IO cuanto antes en ritmo no desfibrilable y cada 3–5 min; si aparece un ritmo desfibrilable, 4 J/kg. Dosis por peso (ERC soporte vital pediátrico). Intubación cuando sea posible sin interrumpir las compresiones.';
 CASES.asistolia.targets = {};
+
+/* ---------- biblioteca: ámbito, dificultad y qué enseña cada caso ---------- */
+const META = {
+  tce: ['t', 1, 'Vt por peso ideal, normocapnia, FiO₂ mínima y TAS ≥ 110 en el TCE'],
+  htic: ['t', 2, 'Herniación: hiperventilación breve, osmoterapia y vuelta a la normocapnia'],
+  pcr: ['t', 1, 'Tras la RCE: normoxia, normocapnia, TAS y sedación'],
+  neumo: ['t', 2, 'Ventilación protectora con PEEP alta en el pulmón que no oxigena'],
+  ahogado: ['t', 2, 'Ahogamiento con edema pulmonar: PEEP y FiO₂ tras la RCE'],
+  aspiracion: ['t', 2, 'Broncoaspiración tras la ISR: aspirado, PEEP y ventilación protectora'],
+  asma: ['t', 3, 'Atrapamiento aéreo: auto-PEEP, desconexión, FR baja y espiración larga'],
+  trauma: ['t', 2, 'PEEP en el hipovolémico y neumotórax a tensión con presión positiva'],
+  traslado: ['i', 1, 'Autonomía de la botella y FiO₂ mínima en un traslado largo'],
+  despierta: ['t', 1, 'Desadaptación al pasarse la sedación: reconocerla y tratarla'],
+  cambioVent: ['i', 3, 'SDRA: paso al ventilador de transporte sin desreclutar'],
+  movil: ['h', 2, 'Desaturación al movilizar: DOPE e intubación selectiva'],
+  hemsApv: ['h', 2, 'Modo adaptativo en vuelo: sube la presión y el Vt no cae'],
+  epocHems: ['h', 3, 'EPOC intubado: auto-PEEP, hipercapnia permisiva y altitud'],
+  ptxAltitud: ['h', 3, 'Neumotórax sin drenar y altitud: drenar antes de volar o volar bajo'],
+  extubVuelo: ['h', 2, 'Extubación accidental en vuelo: reconocerla y reintubar'],
+  epocIni: ['t', 1, 'Primera conexión a VMNI en el EPOC: PS, PEEP, trigger y FiO₂'],
+  epocAsinc: ['t', 3, 'Esfuerzos ineficaces en VMNI: auto-PEEP, ciclado y Ti máx'],
+  eap: ['t', 1, 'EAP hipertensivo: CPAP y nitratos a dosis altas'],
+  eapShock: ['t', 3, 'EAP con shock cardiogénico: sin nitratos, noradrenalina y PEEP prudente'],
+  neumoVmni: ['t', 2, 'Reconocer el fracaso de la VMNI e intubar a tiempo'],
+  fuga: ['t', 1, 'Fuga de la mascarilla: verla en las curvas y corregirla'],
+  fracaso: ['t', 2, 'EPOC con acidosis grave: optimizar la VMNI y decidir la intubación'],
+  miastenia: ['t', 2, 'Crisis miasténica: fatiga muscular, VMNI o intubación'],
+  isrSeptico: ['t', 3, 'ISR en shock séptico: inductor, vasopresor y preoxigenación'],
+  obesoIsr: ['t', 3, 'ISR en obesidad mórbida: rampa, preoxigenación y apnea corta'],
+  viaDificil: ['t', 3, 'No intubable, no oxigenable: supraglótico y cricotiroidotomía'],
+  quemado: ['t', 3, 'Inhalación de humo: intubación precoz, monóxido y cianuro'],
+  bronquiolitis: ['t', 1, 'Alto flujo a 2 L/kg/min en el lactante y cuándo escalar'],
+  crup: ['t', 2, 'Crup grave: dexametasona, adrenalina nebulizada y no agitar al niño'],
+  anafPed: ['t', 2, 'Anafilaxia pediátrica: adrenalina IM por peso, volumen y vía aérea'],
+  pelvis: ['t', 2, 'Shock hemorrágico por pelvis: cinturón, hipotensión permisiva, tranexámico y sangre'],
+  pcrTrauma: ['t', 3, 'Parada traumática: hemorragia y neumotórax antes que las compresiones'],
+  eclampsia: ['t', 2, 'Eclampsia: magnesio, control de la TA y vía aérea'],
+  hpp: ['t', 2, 'Hemorragia posparto: masaje uterino, oxitocina, tranexámico y volumen'],
+  hiperK: ['t', 2, 'Hiperpotasemia: calcio, insulina con glucosa y salbutamol'],
+  hipotermia: ['t', 3, 'Hipotermia grave: movilización cuidadosa, recalentamiento y riesgo de FV'],
+  hipoglucemia: ['t', 1, 'Hipoglucemia grave sin vía y recurrencia por sulfonilureas'],
+  opiaceos: ['t', 1, 'Depresión respiratoria por opiáceos: ventilar y naloxona titulada'],
+  triciclicos: ['t', 2, 'Tricíclicos: QRS ancho y bicarbonato'],
+  hfnc: ['h', 2, 'Alto flujo en vuelo e índice ROX'],
+  epocO2: ['t', 1, 'EPOC con hiperoxia: SpO₂ objetivo 88–92 %'],
+  co: ['t', 1, 'Monóxido de carbono: la SpO₂ engaña; O₂ al 100 %'],
+  anafilaxia: ['t', 1, 'Anafilaxia: adrenalina IM, volumen y broncodilatadores'],
+  tepPulso: ['t', 3, 'TEP de alto riesgo: fibrinólisis y cuidado con la presión positiva'],
+  tsvInestable: ['t', 2, 'TSV inestable: cardioversión sincronizada con sedación'],
+  tsvEstable: ['t', 1, 'TSV estable: maniobras vagales y adenosina'],
+  faRapida: ['t', 2, 'FA rápida con hipotensión: cardioversión y control de frecuencia'],
+  tvPulso: ['t', 2, 'TV con pulso: cardioversión o amiodarona según la estabilidad'],
+  bradiSinusal: ['t', 1, 'Bradicardia sintomática: atropina y escalada'],
+  bav: ['t', 2, 'BAV completo: marcapasos transcutáneo y adrenalina'],
+  pcrFv: ['t', 1, 'Algoritmo de la FV: descarga precoz, adrenalina y antiarrítmico'],
+  fvRefractaria: ['t', 3, 'FV refractaria: cambio de vector, compresor mecánico y causas'],
+  aespPtx: ['t', 2, 'AESP por neumotórax: buscar la causa reversible'],
+  asistolia: ['t', 2, 'Parada hipóxica pediátrica: ventilar primero, 15:2 y adrenalina por peso'],
+  pcrTep: ['t', 3, 'PCR por TEP: fibrinólisis y RCP prolongada'],
+  pcrPedFv: ['t', 2, 'FV pediátrica: 4 J/kg, intraósea y dosis por peso'],
+  rceInestable: ['t', 2, 'RCE inestable: volumen, noradrenalina y evitar una nueva parada']
+};
+for (const [k, m] of Object.entries(META)) if (CASES[k]) Object.assign(CASES[k], { scope: m[0], diff: m[1], teach: m[2] });
 
 root.SIM_CASES = CASES;
 root.SIM_GROUPS = GROUPS;
@@ -3612,7 +3713,7 @@ function teachDebrief(reason) {
   const tl = track.series.length > 2 ? `<h2 style="margin-top:6px">Línea de tiempo</h2>${timelineSVG(track.series, dm.m, dm.lines)}` : '';
   $('#dbBody').insertAdjacentHTML('afterbegin', head + tl);
   if (exam && c.hint) { const hs = [...$('#dbBody').querySelectorAll('h2')].find(h => h.textContent === 'Solución posible'); if (hs) { const p = hs.nextElementSibling; const d = document.createElement('details'); d.innerHTML = '<summary>Ver la solución posible</summary>'; d.appendChild(p.cloneNode(true)); hs.replaceWith(d); p.remove(); } }
-  const att = { d: new Date().toISOString(), name: student || '', key: caseKey, title: c.title, exam, tut: !!track.tutorial, score: sc.total, parts: sc.parts.map(p => [p.lab, Math.round(p.v * 100)]), min: Math.round(S.clin * 10) / 10, reason: reason || '' };
+  const att = { d: new Date().toISOString(), name: student || '', key: caseKey, base: c.vbase || null, title: c.title, exam, tut: !!track.tutorial, score: sc.total, parts: sc.parts.map(p => [p.lab, Math.round(p.v * 100)]), min: Math.round(S.clin * 10) / 10, reason: reason || '' };
   const hist = LS.get('simvmi.hist', []); hist.push(att); while (hist.length > 500) hist.shift(); LS.set('simvmi.hist', hist);
   const idx = hist.length - 1;
   $('#dbName').addEventListener('change', e => { student = e.target.value.trim().slice(0, 60); LS.set('simvmi.name', student); $('#stuName').value = student; const h = LS.get('simvmi.hist', []); if (h[idx] && h[idx].d === att.d) { h[idx].name = student; LS.set('simvmi.hist', h); } });
@@ -4025,7 +4126,7 @@ function qItems() {
   $$('#vkeys .vbtn').forEach(b => it.push({ lab: b.textContent.trim(), where: devOf().short + ' · teclas', kw: '', el: b, run: () => b.click() }));
   if ($('#sbyGo')) it.push({ lab: 'Iniciar ventilación', where: devOf().short, kw: 'empezar arrancar standby espera', el: $('#sbyGo'), run: () => $('#sbyGo').click() });
   QMON.forEach(([sel, lab, kw]) => { const e = $(sel); if (e) it.push({ lab, where: 'Monitor', kw, el: e, run: e.tagName === 'BUTTON' ? () => e.click() : null }); });
-  [['#tutBtn', 'Guíame en este caso (tutorial)', 'tutorial guia paso a paso ayuda perdido'], ['#varBtn', 'Nueva variante de este caso', 'variante otro paciente distinto generar aleatorio cambiar caso'], ['#endBtn', 'Terminar caso', 'acabar debrief nota'], ['#pauseBtn', 'Pausa', 'parar'], ['#resetBtn', 'Reiniciar el caso', 'repetir'], ['#guideBtn', 'Guía de la pantalla', 'ayuda tutorial'], ['#histBtn', 'Historial', 'notas'], ['#edBtn', 'Mis casos', 'editor crear caso']]
+  [['#libBtn', 'Biblioteca de casos', 'biblioteca casos lista filtros aleatorio elegir caso buscar caso'], ['#tutBtn', 'Guíame en este caso (tutorial)', 'tutorial guia paso a paso ayuda perdido'], ['#varBtn', 'Nueva variante de este caso', 'variante otro paciente distinto generar aleatorio cambiar caso'], ['#endBtn', 'Terminar caso', 'acabar debrief nota'], ['#pauseBtn', 'Pausa', 'parar'], ['#resetBtn', 'Reiniciar el caso', 'repetir'], ['#guideBtn', 'Guía de la pantalla', 'ayuda tutorial'], ['#histBtn', 'Historial', 'notas'], ['#edBtn', 'Mis casos', 'editor crear caso']]
     .forEach(([sel, lab, kw]) => { const e = $(sel); if (e) it.push({ lab, where: 'Barra superior', kw, el: e, run: () => e.click() }); });
   return it;
 }
@@ -4273,6 +4374,89 @@ function tutInit() {
 }
 let lastAct = performance.now();
 
+/* ===== Biblioteca de casos (v1.1): buscador, filtros, caso aleatorio y marca de hechos con la mejor nota.
+   Se inserta dentro de la interfaz, después del tutorial. Los filtros se recuerdan en este dispositivo. ===== */
+const SCOPE = { t: 'Terrestre', h: 'HEMS', i: 'Interhospitalario' };
+const DIFF = { 1: 'Básico', 2: 'Intermedio', 3: 'Avanzado' };
+const PAT = { a: 'Adulto', p: 'Pediátrico', o: 'Obstétrico' };
+const libScope = c => c.scope || (c.altitude != null || c.vlvl === 'VMI · HEMS' ? 'h' : 't');
+const libPat = c => c.ped || (c.peso && c.peso < 40) ? 'p' : /gestante|parto|posparto|eclampsia/i.test((c.title || '') + ' ' + (c.goal || '')) ? 'o' : 'a';
+const libKeys = () => Object.keys(CASES).filter(k => k !== 'libre' && k !== 'u_var' && k !== 'u_try' && CASES[k].pheno);
+/* intentos del historial por caso: los de sus variantes cuentan para el caso original */
+function libStats() {
+  const st = {};
+  for (const a of LS.get('simvmi.hist', [])) {
+    for (const k of new Set([a.key, a.base].filter(Boolean))) { const s = st[k] || (st[k] = { n: 0, best: null, last: null }); s.n++; if (s.best == null || a.score > s.best) s.best = a.score; if (!s.last || a.d > s.last) s.last = a.d; }
+  }
+  return st;
+}
+let lib = Object.assign({ q: '', g: '', s: '', d: '', p: '', e: '' }, LS.get('simvmi.lib', {}), { v: false }); // «como variante» no se recuerda entre sesiones
+function libFiltered(stats) {
+  const words = norm(lib.q).split(/\s+/).filter(Boolean);
+  return libKeys().filter(k => {
+    const c = CASES[k], s = stats[k];
+    if (lib.g && c.lvl !== lib.g) return false;
+    if (lib.s && libScope(c) !== lib.s) return false;
+    if (lib.d && String(c.diff || 2) !== lib.d) return false;
+    if (lib.p && libPat(c) !== lib.p) return false;
+    if (lib.e === 'new' && s) return false;
+    if (lib.e === 'done' && !s) return false;
+    if (lib.e === 'redo' && !(s && s.best < 6)) return false;
+    if (!words.length) return true;
+    const hay = norm([c.title, c.goal, c.teach, c.lvl, SCOPE[libScope(c)], PAT[libPat(c)], DIFF[c.diff || 2], libPat(c) === 'p' ? 'niño niña lactante pediatria' : ''].join(' '));
+    return words.every(w => hay.includes(w));
+  });
+}
+function libRender() {
+  const stats = libStats(), list = libFiltered(stats), all = libKeys();
+  const done = all.filter(k => stats[k]).length;
+  $('#lbSum').textContent = `${all.length} casos · ${done} ${done === 1 ? 'hecho' : 'hechos'} · ${all.length - done} sin hacer`;
+  const act = ['g', 's', 'd', 'p', 'e'].filter(f => lib[f]).length; $('#lbFs').textContent = act ? `Filtros (${act} ${act === 1 ? 'activo' : 'activos'})` : 'Filtros';
+  $('#lbN').textContent = list.length === all.length ? 'Mostrando todos' : `${list.length} de ${all.length}`;
+  const dots = d => '●'.repeat(d) + '○'.repeat(3 - d);
+  $('#lbList').innerHTML = list.length ? list.map(k => {
+    const c = CASES[k], s = stats[k], d = c.diff || 2;
+    const badge = s ? `<span class="lbs ${s.best >= 8 ? 'ok' : s.best >= 6 ? 'mid' : 'low'}" title="Mejor nota y número de intentos">✓ ${fmt(s.best, 1)} · ${s.n} ${s.n > 1 ? 'intentos' : 'intento'}</span>` : '<span class="lbs new">sin hacer</span>';
+    return `<button class="lbi${k === caseKey ? ' cur' : ''}" data-k="${esc(k)}"><span class="lbh"><b>${esc(c.title)}</b>${badge}</span><span class="lbm">${esc(c.lvl)} · ${SCOPE[libScope(c)]} · ${PAT[libPat(c)]} · <span title="${DIFF[d]}">${dots(d)}</span> ${DIFF[d]}</span><span class="lbd">${esc(c.teach || (c.goal || '').slice(0, 120))}</span></button>`;
+  }).join('') : '<p class="small">Ningún caso cumple estos filtros. Quita alguno o cambia la búsqueda.</p>';
+  $('#lbVar').checked = !!lib.v;
+}
+function libSave() { const { v, ...keep } = lib; LS.set('simvmi.lib', keep); }
+function libOpen() {
+  $('#lbG').innerHTML = '<option value="">Todos los grupos</option>' + GROUPS.filter(g => g !== 'Libre' && libKeys().some(k => CASES[k].lvl === g)).map(g => `<option>${esc(g)}</option>`).join('');
+  for (const [id, f] of [['#lbQ', 'q'], ['#lbG', 'g'], ['#lbS', 's'], ['#lbD', 'd'], ['#lbP', 'p'], ['#lbE', 'e']]) $(id).value = lib[f] || '';
+  if ($('#lbG').value !== (lib.g || '')) { lib.g = ''; $('#lbG').value = ''; }
+  $('#lbF').open = !matchMedia('(max-width: 720px)').matches || ['g', 's', 'd', 'p', 'e'].some(f => lib[f]); // en el móvil, plegados salvo que haya alguno puesto
+  libRender(); $('#libModal').hidden = false;
+  const cur = $('#lbList .lbi.cur'); if (cur) cur.scrollIntoView({ block: 'nearest' });
+  if (!matchMedia('(pointer: coarse)').matches) $('#lbQ').focus();
+}
+function libClose() { $('#libModal').hidden = true; $('#lbQ').blur(); }
+function libLoad(k) {
+  libClose(); if (!CASES[k]) return;
+  $('#caseSel').value = k; loadCase(k);
+  if (lib.v) newVariant();
+}
+function libRandom() {
+  const stats = libStats(), list = libFiltered(stats); if (!list.length) { toast('Ningún caso cumple estos filtros.'); return; }
+  const fresh = list.filter(k => !stats[k] && k !== caseKey), pool = fresh.length ? fresh : list.filter(k => k !== caseKey).length ? list.filter(k => k !== caseKey) : list;
+  const k = pool[Math.floor(Math.random() * pool.length)];
+  libLoad(k); toast(`Caso al azar: ${CASES[k].title}${lib.v ? ' (variante nueva)' : ''}`);
+}
+function libInit() {
+  $('#libBtn').addEventListener('click', libOpen);
+  $('#lbClose').addEventListener('click', libClose);
+  $('#lbRand').addEventListener('click', libRandom);
+  $('#lbClear').addEventListener('click', () => { lib = Object.assign(lib, { q: '', g: '', s: '', d: '', p: '', e: '' }); libSave(); libOpen(); });
+  $('#lbVar').addEventListener('change', e => { lib.v = e.target.checked; libSave(); });
+  for (const [id, f] of [['#lbG', 'g'], ['#lbS', 's'], ['#lbD', 'd'], ['#lbP', 'p'], ['#lbE', 'e']]) $(id).addEventListener('change', e => { lib[f] = e.target.value; libSave(); libRender(); });
+  $('#lbQ').addEventListener('input', e => { lib.q = e.target.value; libSave(); libRender(); });
+  $('#lbQ').addEventListener('keydown', e => { if (e.key === 'Enter') { const b = $('#lbList .lbi'); if (b) libLoad(b.dataset.k); } });
+  $('#lbList').addEventListener('click', e => { const b = e.target.closest('.lbi'); if (b) libLoad(b.dataset.k); });
+  $('#libModal').addEventListener('click', e => { if (e.target.id === 'libModal') libClose(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#libModal').hidden) libClose(); });
+}
+
 
 /* ---------- arranque ---------- */
 $('#caseSel').innerHTML = GROUPS.map(g => `<optgroup label="${g}">` + Object.entries(CASES).filter(([, c]) => c.lvl === g).map(([k, c]) => `<option value="${k}">${c.title}</option>`).join('') + '</optgroup>').join('');
@@ -4289,7 +4473,7 @@ $('#speedSeg').addEventListener('click', e => { const b = e.target.closest('butt
 $('#truthBox').addEventListener('toggle', () => { if ($('#truthBox').open) renderTruth(); });
 window.__sim = () => ({ sim, S, M, track, pend, lim, exam, LINK, tut, tutSteps, tutWhere });
 if (INSTR) startInstructor();
-else { teachInit(); guideInit(); tutInit(); const k0 = loadSharedFromHash(); if (k0) $('#caseSel').value = k0; loadCase(k0 || 'tce'); requestAnimationFrame(frame); }
+else { teachInit(); guideInit(); tutInit(); libInit(); const k0 = loadSharedFromHash(); if (k0) $('#caseSel').value = k0; loadCase(k0 || 'tce'); requestAnimationFrame(frame); }
 })();
 
 </script>
