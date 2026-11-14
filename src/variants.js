@@ -76,12 +76,12 @@ function make(baseKey, seed) {
 
   /* 1. paciente */
   let demo = null;
-  const mA = /^(Varón|Mujer|Motorista|Senderista|Paciente|Surfista|Buceador|Buceadora|Corredor|Corredora) de (\d+) años((?:, \d+ cm)?(?:, \d+ kg)?)/.exec(c.goal || '');
+  const mA = /^(Varón|Mujer|Motorista|Senderista|Paciente|Surfista|Buceador|Buceadora|Corredor|Corredora|Socorrista|Jugador de rugby|Jugadora de rugby) de (\d+) años((?:, \d+ cm)?(?:, \d+ kg)?)/.exec(c.goal || '');
   const mP = /^((?:Lactante|Niño|Niña) de \d+ (?:meses|años)) y (\d+) kg/.exec(c.goal || '');
   if (mA && !c.ped) {
     const age = clamp(+mA[2] + Math.round(rr(-12, 12)), 18, 92);
     const talla = Math.round(f ? rr(150, 176) : rr(160, 192));
-    const obese = c.pheno === 'obeso' || (c.pheno === 'sano' && !c.arrest && R() < .2);
+    const obese = c.pheno === 'obeso' || (c.pheno === 'sano' && !c.arrest && !c.noObese && R() < .2); // v1.16: noObese cuando la constitución es parte de la historia
     const bmi = c.pheno === 'obeso' ? rr(38, 50) : obese ? rr(35, 45) : rr(20, 31);
     const peso = Math.round(bmi * Math.pow(talla / 100, 2));
     if (obese && c.pheno === 'sano') { c.pheno = 'obeso'; c.tasAdj = (c.tasAdj || 0) - 15; c.fcAdj = (c.fcAdj || 0) - 15; } // que la TA y la FC sigan siendo las del planteamiento

@@ -42,7 +42,7 @@ const DRUGSET = [
     { id: 'salb', lab: 'Salbutamol + ipratropio', k: 'salb', amt: 1, note: 'nebulizado o en línea', pnote: '2,5 mg (< 20 kg) o 5 mg + ipratropio 250 mcg nebulizados, cada 20 min la 1.ª hora', route: '', noIV: true }, { id: 'mgso4', lab: 'Sulfato de magnesio', k: 'mg', dose: 2, u: 'g' },
     { id: 'cort', lab: 'Metilprednisolona', k: 'cort', mgkg: 1, u: 'mg' }, { id: 'adrIM', lab: 'Adrenalina IM', k: 'adrIM', dose: .5, u: 'mg', amt: .5, route: ' en el muslo', noIV: true },
     { id: 'dexclor', lab: 'Dexclorfeniramina', k: 'dexclor', dose: 5, u: 'mg' }, { id: 'adrNeb', lab: 'Adrenalina nebulizada', k: 'adrN', dose: 5, u: 'mg', route: ' nebulizada', noIV: true },
-    { id: 'dexa', lab: 'Dexametasona', k: 'dexa', dose: 8, u: 'mg', route: ' oral o IM', noIV: true }] },
+    { id: 'dexa', lab: 'Dexametasona', k: 'dexa', dose: 8, u: 'mg', route: ' oral o IM', noIV: true }, { id: 'nifed', lab: 'Nifedipino retard', k: 'nifed', dose: 30, u: 'mg', route: ' oral', noIV: true, note: 'edema de altura' }] },
   { g: 'Metabólico, tóxicos y obstetricia', items: [
     { id: 'ca', lab: 'Cloruro cálcico 10 %', k: 'ca', dose: 10, u: 'mL', amt: 1 }, { id: 'bic', lab: 'Bicarbonato 1 M', k: 'bic', mgkg: 1, u: 'mEq' },
     { id: 'gluc', lab: 'Glucosa', k: 'gluc', dose: 25, u: 'g', note: 'G50 % 50 mL' }, { id: 'gluc10', lab: 'Glucosa', k: 'gluc', dose: 10, u: 'g', note: 'G10 % 100 mL' },

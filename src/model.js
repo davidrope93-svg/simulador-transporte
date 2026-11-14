@@ -47,7 +47,7 @@ const DRUGS = {
   // v1.7: antiepilépticos de 2.ª línea (mg normalizados a 75 kg; en 10 min)
   lev: { h: 420, on: 8, ec50: 1500 }, vpa: { h: 600, on: 8, ec50: 1000 },
   // v1.8: insulina a dosis altas (UI/kg), emulsión lipídica 20 % (mL, 75 kg) y pralidoxima (mg, 75 kg)
-  insHD: { h: 25, on: 15, ec50: .6 }, lipid: { h: 30, on: 2, ec50: 112 }, prali: { h: 120, on: 15, ec50: 1000 }
+  insHD: { h: 25, on: 15, ec50: .6 }, lipid: { h: 30, on: 2, ec50: 112 }, prali: { h: 120, on: 15, ec50: 1000 }, nifed: { h: 240, on: 20, ec50: 20 }
 };
 const SED_RATE = 3 * Math.LN2 / 15; // perfusión que mantiene la sedación de base al 75 %
 
@@ -78,6 +78,7 @@ const o2Fi = (dev, ve) => { const d = O2DEV[dev]; return d.k ? .21 + (d.fi - .21
 function create(opts) {
   const o = Object.assign({ pheno: 'sano', seed: 1, scale: 10, iface: 'tube', vent: 'monnal' }, opts || {});
   const P = Object.assign({}, PHENO[o.pheno]);
+  if (o.retainer) Object.assign(P, { hyper: true, co2set: 52, hco3: 31 }); // v1.16: retenedor crónico de CO₂ (obesidad-hipoventilación)
   // pediatría (peso < 40 kg): pulmón, espacio muerto y metabolismo escalados al peso; resistencias y frecuencias más altas; constantes por edad
   const ped = o.peso != null && o.peso < 40, kW = ped ? o.peso / 70 : 1;
   if (ped) { const al = Math.pow(70 / o.peso, .25), rs = Math.pow(70 / o.peso, .5), fr = Math.pow(70 / o.peso, .35);
@@ -121,7 +122,7 @@ function create(opts) {
     stemi: o.stemi ? { loc: o.stemi.loc || 'ant', rv: !!o.stemi.rv, onset: o.stemi.onset || 60, pci: o.stemi.pci != null ? o.stemi.pci : 30, reperf: false, reperfAt: null, tnkAt: null, icp: null } : null,
     tamp: o.tamp || 0, tampRate: o.tampRate || 0, pericPend: null,
     // v1.5: shock distributivo — vasoplejia séptica (0–1 y progresión por minuto hasta el antibiótico), neurogénico (0–1) y volumen que tolera el pulmón (mL/kg)
-    tire: !!o.tire, pneu: o.pneu || 0, tbi: o.tbi || 0, tbi0: o.tbi || 0, preg: o.preg || 0, lud: false, tdp: !!o.tdp, ced: o.cedema ? { at: o.cedema.at || 15, risk: o.cedema.risk || .3, on: false, bic: false, insB: false, pRef: o.pco2 || 40 } : null, vaso: o.vaso || 0, vasoRate: o.vasoRate || 0, neurog: o.neurog || 0, fluidTol: o.fluidTol || 35, atbAt: null, tad: 70, pam: 90,
+    tire: !!o.tire, pneu: o.pneu || 0, tbi: o.tbi || 0, tbi0: o.tbi || 0, preg: o.preg || 0, lud: false, tdp: !!o.tdp, drive0: o.drive0 || 1, ptxRate: o.ptxRate || 0, irritant: !!o.irritant, hape: o.hape || 0, anxRate: o.anxRate || 0, anxBase: o.anxBase || 0, calmAt: null, retainer: !!o.retainer, ced: o.cedema ? { at: o.cedema.at || 15, risk: o.cedema.risk || .3, on: false, bic: false, insB: false, pRef: o.pco2 || 40 } : null, vaso: o.vaso || 0, vasoRate: o.vasoRate || 0, neurog: o.neurog || 0, fluidTol: o.fluidTol || 35, atbAt: null, tad: 70, pam: 90,
     // v1.6: trauma torácico y quemado — hemotórax (L en la pleura), volet costal (0–1), dolor (0–1), superficie quemada (%) y cristaloide en bomba (mL/h)
     htx: o.htx || 0, htxOut: 0, flail: o.flail || 0, pain: o.pain || 0, burn: o.burn || 0, fluidRate: 0, analg: 0, painEff: 0,
     // v1.7: neurología — estatus epiléptico (refractariedad 0–1 y minutos de crisis), ictus (tipo, lado de la lesión, RACE, minutos de evolución, hematoma en mL) y sodio
@@ -168,7 +169,7 @@ function create(opts) {
     if (S.op > 0) { const ac = S.drug.atr.cp; S.opM = S.op * (1 - ac / (ac + 10 * S.op)); S.opN = S.op * (1 - .55 * E.prali); S.weak = Math.max(S.weak, .5 * S.opN); } // v1.8: síndrome colinérgico (muscarínico y nicotínico)
     if (S.cocaine > 0) S.cocE = S.cocaine * (1 - .65 * clamp(Math.max((E.mid - .15) / .35, (E.prop - .2) / .3, (S.sedTot - .3) / .4), 0, 1)); // las benzodiacepinas frenan el cuadro simpaticomimético
     S.opiR = S.opi * clamp((S.opi - .2) / .5, 0, 1) * (1 - .5 * S.pain); // v1.6: a dosis analgésicas el opiáceo deprime poco la respiración, y menos con dolor; en la intoxicación, todo su efecto
-    S.drvMul = (1 - .85 * S.opiR) * (1 - .3 * E.prop) * (1 - .25 * E.mid) * (1 - .3 * S.tca);
+    S.drvMul = (1 - .85 * S.opiR) * (1 - .3 * E.prop) * (1 - .25 * E.mid) * (1 - .3 * S.tca) * (S.drive0 || 1); // v1.16: impulso central reducido (obesidad-hipoventilación)
     const bronch = 1 - (1 - .8 * E.salb) * (1 - .4 * E.mg) * (1 - .5 * E.adr) * (1 - .3 * E.ket) * (1 - .35 * E.cort);
     const tgt = (S.bs0 + 1.2 * S.anaf) * (1 - .45 * bronch);
     if (S.bs > tgt) S.bs += (tgt - S.bs) * Math.min(1, dtc / 6); else S.bs += (tgt - S.bs) * Math.min(1, dtc / 30);
@@ -197,12 +198,12 @@ function create(opts) {
     const hx = clamp(S.htx / 1.8, 0, 1); // hemotórax: 1,8 L ocupa el hemitórax; la contusión del volet suma shunt que recluta algo con PEEP
     const b = .6 + .4 * S.bs, a = S.air, sv = Math.min(1, S.sev), pe = (S.iface === 'tube' || S.iface === 'mask') ? S.cfg.peep : (S.iface === 'nasal' ? hfPaw() : 0);
     S.mech = {
-      C: P.C * (1 - .2 * S.pneu) * (S.neo ? .25 + .75 * S.neo.aer : 1) * (1 - .35 * S.drown) * (a.sel ? .55 : 1) * (1 - .5 * ptxEff) * (1 - .5 * sv) * (1 - .4 * S.asp) * (1 - .2 * S.derec) * (1 - .35 * hx) * (1 - .15 * S.flail),
+      C: P.C * (1 - .2 * S.pneu) * (1 - .25 * S.hape) * (S.neo ? .25 + .75 * S.neo.aer : 1) * (1 - .35 * S.drown) * (a.sel ? .55 : 1) * (1 - .5 * ptxEff) * (1 - .5 * sv) * (1 - .4 * S.asp) * (1 - .2 * S.derec) * (1 - .35 * hx) * (1 - .15 * S.flail),
       Ri: P.Ri * b + 18 * S.opM + (a.obst ? 25 : 0) + (a.sel ? 2 : 0) + (S.iface === 'o2' || S.iface === 'nasal' ? -3 : 0) + (S.iface !== 'tube' ? croupR : 0),
       Re: P.Re * b + 18 * S.opM + (a.obst ? 25 : 0) + (S.iface !== 'tube' ? .3 * croupR : 0),
       Pcrit: P.Pcrit * b + 6 * Math.max(0, S.bs - 1),
       shunt: clamp(P.shunt0 - P.shuntPeep * (pe - 5), P.shuntMin, .5) + (a.sel ? .22 : 0) + .25 * ptxEff + (P.edema ? clamp(.3 * S.sev - .025 * (pe - 5) * Math.min(1, S.sev + .2), 0, .4) : 0) + clamp(.33 * S.asp - .015 * (pe - 5) * S.asp, 0, .38) + clamp(.009 * Math.max(0, (S.fluidKg || 0) - S.fluidTol), 0, .2) + .14 * S.derec + .06 * S.tep + (S.dci ? .3 * S.dci.chokes * S.dciE : 0) + clamp(.42 * S.drown - .03 * (pe - 5) * S.drown, 0, .45) + (S.neo ? .55 * (1 - S.neo.aer) + .3 * clamp(1 - (S.clin + S.neo.t0) / 8, 0, 1) + .3 * ptxEff : 0) + .18 * clamp((121 - S.na) / 5, 0, 1) + .45 * S.opM + (S.se && S.clin < S.seizUntil && S.relTot < .6 ? .26 : 0) + .26 * hx + clamp(.16 * S.flail - .012 * (pe - 5) * S.flail, 0, .22),
-      lvq: (S.tire ? .16 * clamp(S.bs - 1.3, 0, 2) : 0) + clamp(.42 * S.pneu - .01 * (pe - 5) * S.pneu, 0, .45), // v1.13: unidades de baja V/Q (asma, neumonía): mejoran con O₂
+      lvq: clamp(.6 * S.hape - .025 * (pe - 5) * S.hape, 0, .5) + (S.tire ? .16 * clamp(S.bs - 1.3, 0, 2) : 0) + clamp(.42 * S.pneu - .01 * (pe - 5) * S.pneu, 0, .45), // v1.13: unidades de baja V/Q (asma, neumonía): mejoran con O₂
       frc: P.frc * (S.neo ? .25 + .75 * S.neo.aer : 1) * (a.sel ? .6 : 1) * (1 - .4 * ptxEff) * (1 - .4 * sv) * (1 - .35 * hx),
       ptxEff, hx
     };
@@ -219,7 +220,7 @@ function create(opts) {
     // acidosis metabólica: baja el punto de ajuste del CO2 según Winter (PaCO2 ≈ 1,5 × HCO3 + 8), sin hiperventilar por debajo
     const setp = P.co2set - Math.max(0, P.hco3 - (S.hco3m != null ? S.hco3m : P.hco3)) * (P.hyper ? .6 : 1);
     const hyx = Math.max(0, (.92 - S.spo2) / .08), c2 = (S.pco2 - setp) / (P.hyper ? 20 : 12);
-    let drive = Math.max(.25 + .1 * met, c2 + .8 * hyx, P.hyper ? hyx : 0) + (P.edema ? .35 * S.sev : 0) + (S.clin < S.anxUntil ? .5 : 0) + .5 * S.tep + .3 * S.anaf + (S.iface !== 'tube' ? .45 * S.croupEff : 0) + (S.tire && S.iface !== 'tube' ? .35 * clamp(S.bs - 1.2, 0, 2) : 0); // v1.13: hambre de aire del asmático
+    let drive = Math.max(.25 + .1 * met, c2 + .8 * hyx, P.hyper ? hyx : 0) + (P.edema ? .35 * S.sev : 0) + (S.clin < S.anxUntil ? .5 : 0) + (S.anxBase || 0) + .5 * S.tep + .3 * S.anaf + (S.iface !== 'tube' ? .45 * S.croupEff : 0) + (S.tire && S.iface !== 'tube' ? .35 * clamp(S.bs - 1.2, 0, 2) : 0); // v1.13: hambre de aire del asmático
     // bronquiolitis: taquipnea superficial por la inflamación, que alivia la presión positiva; sube la frecuencia, no el volumen
     const irr = P.irrit ? P.irrit * (1 - .5 * clamp((S.iface === 'tube' || S.iface === 'mask' ? S.cfg.peep : S.iface === 'nasal' ? hfPaw() : 0) / 4, 0, 1)) * S.drvMul : 0;
     drive = clamp(drive * (1 - narc) * S.drvMul, 0, 1.5);
@@ -517,6 +518,11 @@ function create(opts) {
       S.bicKg -= S.bicKg * Math.LN2 / 180 * dtc;
       if (S.croup > 0 && E.dexa > .1) S.croup = Math.max(.1, S.croup - .012 * E.dexa * dtc);
       if (S.croup > 0 && S.iface !== 'tube') S.weak = clamp(S.weak + (S.croupEff > .5 ? .04 * (S.croupEff - .5) : -.01) * dtc, 0, .6); // agotamiento por el trabajo respiratorio
+      if (S.anxRate && S.iface === 'mask' && !S.standby && S.E.mid < .2 && S.E.fent < .2 && S.clin >= S.anxUntil && rnd() < S.anxRate * dtc) { S.anxUntil = S.clin + 3; S.mask.leak10 = Math.max(S.mask.leak10, 95); S.log.push([S.clin, 'Se agobia con la mascarilla e intenta quitársela']); } // v1.16: intolerancia a la VMNI
+      if (S.anxBase > 0) S.anxBase = Math.max(0, S.anxBase - (S.calmAt != null ? .12 : 0) * dtc - .5 * S.E.mid * dtc); // v1.16: crisis de ansiedad: se calma con la respiración guiada (o una benzodiacepina)
+      if (S.hape > 0) S.hape = clamp(S.hape + (.012 * clamp((S.altitude - 2500) / 1000, 0, 1.2) - .01 * clamp((2000 - S.altitude) / 1500, 0, 1) - .006 * clamp((S.fiEff - .3) / .4, 0, 1) - .008 * (S.E.nifed || 0) - .006 * clamp((S.iface === 'mask' && !S.standby ? S.cfg.peep : 0) / 10, 0, 1)) * dtc, .05, 1); // v1.16: edema de altura: empeora arriba, mejora al bajar, con O₂, nifedipino y CPAP
+      if (S.ptxRate && !S.ptxActive && !S.drained) S.ptx = clamp(S.ptx + S.ptxRate * (S.fiEff > .5 ? -.5 : 1) * dtc, .1, .85); // v1.16: el neumotórax simple crece; con O₂ alto se reabsorbe algo
+      if (S.ptx > .3 && !S.ptxActive && !S.drained && ((S.iface === 'mask' && !S.standby) || S.iface === 'tube') && rnd() < .25 * dtc) { S.ptxActive = true; S.log.push([S.clin, 'El neumotórax pasa a tensión con la presión positiva']); } // v1.16: neumotórax no drenado + presión positiva
       if (S.tire && S.iface !== 'tube') { const wob = clamp((S.bs - 1.3) / 1.2, 0, 1.2); S.weak = clamp(S.weak + (wob > .6 ? .075 * (wob - .6) : -.025) * dtc, 0, .6); } // v1.13: el niño con broncoespasmo grave se agota
       // hemorragia: depende de la presión, del tranexámico, de la hemostasia, de la oxitocina y de la coagulopatía (frío, dilución, acidosis)
       if (S.bleed > 0 && !S.arrest) {
@@ -583,7 +589,7 @@ function create(opts) {
     else if (S.temp > 42.3 && rnd() < dtc * .1) enterArrest('primary');
     // escala de Glasgow aproximada
     const tLow = S.ped ? pedNorms(S.age || 0).tasMin - 8 : 70; // en el niño, la hipotensión que altera la conciencia depende de la edad
-    let g = 15 - 12 * S.sedTot - 3 * S.opi - 9 * gluN - 1.3 * clamp(32 - S.temp, 0, 8) - (S.pco2 > 80 ? (S.pco2 - 80) / 5 : 0) - (S.oxEff < .75 ? (.75 - S.oxEff) * 30 : 0) - (S.tas < tLow ? (tLow - S.tas) / 5 : 0) - (S.cohb > .2 ? (S.cohb - .2) * 25 : 0) - (S.icp && S.icp.v > 22 ? (S.icp.v - 20) / 3 : 0) - 6 * naEff() - strokeGcs() - 5 * S.op - 1 * S.cocE - 1.5 * clamp(S.temp - 40.5, 0, 2.5) - 3 * clamp((7.1 - (S.ph || 7.4)) / .2, 0, 1) - S.tbi;
+    let g = 15 - 12 * S.sedTot - 3 * S.opi - 9 * gluN - 1.3 * clamp(32 - S.temp, 0, 8) - (S.pco2 > (S.retainer ? 66 : 80) ? (S.pco2 - (S.retainer ? 66 : 80)) / 5 : 0) - (S.oxEff < .75 ? (.75 - S.oxEff) * 30 : 0) - (S.tas < tLow ? (tLow - S.tas) / 5 : 0) - (S.cohb > .2 ? (S.cohb - .2) * 25 : 0) - (S.icp && S.icp.v > 22 ? (S.icp.v - 20) / 3 : 0) - 6 * naEff() - strokeGcs() - 5 * S.op - 1 * S.cocE - 1.5 * clamp(S.temp - 40.5, 0, 2.5) - 3 * clamp((7.1 - (S.ph || 7.4)) / .2, 0, 1) - S.tbi;
     if (S.tbi > 0 && dtc > 0) S.tbi = Math.min(S.tbi0 + 6, S.tbi + (.35 * clamp((tLow + 16 - S.tas) / 20, 0, 1.5) + .2 * clamp((.92 - S.spo2) / .1, 0, 1.5) + .05 * clamp(35 - S.temp, 0, 2)) * dtc); // v1.14: lesión cerebral secundaria por hipotensión, hipoxia o frío
     if (seiz) g = Math.min(g, 5); else if (S.clin < S.postIctUntil) g -= 4;
     S.gcs = Math.round(clamp(g, 3, 15));
@@ -865,6 +871,7 @@ function create(opts) {
       if (k === 'cough') S.coughUntil = S.t + 2.5;
       if (k === 'vf' && !S.arrest) { enterArrest('vf'); }
       if (k === 'aspir') S.aspT = 1;
+      if (k === 'edema') S.drown = Math.max(S.drown, .55); // v1.16: edema pulmonar lesional (tóxicos inhalados)
       if (k === 'tep') S.tep = Math.max(S.tep, .75);
       if (k === 'anaf') S.anaf = Math.max(S.anaf, .45);
       if ((k === 'tsv' || k === 'fa' || k === 'tvp' || k === 'flutter') && !S.arrest) S.arr.type = k;
@@ -900,7 +907,8 @@ function create(opts) {
         case 'neoComp': if (S.neo) S.neo.comp = !S.neo.comp; break; // compresiones 3:1 (90 compresiones y 30 insuflaciones por minuto)
         case 'cpap': if (S.neo) { S.neo.cpap = !S.neo.cpap; if (S.neo.cpap) S.bag = false; } break; // CPAP con la pieza en T y mascarilla, sin insuflaciones
         case 'plast': S.plast = !S.plast; break;
-        case 'lud': if (S.preg) S.lud = !S.lud; break; // v1.15: desplazamiento manual del útero a la izquierda
+        case 'lud': if (S.preg) S.lud = !S.lud; break;
+        case 'calm': if (S.calmAt == null) S.calmAt = S.clin; break; // v1.16: tranquilizar y respiración guiada // v1.15: desplazamiento manual del útero a la izquierda
         case 'rescue': S.bag = true; if (S.cpr.rescueAt == null) S.cpr.rescueAt = S.clin; if (S.o2.supply) S.fao2 = Math.max(S.fao2, .45); break; // v1.14: 5 ventilaciones de rescate de 2–3 s antes de comprimir // bolsa o envoltorio de plástico sin secar (prematuro < 32 semanas)
         case 'uvc': if (!S.access && !S.accessPend) S.accessPend = { until: S.clin + 2, kind: 'iv', fail: false }; break; // catéter venoso umbilical
         case 'cool': S.cool = !S.cool; if (S.cool) S.warm = false; break; // v1.8: enfriamiento activo
@@ -1114,6 +1122,12 @@ function create(opts) {
       if (a.obst) f.push('La sonda de aspiración no progresa bien por el tubo; secreciones espesas.');
       if (S.tire && S.bs > 1.6 && S.weak > .3) f.push('Tórax silente: apenas entra aire y casi no se oyen sibilancias. Agotado, sudoroso, no puede hablar.');
       else if (S.bs > 1.25) f.push('Sibilancias espiratorias difusas con espiración muy alargada.' + (S.tire ? (S.bs > 2 ? ' Habla con palabras sueltas; tiraje intercostal y supraclavicular.' : ' Habla con frases cortas.') : ''));
+      if (S.drown > .2) f.push('Crepitantes bilaterales y esputo espumoso, a veces rosado.');
+      if (S.retainer && !S.weak && S.pco2 > 62) f.push('Somnolienta: abre los ojos a la voz y vuelve a dormirse; ronca, respiración superficial; edemas en las piernas.');
+      if (S.ptx > .2 && !S.ptxActive && !S.drained) f.push('Murmullo vesicular abolido e hiperinsonoridad en el hemitórax derecho; tráquea centrada.');
+      if (S.irritant && !S.decont) f.push('Ojos rojos y llorosos; la ropa huele intensamente a cloro.');
+      if (S.hape > .15) f.push(`Crepitantes en ambas bases${S.hape > .5 ? ' y medios campos; tos con esputo rosado' : ''}; ${S.altitude > 2500 ? 'cianosis labial a esta altitud' : 'mejor que arriba'}.`);
+      if (S.anxBase > .3) f.push('Muy ansiosa, respira rápido y profundo; hormigueo en las manos y alrededor de la boca, manos en garra; auscultación normal.');
       if (S.pneu > .2) f.push('Crepitantes y soplo tubárico en la base derecha, con matidez a la percusión.' + ((S.fluidKg || 0) > S.fluidTol + 5 ? ' Crepitantes nuevos en ambas bases e hígado palpable a 3 cm.' : ''));
       if ((S.lastPeepTot && S.lastPeepTot.v - S.cfg.peep > 10) || (S.mech.Pcrit > 7 && S.pat.rr > 24)) f.push('Tórax hiperinsuflado que no termina de bajar entre respiraciones.');
       if (a.leak > 0 && S.iface === 'tube') f.push('Gorgoteo audible en la boca en cada inspiración; balón poco inflado.');

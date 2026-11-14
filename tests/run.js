@@ -334,6 +334,18 @@ console.log('— Tanda de parada (v1.15): descargas seguidas, gestante, torsade,
   check('Hiperpotasemia: RCE con calcio, insulina y bicarbonato', hk * 100, 40, 100, ' %'); check('… y casi nada solo con adrenalina', hkNo * 100, 0, 15, ' %');
   check('Opiáceos: exploración en la parada con pupilas puntiformes', /puntiformes/.test(load('pcrOpi', { seed: 4, scale: 10 }).sim.explore().join(' ')) ? 1 : 0, 1, 1); }
 
+console.log('— Tanda de disnea y VMNI (v1.16): retenedor, neumotórax con presión positiva, edema de altura, hiperventilación');
+{ const run = (k, acts, m, seed) => { const L = load(k, { seed: seed || 4, scale: 10 }), s = L.sim; adv(s, .05); for (const [t, f] of acts) { if (s.S.clin < t) adv(s, t - s.S.clin); f(s); } adv(s, m - s.S.clin); return s; };
+  global.window = global; require('../src/drugs.js'); const DR = global.SIM_DRUGS;
+  const niv = o => s => { s.setIface('mask'); s.S.mask.leak10 = 10; s.setCfg(Object.assign({}, s.S.cfg, { mode: 'PSV', ps: 10, peep: 6, rise: .15, trigE: 40, timax: 1.2, trigI: 2, fio2: 40 }, o)); s.setStandby(false); };
+  let a = run('sohHipercapnia', [], 20), b = run('sohHipercapnia', [[.3, niv({ mode: 'PCV', pinsp: 14, peep: 9, fr: 18, ti: 1.2, fio2: 30 })]], 20); check('Obesidad-hipoventilación solo con O₂: sigue hipercápnica', a.S.pco2, 63, 140, ' mmHg'); check('VMNI con EPAP alta y FR de respaldo: baja la pCO₂', a.S.pco2 - b.S.pco2, 2, 40, ' mmHg');
+  let tens = 0; for (let seed = 1; seed <= 12; seed++) { const s = run('ptxEspontaneo', [[.3, niv({ peep: 6, ps: 8 })]], 15, seed); if (s.S.ptxActive) tens++; } check('Neumotórax sin drenar en VMNI: pasa a tensión', tens / 12 * 100, 60, 100, ' %');
+  a = run('ptxEspontaneo', [], 20); b = run('ptxEspontaneo', [[.3, s => s.setCfg(Object.assign({}, s.S.cfg, { o2dev: 'reserv' }))]], 20); check('Neumotórax simple sin O₂ alto: crece', a.S.ptx, .6, .85); check('… con reservorio, no', b.S.ptx, .1, .5);
+  a = run('hapeTeide', [], 7); check('Edema de altura en el refugio: SpO₂ con gafas', a.S.spo2 * 100, 60, 86, ' %'); b = run('hapeTeide', [[.3, s => s.setCfg(Object.assign({}, s.S.cfg, { o2dev: 'reserv' }))], [.6, s => s.drug('nifed', DR.amountOf(DR.DRUGITEMS.nifed, 60, false))]], 20); check('Con O₂, nifedipino y descenso: SpO₂', b.S.spo2 * 100, 92, 100, ' %');
+  a = run('crisisAnsiedad', [], 10); b = run('crisisAnsiedad', [[.3, s => s.action('calm')]], 15); check('Hiperventilación: pCO₂ baja sin intervenir', a.S.pco2, 15, 30, ' mmHg'); check('Tranquilizar y respiración guiada: pCO₂', b.S.pco2, 32, 48, ' mmHg');
+  a = run('eapIntolerante', [], 12); check('EAP con intolerancia: se arranca la mascarilla (fuga)', a.S.mask.leak10, 60, 200, ' L/min');
+  a = run('cloroPiscina', [[8, s => s.event('edema')]], 12); check('Cloro: aparece el edema lesional y desatura', a.S.spo2 * 100, 70, 92, ' %'); }
+
 console.log('— Instalable y sin conexión (v1.3): manifiesto, iconos y service worker');
 { const fs = require('fs'), path = require('path'), R = f => path.join(__dirname, '..', f);
   const man = JSON.parse(fs.readFileSync(R('manifest.webmanifest'), 'utf8'));
