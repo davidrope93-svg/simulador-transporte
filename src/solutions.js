@@ -99,6 +99,8 @@ const SOL = {
   neumoSepsis: { s: [[.3, 'o2', 'reserv'], [.5, 'a', 'io'], [1.5, 'a', 'fluid'], [2, 'd', 'ceftri'], [2.2, 'a', 'glu'], [4, 'a', 'fluid'], [6.5, 'a', 'fluid'], [9, 'a', 'fluid'], [11, 'p', 'adrIkg', .1]] },
   deshidratacion: { s: [[.5, 'a', 'io'], [1.5, 'a', 'fluid'], [1.8, 'a', 'glu'], [2, 'd', 'gluc10'], [4, 'a', 'fluid'], [6.5, 'a', 'fluid']] },
   cadPed: { s: [[.3, 'a', 'glu'], [.5, 'a', 'gas'], [.8, 'a', 'fluid'], [14, 'd', 'manit']] },
+  ahogPiscina: { s: [[.05, 'a', 'rescue'], [3, 'a', 'warm']] },
+  politraumaPed: { s: [[.3, 'a', 'io'], [1.2, 'a', 'blood'], [1.5, 'd', 'txa'], [1.7, 'a', 'warm'], [2, 'd', 'ketA'], [5, 'a', 'blood']] },
   prematuro: { s: [[.2, 'a', 'plast'], [.3, 'a', 'warm'], [.5, 'a', 'cpap'], [.6, 'cfg', { fio2: 30 }], [1, 'a', 'uvc'], [3.5, 'a', 'glu'], [4, 'd', 'gluc10'], [4.2, 'p', 'g10kg', 3], [6, 'a', 'temp']], noAuto: true },
   trasladoNeo: { s: [[.3, 'a', 'warm'], [.6, 'p', 'g10kg', 3]], noAuto: true },
   ahogVmni: { s: [[.4, 'niv', { peep: 10, ps: 6, fio2: 100 }], [.6, 'a', 'warm'], [.8, 'a', 'temp']] },

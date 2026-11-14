@@ -109,7 +109,7 @@ function create(opts) {
     tep: o.tep || 0, anaf: o.anaf || 0, cohb: o.cohb || 0, cn: o.cn || 0, weak: o.weak || 0, weak0: o.weak || 0, asp: o.asp || 0, aspT: o.asp || 0, derec: 0, clampUntil: -1,
     icp: o.icp ? { base: o.icp, grow: o.icpGrow || 0, v: o.icp } : null, edAir: o.edAir || 0, edAirRate: o.edAirRate || 0,
     dav: o.dav || .05, davMul: 1, attempts: 0, apox: false, o2boostUntil: -1, depotAdr: 0, adenPending: null, pauseUntil: -1, slowUntil: -1, bump: null, fiEff: .21,
-    cpr: { comp: 'off', ratio: 0, paused: false, relevo: 0, noFlow: 0, cprTime: 0, shocks: 0, cause: null, vfAmp: 1, sinceCheck: 0, roscAt: -99, charged: false, ap: false },
+    cpr: { comp: 'off', ratio: 0, paused: false, relevo: 0, noFlow: 0, cprTime: 0, shocks: 0, cause: null, vfAmp: 1, sinceCheck: 0, roscAt: -99, charged: false, ap: false, rescueAt: null },
     pace: { on: false, mode: 'demand', rate: 70, mA: 0, thr: 55 + Math.round(rnd() * 25), capture: false },
     mech: null, trend: [], log: [], mon: {}, timers: [],
     // v0.7: medio interno, temperatura, sangrado, tóxicos, convulsiones y acceso vascular
@@ -121,7 +121,7 @@ function create(opts) {
     stemi: o.stemi ? { loc: o.stemi.loc || 'ant', rv: !!o.stemi.rv, onset: o.stemi.onset || 60, pci: o.stemi.pci != null ? o.stemi.pci : 30, reperf: false, reperfAt: null, tnkAt: null, icp: null } : null,
     tamp: o.tamp || 0, tampRate: o.tampRate || 0, pericPend: null,
     // v1.5: shock distributivo — vasoplejia séptica (0–1 y progresión por minuto hasta el antibiótico), neurogénico (0–1) y volumen que tolera el pulmón (mL/kg)
-    tire: !!o.tire, pneu: o.pneu || 0, ced: o.cedema ? { at: o.cedema.at || 15, risk: o.cedema.risk || .3, on: false, bic: false, insB: false, pRef: o.pco2 || 40 } : null, vaso: o.vaso || 0, vasoRate: o.vasoRate || 0, neurog: o.neurog || 0, fluidTol: o.fluidTol || 35, atbAt: null, tad: 70, pam: 90,
+    tire: !!o.tire, pneu: o.pneu || 0, tbi: o.tbi || 0, tbi0: o.tbi || 0, ced: o.cedema ? { at: o.cedema.at || 15, risk: o.cedema.risk || .3, on: false, bic: false, insB: false, pRef: o.pco2 || 40 } : null, vaso: o.vaso || 0, vasoRate: o.vasoRate || 0, neurog: o.neurog || 0, fluidTol: o.fluidTol || 35, atbAt: null, tad: 70, pam: 90,
     // v1.6: trauma torácico y quemado — hemotórax (L en la pleura), volet costal (0–1), dolor (0–1), superficie quemada (%) y cristaloide en bomba (mL/h)
     htx: o.htx || 0, htxOut: 0, flail: o.flail || 0, pain: o.pain || 0, burn: o.burn || 0, fluidRate: 0, analg: 0, painEff: 0,
     // v1.7: neurología — estatus epiléptico (refractariedad 0–1 y minutos de crisis), ictus (tipo, lado de la lesión, RACE, minutos de evolución, hematoma en mL) y sodio
@@ -583,7 +583,8 @@ function create(opts) {
     else if (S.temp > 42.3 && rnd() < dtc * .1) enterArrest('primary');
     // escala de Glasgow aproximada
     const tLow = S.ped ? pedNorms(S.age || 0).tasMin - 8 : 70; // en el niño, la hipotensión que altera la conciencia depende de la edad
-    let g = 15 - 12 * S.sedTot - 3 * S.opi - 9 * gluN - 1.3 * clamp(32 - S.temp, 0, 8) - (S.pco2 > 80 ? (S.pco2 - 80) / 5 : 0) - (S.oxEff < .75 ? (.75 - S.oxEff) * 30 : 0) - (S.tas < tLow ? (tLow - S.tas) / 5 : 0) - (S.cohb > .2 ? (S.cohb - .2) * 25 : 0) - (S.icp && S.icp.v > 22 ? (S.icp.v - 20) / 3 : 0) - 6 * naEff() - strokeGcs() - 5 * S.op - 1 * S.cocE - 1.5 * clamp(S.temp - 40.5, 0, 2.5) - 3 * clamp((7.1 - (S.ph || 7.4)) / .2, 0, 1);
+    let g = 15 - 12 * S.sedTot - 3 * S.opi - 9 * gluN - 1.3 * clamp(32 - S.temp, 0, 8) - (S.pco2 > 80 ? (S.pco2 - 80) / 5 : 0) - (S.oxEff < .75 ? (.75 - S.oxEff) * 30 : 0) - (S.tas < tLow ? (tLow - S.tas) / 5 : 0) - (S.cohb > .2 ? (S.cohb - .2) * 25 : 0) - (S.icp && S.icp.v > 22 ? (S.icp.v - 20) / 3 : 0) - 6 * naEff() - strokeGcs() - 5 * S.op - 1 * S.cocE - 1.5 * clamp(S.temp - 40.5, 0, 2.5) - 3 * clamp((7.1 - (S.ph || 7.4)) / .2, 0, 1) - S.tbi;
+    if (S.tbi > 0 && dtc > 0) S.tbi = Math.min(S.tbi0 + 6, S.tbi + (.35 * clamp((tLow + 16 - S.tas) / 20, 0, 1.5) + .2 * clamp((.92 - S.spo2) / .1, 0, 1.5) + .05 * clamp(35 - S.temp, 0, 2)) * dtc); // v1.14: lesión cerebral secundaria por hipotensión, hipoxia o frío
     if (seiz) g = Math.min(g, 5); else if (S.clin < S.postIctUntil) g -= 4;
     S.gcs = Math.round(clamp(g, 3, 15));
   }
@@ -897,7 +898,8 @@ function create(opts) {
         case 'neoSuct': if (S.neo) { S.neo.obs = Math.max(0, S.neo.obs - (S.neo.sec ? .45 : .05)); S.neo.sec = false; } break;
         case 'neoComp': if (S.neo) S.neo.comp = !S.neo.comp; break; // compresiones 3:1 (90 compresiones y 30 insuflaciones por minuto)
         case 'cpap': if (S.neo) { S.neo.cpap = !S.neo.cpap; if (S.neo.cpap) S.bag = false; } break; // CPAP con la pieza en T y mascarilla, sin insuflaciones
-        case 'plast': S.plast = !S.plast; break; // bolsa o envoltorio de plástico sin secar (prematuro < 32 semanas)
+        case 'plast': S.plast = !S.plast; break;
+        case 'rescue': S.bag = true; if (S.cpr.rescueAt == null) S.cpr.rescueAt = S.clin; if (S.o2.supply) S.fao2 = Math.max(S.fao2, .45); break; // v1.14: 5 ventilaciones de rescate de 2–3 s antes de comprimir // bolsa o envoltorio de plástico sin secar (prematuro < 32 semanas)
         case 'uvc': if (!S.access && !S.accessPend) S.accessPend = { until: S.clin + 2, kind: 'iv', fail: false }; break; // catéter venoso umbilical
         case 'cool': S.cool = !S.cool; if (S.cool) S.warm = false; break; // v1.8: enfriamiento activo
         case 'decont': if (!S.decont) { S.decont = true; S.log.push([S.clin, 'Descontaminación: ropa retirada y piel lavada']); } break;
@@ -985,6 +987,7 @@ function create(opts) {
         const fixable = FIXABLE.includes(c.cause), fixed = allFixed(), adrOk = S.temp >= 30 ? 1 : 0;
         const ccf = c.cprTime + c.noFlow > 0 ? c.cprTime / (c.cprTime + c.noFlow) : 1, mins = S.clin - (S.arrestAt || 0);
         let p = fixable ? (fixed ? .22 + .2 * S.E.adr * adrOk : .01) : .08 + .2 * S.E.adr * adrOk;
+        if (c.cause === 'hypox' && S.ped && c.rescueAt != null && c.rescueAt - (S.arrestAt || 0) < 2) p *= 1.8; // v1.14: parada hipóxica pediátrica oxigenada pronto (5 ventilaciones de rescate)
         if (S.rhythm === 'asys') p *= .5;
         p *= clamp(ccf / .8, .3, 1) * Math.exp(-Math.max(0, mins - 10) / 15);
         if (rnd() < clamp(p, .005, .7)) { rosc(); res = { rhythm: 'tsinus', pulse: true }; }
@@ -1048,7 +1051,7 @@ function create(opts) {
     gas() { return { na: S.na, ph: S.ph - .03, pco2: S.pco2 + 6, hco3: (S.hco3 || P.hco3) + 1, lact: S.lact, cohb: S.cohb * 100, k: S.k + .1, glu: S.glu, hb: 14.5 * (1 - .7 * S.deficit) * (1 - .15 * clamp(S.fluidKg / 40, 0, 1)) }; },
     explore() {
       const a = S.air, f = [];
-      if (S.arrest) return [S.cpr.comp !== 'off' ? 'Sin pulso central entre compresiones.' : 'Inconsciente, no respira, sin pulso central.'].concat(S.temp < 32 ? ['Muy frío al tacto, rígido.'] : [], S.bleed > 0 && !S.hemo ? ['Sangrado activo.'] : [], !S.access && !S.accessPend ? ['Sin acceso vascular.'] : []);
+      if (S.arrest) return [S.cpr.comp !== 'off' ? 'Sin pulso central entre compresiones.' : 'Inconsciente, no respira, sin pulso central.'].concat(S.drown > .2 ? ['Agua y espuma en la boca y la nariz; vomita agua al ventilar.'] : [], S.temp < 32 ? ['Muy frío al tacto, rígido.'] : [], S.bleed > 0 && !S.hemo ? ['Sangrado activo.'] : [], !S.access && !S.accessPend ? ['Sin acceso vascular.'] : []);
       if (S.neo && !S.isr) { const nn = S.neo, ox = clamp((S.spo2 - .45) / .4, 0, 1), g = [];
         const pr = nn.prem && nn.prem < 32, weak = !nn.apnea && nn.prem && nn.aer < .7;
         g.push(`${nn.apnea ? 'No respira' : weak ? 'Respira débil y rápido, con quejido' : ox < .5 || S.pat.rr < 25 ? 'Boqueadas irregulares' : nn.cpap ? 'Respira de forma regular con la CPAP, sin pausas' : 'Respira bien y llora'}; FC por auscultación ≈ ${Math.round(nn.hr / 10) * 10} lpm.`);
@@ -1131,7 +1134,7 @@ function create(opts) {
       if (S.temp > 40) f.push('Piel muy caliente al tacto' + (S.cool ? '; enfriándose con agua pulverizada y ventilación.' : '.'));
       if (S.dka) f.push('Aliento afrutado (cetósico), mucosas muy secas y signo del pliegue.' + (S.iface !== 'tube' ? ' Respiración de Kussmaul: profunda, rápida y regular.' : ''));
       if (S.ced && S.ced.on && S.iface !== 'tube') f.push(S.icp && S.icp.v > 30 ? 'Cefalea intensa, vómitos, muy somnolienta; responde mal a la voz.' : S.icp && S.icp.v > 22 ? 'Se queja de que le duele mucho la cabeza y ha vomitado; más dormida que antes.' : 'Refiere menos cefalea.');
-      if (S.ped && !S.dka && !S.vaso && S.deficit > .15) f.push(`${S.age != null && S.age < 1.5 ? 'Fontanela deprimida, ' : ''}ojos hundidos, mucosas secas, signo del pliegue y relleno capilar de ${S.deficit > .25 ? 5 : 3} s.`);
+      if (S.ped && !S.dka && !S.vaso && !S.bleed && S.deficit > .15) f.push(`${S.age != null && S.age < 1.5 ? 'Fontanela deprimida, ojos' : 'Ojos'} hundidos, mucosas secas, signo del pliegue y relleno capilar de ${S.deficit > .25 ? 5 : 3} s.`);
       if (S.dci) { const d = S.dciE * S.dci.neuro; f.push(d > .55 ? 'Paraparesia (fuerza 2/5 en ambas piernas), hipoestesia desde el ombligo y globo vesical; piel marmórea en el tronco.' : d > .3 ? 'Debilidad en ambas piernas (fuerza 4/5) y hormigueo; dolor lumbar; piel marmórea en el tronco.' : d > .12 ? 'Hormigueo en las piernas y dolor en los hombros; la fuerza se ha recuperado.' : 'Sin déficit neurológico; persiste algo de dolor articular.');
         if (S.dci.chokes > 0 && S.dciE > .3) f.push('Tos seca, dolor retroesternal y disnea (afectación pulmonar).'); }
       if (S.heat && S.temp > 39.5) f.push('Piel caliente y enrojecida; ' + (S.temp > 41 ? 'agitado y confuso, con lenguaje incoherente.' : 'confuso.'));

@@ -309,6 +309,16 @@ console.log('— Respiratorio y shock pediátricos (v1.13): asma, neumonía con 
   check('40 mL/kg, bicarbonato y bolo de insulina: edema grave (Glasgow)', bad.S.gcs, 3, 7); check('… con Cushing (TAS alta y bradicardia)', bad.S.tas > 120 && bad.S.fc < 85 ? 1 : 0, 1, 1);
   check('Adrenalina pediátrica en mcg/kg/min entre las perfusiones', DR.PERFS.some(p => p.id === 'adrIkg' && p.u === 'mcg/kg/min') ? 1 : 0, 1, 1); }
 
+console.log('— Parada y trauma pediátricos (v1.14): ventilaciones de rescate, 15:2, ahogamiento, trauma con TCE');
+{ const run = (k, acts, m, seed) => { const L = load(k, { seed: seed || 4, scale: 10 }), s = L.sim; adv(s, .05); for (const [t, f] of acts) { if (s.S.clin < t) adv(s, t - s.S.clin); f(s); } adv(s, m - s.S.clin); return s; };
+  global.window = global; require('../src/drugs.js'); const DR = global.SIM_DRUGS, give = id => s => { if (!s.S.access) s.S.access = 'io'; s.drug(DR.DRUGITEMS[id].k, DR.amountOf(DR.DRUGITEMS[id], s.S.peso, true)); };
+  const rcp = rescue => { let ok = 0; for (let seed = 1; seed <= 24; seed++) { const L = load('ahogPiscina', { seed, scale: 1 }), s = L.sim; adv(s, .05); if (rescue) s.action('rescue'); else s.action('bag'); adv(s, .5); s.compress('manual'); s.setRatio(15); s.S.access = 'io'; adv(s, 1); s.drug('adr', DR.amountOf(DR.DRUGITEMS.adr1, 14, true)); for (let i = 0; i < 4 && s.S.arrest; i++) { adv(s, 2); s.check(); } if (!s.S.arrest) ok++; } return ok / 24; };
+  const withR = rcp(true), sinR = rcp(false); check('Ahogamiento: RCE con ventilaciones de rescate al principio', withR * 100, 45, 100, ' %'); check('… más que sin ellas', (withR - sinR) * 100, 5, 80, ' puntos');
+  check('Exploración de la niña ahogada: agua y espuma', /espuma/.test(load('ahogPiscina', { seed: 4, scale: 10 }).sim.explore().join(' ')) ? 1 : 0, 1, 1);
+  const none = run('politraumaPed', [], 30), care = run('politraumaPed', [[.3, s => { s.S.access = 'io'; }], [1.2, s => s.action('blood', 20 * 10 / 300)], [1.5, give('txa')], [1.7, s => s.action('warm')], [2, give('ketA')], [5, s => s.action('blood', 20 * 10 / 300)]], 30);
+  check('Trauma pediátrico sin tratar: TAS a los 30 min', none.S.tas, 60, 89, ' mmHg'); check('… lesión cerebral secundaria (Glasgow)', none.S.gcs, 6, 10); check('Con sangre 10 mL/kg, tranexámico y calor: TAS', care.S.tas, 95, 125, ' mmHg'); check('… y Glasgow conservado', care.S.gcs, 10, 12); check('… normotermia', care.S.temp, 35.5, 37.5, ' °C');
+  check('Ácido tranexámico en el niño de 20 kg: 15 mg/kg', DR.doseOf(DR.DRUGITEMS.txa, 20, true) * (DR.DRUGITEMS.txa.u === 'g' ? 1000 : 1), 300, 300, ' mg'); }
+
 console.log('— Instalable y sin conexión (v1.3): manifiesto, iconos y service worker');
 { const fs = require('fs'), path = require('path'), R = f => path.join(__dirname, '..', f);
   const man = JSON.parse(fs.readFileSync(R('manifest.webmanifest'), 'utf8'));
