@@ -122,7 +122,7 @@ function create(opts) {
     access: o.access !== false, accessPend: null, ecg: { qrs: .08, t: 1, p: 1, j: 0, st: 0, amp: 1 }, gcs: 15,
     // v1.4: SCACEST (localización, VD, minutos de evolución al empezar, minutos hasta la ICP primaria) y taponamiento (0–1 y crecimiento por minuto)
     stemi: o.stemi ? { loc: o.stemi.loc || 'ant', rv: !!o.stemi.rv, onset: o.stemi.onset || 60, pci: o.stemi.pci != null ? o.stemi.pci : 30, reperf: false, reperfAt: null, tnkAt: o.stemi.failed ? -70 : null, icp: null, noTnk: !!o.stemi.noTnk, nste: !!o.stemi.nste, failed: !!o.stemi.failed, ich: false } : null,
-    qtl: o.qtl ? { qtc: o.qtl.qtc || 600, n: 0, until: -1 } : null, bzd: o.bzd || 0, bzdEff: 0, diur: o.diur || 0, bzdChronic: !!o.bzdChronic, flumSeizAt: null, etoh: o.etoh || 0, anticol: !!o.anticol, caust: !!o.caust, hhs: !!o.hhs, adrenal: o.adrenal || 0, thyro: o.thyro || 0, thyroEff: 0, salic: o.salic || 0, suelo: !!o.suelo, fbao: o.fbao || 0, weakRate: o.weakRate || 0, eclRisk: o.eclRisk != null ? o.eclRisk : null, fallot: o.fallot ? { base: o.fallot, spell: o.fallot, kc: false } : null, flags: Object.assign({}, o.flags || {}), dissec: o.dissec ? { prog: 0, done: false } : null, bavN: !!o.bavN, pmFail: !!o.pmFail, // v1.19–v1.20: tóxicos, metabólico, QT largo, disección aórtica, BAV nodal y fallo de marcapasos
+    qtl: o.qtl ? { qtc: o.qtl.qtc || 600, n: 0, until: -1 } : null, bzd: o.bzd || 0, bzdEff: 0, diur: o.diur || 0, bzdChronic: !!o.bzdChronic, flumSeizAt: null, etoh: o.etoh || 0, anticol: !!o.anticol, caust: !!o.caust, hhs: !!o.hhs, adrenal: o.adrenal || 0, thyro: o.thyro || 0, thyroEff: 0, salic: o.salic || 0, suelo: !!o.suelo, fbao: o.fbao || 0, lspasm: o.lspasm || 0, trach: o.trach ? { lar: !!o.trach.lar, obs: o.trach.obs != null ? o.trach.obs : .9, inner: o.trach.inner !== false } : null, weakRate: o.weakRate || 0, eclRisk: o.eclRisk != null ? o.eclRisk : null, fallot: o.fallot ? { base: o.fallot, spell: o.fallot, kc: false } : null, flags: Object.assign({}, o.flags || {}), dissec: o.dissec ? { prog: 0, done: false } : null, bavN: !!o.bavN, pmFail: !!o.pmFail, // v1.19–v1.20: tóxicos, metabólico, QT largo, disección aórtica, BAV nodal y fallo de marcapasos
     tamp: o.tamp || 0, tampRate: o.tampRate || 0, pericPend: null,
     // v1.5: shock distributivo — vasoplejia séptica (0–1 y progresión por minuto hasta el antibiótico), neurogénico (0–1) y volumen que tolera el pulmón (mL/kg)
     tire: !!o.tire, pneu: o.pneu || 0, tbi: o.tbi || 0, tbi0: o.tbi || 0, preg: o.preg || 0, lud: false, tdp: !!o.tdp, ptxOpen: !!o.ptxOpen, crush: o.crush || 0, released: false, drive0: o.drive0 || 1, ptxRate: o.ptxRate || 0, irritant: !!o.irritant, hape: o.hape || 0, anxRate: o.anxRate || 0, anxBase: o.anxBase || 0, calmAt: null, retainer: !!o.retainer, ced: o.cedema ? { at: o.cedema.at || 15, risk: o.cedema.risk || .3, on: false, bic: false, insB: false, pRef: o.pco2 || 40 } : null, vaso: o.vaso || 0, vasoRate: o.vasoRate || 0, neurog: o.neurog || 0, fluidTol: o.fluidTol || 35, atbAt: null, tad: 70, pam: 90,
@@ -148,6 +148,7 @@ function create(opts) {
   S.drug.rel.cp = S.drug.rel.ce = (o.relCe != null ? o.relCe : 9);
   if (o.ntgPre) S.drug.ntg.cp = S.drug.ntg.ce = o.ntgPre;
   if (o.opioid) S.drug.morf.cp = S.drug.morf.ce = o.opioid;
+  if (o.ketPre) S.drug.ket.cp = S.drug.ket.ce = o.ketPre; // v1.23: sedación con ketamina ya en curso
   S.V = Math.max(o.iface === 'tube' || o.iface === 'mask' ? S.cfg.peep : 0, P.Pcrit) * P.C;
   if (o.arrest) { S.arrest = true; S.rhythm = o.arrest; S.cpr.cause = o.arrestCause || (o.arrest === 'vf' ? 'vf' : 'primary'); S.cpr.cause2 = o.arrestCause2 || null; S.cpr.comp = o.comp || 'off'; S.tas = 0; }
   if (o.postRosc) S.cpr.roscAt = 0;
@@ -204,8 +205,8 @@ function create(opts) {
     const b = .6 + .4 * S.bs, a = S.air, sv = Math.min(1, S.sev), pe = (S.iface === 'tube' || S.iface === 'mask') ? S.cfg.peep : (S.iface === 'nasal' ? hfPaw() : 0);
     S.mech = {
       C: P.C * (1 - .2 * S.pneu) * (1 - .25 * S.hape) * (S.neo ? .25 + .75 * S.neo.aer : 1) * (1 - .35 * S.drown) * (a.sel ? .55 : 1) * (1 - .5 * ptxEff) * (1 - .5 * sv) * (1 - .4 * S.asp) * (1 - .2 * S.derec) * (1 - .35 * hx) * (1 - .15 * S.flail),
-      Ri: P.Ri * b + 18 * S.opM + (S.fbao > 0 && S.iface !== 'tube' ? 900 * S.fbao * S.fbao : 0) + (a.obst ? 25 : 0) + (a.sel ? 2 : 0) + (S.iface === 'o2' || S.iface === 'nasal' ? -3 : 0) + (S.iface !== 'tube' ? croupR : 0),
-      Re: P.Re * b + 18 * S.opM + (S.fbao > 0 && S.iface !== 'tube' ? 900 * S.fbao * S.fbao : 0) + (a.obst ? 25 : 0) + (S.iface !== 'tube' ? .3 * croupR : 0),
+      Ri: P.Ri * b + 18 * S.opM + (S.iface !== 'tube' ? 900 * (S.fbao * S.fbao + 3 * S.lspasm * S.lspasm + (S.trach ? S.trach.obs * S.trach.obs : 0)) : 0) + (a.obst ? 25 : 0) + (a.sel ? 2 : 0) + (S.iface === 'o2' || S.iface === 'nasal' ? -3 : 0) + (S.iface !== 'tube' ? croupR : 0),
+      Re: P.Re * b + 18 * S.opM + (S.iface !== 'tube' ? 900 * (S.fbao * S.fbao + 3 * S.lspasm * S.lspasm + (S.trach ? S.trach.obs * S.trach.obs : 0)) : 0) + (a.obst ? 25 : 0) + (S.iface !== 'tube' ? .3 * croupR : 0),
       Pcrit: P.Pcrit * b + 6 * Math.max(0, S.bs - 1),
       shunt: clamp(P.shunt0 - P.shuntPeep * (pe - 5), P.shuntMin, .5) + (a.sel ? .22 : 0) + .25 * ptxEff + (S.ptxOpen ? .12 : 0) + (S.fallot ? .85 * S.fallot.spell : 0) + (P.edema ? clamp(.3 * S.sev - .025 * (pe - 5) * Math.min(1, S.sev + .2), 0, .4) : 0) + clamp(.33 * S.asp - .015 * (pe - 5) * S.asp, 0, .38) + clamp(.009 * Math.max(0, (S.fluidKg || 0) - S.fluidTol), 0, .2) + .14 * S.derec + .06 * S.tep + (S.dci ? .3 * S.dci.chokes * S.dciE : 0) + clamp(.42 * S.drown - .03 * (pe - 5) * S.drown, 0, .45) + (S.neo ? .55 * (1 - S.neo.aer) + .3 * clamp(1 - (S.clin + S.neo.t0) / 8, 0, 1) + .3 * ptxEff : 0) + .18 * clamp((121 - S.na) / 5, 0, 1) + .45 * S.opM + (S.se && S.clin < S.seizUntil && S.relTot < .6 ? .26 : 0) + .26 * hx + clamp(.16 * S.flail - .012 * (pe - 5) * S.flail, 0, .22),
       lvq: clamp(.6 * S.hape - .025 * (pe - 5) * S.hape, 0, .5) + (S.tire ? .16 * clamp(S.bs - 1.3, 0, 2) : 0) + clamp(.42 * S.pneu - .01 * (pe - 5) * S.pneu, 0, .45), // v1.13: unidades de baja V/Q (asma, neumonía): mejoran con O₂
@@ -430,13 +431,13 @@ function create(opts) {
     if (S.iface === 'nasal' && Ql * 60 > (cfg.flow || 0)) fiNow = ((cfg.flow || 0) * fiNow + (Ql * 60 - (cfg.flow || 0)) * .21) / (Ql * 60);
     if (open && S.iface !== 'o2') fiNow = S.bag ? (S.o2.supply ? .9 : .21) : (S.isr && S.isr.apox ? .9 : .21);
     if (S.neo && (S.bag || S.iface === 'o2') && open) { fiNow = S.o2.supply ? cfg.fio2 / 100 : .21; if (!S.bag && !S.neo.cpap) fiNow = .21 + .5 * (fiNow - .21); } // mezclador de la pieza en T (sin CPAP ni ventilación, O₂ en flujo libre: llega la mitad)
-    if (Ql > 0) { if (!S.inInfl) S.inflSrc = !open && (S.iface === 'tube' || S.iface === 'mask') ? 'vent' : bagP > 0 ? 'bag' : 'pat'; S.vin += Ql * dt; S.vinFi += Ql * dt * fiNow; S.inInfl = true; }
+    if (Ql > 0) { if (!S.inInfl) { S.inflSrc = !open && (S.iface === 'tube' || S.iface === 'mask') ? 'vent' : bagP > 0 ? 'bag' : 'pat'; S.inflT0 = S.t; } S.vin += Ql * dt; S.vinFi += Ql * dt * fiNow; S.inInfl = true; }
     else if (S.inInfl && Ql < -0.005) {
       S.inInfl = false;
       if (S.vin > .03 * Math.min(1, S.kW * 5)) { // umbral de respiración proporcional al tamaño: el prematuro mueve 5–8 mL
         const vt = S.vin * 1000, vdA = alvDS(), vdAn = P.vdAnat + (mask ? 30 * S.kW : 0) - (S.iface === 'nasal' ? 40 * S.kW * Math.min(1, (cfg.flow || 0) / (40 * S.kW)) : 0);
         const vd = vdAn + vdA * Math.max(0, vt - vdAn);
-        S.infl.push({ t: S.t, va: Math.max(0, vt - vd) / 1000, fi: S.vinFi / S.vin, vt, src: S.inflSrc });
+        S.infl.push({ t: S.t, va: Math.max(0, vt - vd) / 1000, fi: S.vinFi / S.vin, vt, src: S.inflSrc, dur: S.t - (S.inflT0 != null ? S.inflT0 : S.t) }); // dur: con una obstrucción casi completa, una sola «respiración» puede durar decenas de segundos
       }
       S.vin = 0; S.vinFi = 0;
     }
@@ -525,6 +526,7 @@ function create(opts) {
         const tg = f.base * (1 + .35 * cry) * (f.kc ? .55 : 1) * (1 - .35 * clamp((S.fluidKg || 0) / 20, 0, 1)) * (1 - .45 * clamp(Math.max(S.sedTot, S.opi * 1.5, E.ket * 1.5) / .5, 0, 1)) * (1 - .5 * clamp(E.nor / .4, 0, 1)) * (1 - .2 * clamp(1 - (S.spo2 - .5) / .3, 0, 1) * (S.cfg.o2dev === 'reserv' && S.iface === 'o2' ? 1 : 0));
         f.spell += (clamp(tg, 0, 1) - f.spell) * Math.min(1, dtc / 2.5); }
       if (S.fbao > 0 && S.fbao < .95 && S.flags.fbaoProg) S.fbao = Math.min(.95, S.fbao + S.flags.fbaoProg * dtc);
+      if (S.lspasm > 0) { const bagP = S.bag && (S.iface === 'o2' || S.iface === 'mask') ? .12 : 0; S.lspasm = Math.max(0, S.lspasm - dtc * (bagP + (E.prop > .3 ? 1.5 : 0) + (S.relTot > .5 ? 3 : 0) + (S.spo2 < .5 ? .03 : 0))); if (S.lspasm < .05) { S.lspasm = 0; S.log.push([S.clin, 'Cede el laringoespasmo']); } } // v1.23: laringoespasmo
       if (S.weakRate) S.weak = Math.min(.85, S.weak + S.weakRate * dtc); // v1.22: debilidad que progresa (Guillain-Barré)
       if (S.diur && S.glu > 300) S.deficit = Math.min(.7, S.deficit + S.diur * dtc); // v1.20: diuresis osmótica (estado hiperosmolar, cetoacidosis)
       if (S.salic > 0) S.hco3Off -= .3 * S.salic * (1 - clamp(S.bicKg / 1.2, 0, 1)) * dtc; // v1.20: salicilatos — la acidosis avanza si no se alcaliniza
@@ -536,7 +538,7 @@ function create(opts) {
       S.bicKg -= S.bicKg * Math.LN2 / 180 * dtc;
       if (S.croup > 0 && E.dexa > .1) S.croup = Math.max(.1, S.croup - .012 * E.dexa * dtc);
       if (S.croup > 0 && S.iface !== 'tube') S.weak = clamp(S.weak + (S.croupEff > .5 ? .04 * (S.croupEff - .5) : -.01) * dtc, 0, .6); // agotamiento por el trabajo respiratorio
-      if (S.anxRate && S.iface === 'mask' && !S.standby && S.E.mid < .2 && S.E.fent < .2 && S.clin >= S.anxUntil && rnd() < S.anxRate * dtc) { S.anxUntil = S.clin + 3; S.mask.leak10 = Math.max(S.mask.leak10, 95); S.log.push([S.clin, 'Se agobia con la mascarilla e intenta quitársela']); } // v1.16: intolerancia a la VMNI
+      if (S.anxRate && S.iface === 'mask' && !S.standby && S.E.mid < .2 && S.E.fent < .2 && S.E.ket < .3 && S.clin >= S.anxUntil && rnd() < S.anxRate * dtc) { S.anxUntil = S.clin + 3; S.mask.leak10 = Math.max(S.mask.leak10, 95); S.log.push([S.clin, 'Se agobia con la mascarilla e intenta quitársela']); } // v1.16: intolerancia a la VMNI
       if (S.anxBase > 0) S.anxBase = Math.max(0, S.anxBase - (S.calmAt != null ? .12 : 0) * dtc - .5 * S.E.mid * dtc); // v1.16: crisis de ansiedad: se calma con la respiración guiada (o una benzodiacepina)
       if (S.hape > 0) S.hape = clamp(S.hape + (.012 * clamp((S.altitude - 2500) / 1000, 0, 1.2) - .01 * clamp((2000 - S.altitude) / 1500, 0, 1) - .006 * clamp((S.fiEff - .3) / .4, 0, 1) - .008 * (S.E.nifed || 0) - .006 * clamp((S.iface === 'mask' && !S.standby ? S.cfg.peep : 0) / 10, 0, 1)) * dtc, .05, 1); // v1.16: edema de altura: empeora arriba, mejora al bajar, con O₂, nifedipino y CPAP
       if (!S.ptxActive && !S.drained && S.ptx > 0 && (S.ptxOpen || S.sealed)) S.ptx = clamp(S.ptx + (S.ptxOpen ? .025 : -.012) * dtc, .3, .9); // v1.17: abierto, cada inspiración aspira aire; con parche valvulado sale por la válvula
@@ -699,9 +701,10 @@ function create(opts) {
     let VA = 0, VE = 0, fiAvg = isOpen() && !S.bag ? .21 : S.cfg.fio2 / 100;
     if (L.length) {
       const last = L[L.length - 1], guess = Math.max(ventDelivers ? (S.cfg.fr || 0) : 0, selfBreath ? S.pat.rr : 0, S.bag ? 10 : 0) || 12;
-      const interval = L.length >= 2 ? (last.t - L[0].t) / (L.length - 1) : 60 / guess, effInt = Math.max(interval, t - last.t, .5);
+      const dur = L.reduce((a, e) => a + (e.dur || 0), 0) / L.length, interval = Math.max(L.length >= 2 ? (last.t - L[0].t) / (L.length - 1) : 60 / guess, dur), effInt = Math.max(interval, t - last.t, .5); // v1.23: una inspiración lentísima no cuenta como si durase un ciclo normal
       let va = 0, fiw = 0, vt = 0; for (const e of L) { va += e.va; fiw += e.va * e.fi; vt += e.vt / 1000; }
       VA = va / L.length * 60 / effInt; VE = vt / L.length * 60 / effInt; if (va > 0) fiAvg = fiw / va;
+      const gap = t - last.t - 3 * interval; if (gap > 0 && selfBreath && !ventDelivers && !S.bag) { const k = Math.exp(-gap / Math.max(interval, 1)); VA *= k; VE *= k; } // v1.23: esfuerzos sin respiraciones completas (obstrucción): la ventilación cae sin esperar a vaciar la ventana
     }
     if (S.neo && S.neo.unborn) { VA = 0; VE = 0; }
     if (seizing && !ventDelivers && S.relTot < .6) { VA *= S.se ? .45 : .25; VE *= .4; } // convulsión: respiración ineficaz (en el estatus, con fases clónicas que ventilan algo)
@@ -893,6 +896,7 @@ function create(opts) {
       if (k === 'disc') a.disc = true;
       if (k === 'sel' && S.iface === 'tube') a.sel = true;
       if (k === 'obst' && S.iface === 'tube') a.obst = true;
+      if (k === 'lspasm' && S.iface !== 'tube') { S.lspasm = .95; S.infl = []; } // v1.23: cierre brusco de la glotis: las respiraciones previas ya no cuentan
       if (k === 'leak') { if (isMask()) S.mask.leak10 = 70; else a.leak = .35; }
       if (k === 'bronco') { S.bs0 = Math.max(S.bs0, 1) + .6; S.bs = Math.max(S.bs, 1.5); }
       if (k === 'release' && S.crush && !S.released) { const prot = clamp((S.fluidKg || 0) / 20, 0, 1); S.released = true; S.kTot += S.crush * (1 - .6 * prot); S.deficit = Math.min(.6, S.deficit + .15 * (1 - .5 * prot)); S.hco3Off = (S.hco3Off || 0) - 6 * (1 - .5 * prot); S.log.push([S.clin, 'Liberación del miembro atrapado: potasio, ácido y mioglobina a la circulación']); } // v1.17: síndrome de aplastamiento
@@ -922,6 +926,10 @@ function create(opts) {
         case 'golpes': if (S.fbao > 0) { const consc = S.gcs >= 9; if (rnd() < (consc ? .35 : .15)) { S.fbao = 0; S.log.push([S.clin, 'Sale el cuerpo extraño: un trozo de frutos secos']); } } break; // v1.21: OVACE
         case 'magill': if (S.fbao > 0 && (S.gcs < 9 || S.relTot > .5 || S.arrest)) { if (rnd() < .8) { S.fbao = 0; S.log.push([S.clin, 'Laringoscopia: cuerpo extraño en la glotis, extraído con las pinzas de Magill']); } } break;
         case 'kneechest': if (S.fallot) S.fallot.kc = !S.fallot.kc; break;
+        case 'trachInner': if (S.trach && S.trach.obs > 0) { if (S.trach.inner) { S.trach.obs = .08; S.log.push([S.clin, 'Cánula interna con un tapón de moco: retirada; pasa la sonda y aspiras secreciones']); } else S.log.push([S.clin, 'Sin cánula interna: la sonda de aspiración no pasa']); } break; // v1.23: traqueostomía
+        case 'trachChange': if (S.trach && S.trach.obs > 0) { S.trach.obs = 0; S.bmv = 1; S.log.push([S.clin, 'Cánula de traqueostomía cambiada: entra el aire']); } break;
+        case 'mils': S.flags.mils = true; break; // abrir el collarín con estabilización manual en línea
+        case 'larson': if (S.lspasm > 0 && rnd() < .5) { S.lspasm = Math.max(0, S.lspasm - .5); } break; // presión en la escotadura de Larson
         case 'sonda': if (S.flags.disrefl && S.flags.sondaAt == null) { S.flags.sondaAt = S.clin; S.log.push([S.clin, 'Sonda vesical cambiada: salen 900 mL de orina']); } break; // v1.22
         case 'mcroberts': case 'suprapub': case 'woods': if (S.neo && S.neo.unborn) { const nn = S.neo; nn.tries++; nn[k] = true; const p = k === 'mcroberts' ? .4 : k === 'suprapub' ? (nn.mcroberts ? .6 : .3) : .85; if (rnd() < p) { nn.unborn = false; nn.bornAt = S.clin; nn.apnea = true; nn.aer = .12; S.log.push([S.clin, 'Salen los hombros: nace un niño hipotónico y cianótico, sin respirar']); } } break;
         case 'suction': a.obst = false; break;
@@ -989,9 +997,10 @@ function create(opts) {
     intubate() {
       if (S.iface === 'tube' && !S.air.sga) return { ok: false, msg: 'Ya está intubado.' };
       if (S.isr) return { ok: false, msg: 'Ya hay una laringoscopia en curso.' };
+      if (S.trach && S.trach.lar && S.trach.obs > 0) return { ok: false, msg: 'Laringectomizado: la boca no comunica con la tráquea. Cambia la cánula o intuba por el estoma.' }; // v1.23
       if (S.relTot < .9 && !(S.arrest || S.sedTot > .9)) return { ok: false, msg: S.relTot < .5 ? 'Tiene tono y reflejos: necesitas inducción y relajante antes de la laringoscopia.' : 'El relajante aún no ha hecho efecto completo: espera 45–60 s desde la dosis.' };
       const edema = Math.max(S.edAir, .8 * S.anaf);
-      const pFail = clamp((S.dav + .55 * edema) * S.davMul * (S.attempts ? .85 : 1), 0, .97);
+      const pFail = clamp((S.dav + .55 * edema) * S.davMul * (S.attempts ? .85 : 1) * (S.flags.collar && !S.flags.mils ? 2 : 1), 0, .97); // v1.23: el collarín cerrado dificulta la laringoscopia
       S.attempts++;
       const fail = rnd() < pFail;
       S.isr = { until: S.clin + (fail ? 1.6 : 1.2), fail, apox: S.apox, from: S.iface, edema, attempt: S.attempts };
@@ -1136,12 +1145,13 @@ function create(opts) {
       const seiz = S.clin < S.seizUntil;
       if (seiz && S.relTot > .6) f.push('No se mueve (relajado), pero tiene midriasis, taquicardia, hipertensión y sudoración sin estímulo: puede seguir en estatus bajo el relajante.'); // v1.18
       else if (seiz) f.push('Convulsión tónico-clónica generalizada: mandíbula cerrada, cianosis peribucal, sialorrea.');
-      const glas = S.relTot > .6 ? 'relajado, no valorable' : S.sedTot > .7 ? 'bajo sedación' : S.cocE > .35 && !seiz ? 'agitado y desorientado, no colabora' : seiz ? 'convulsionando' : S.clin < S.postIctUntil ? 'postcrítico, obnubilado' : S.gcs <= 8 ? 'no abre los ojos, emite sonidos y localiza o retira al dolor' : S.gcs <= 12 ? 'somnoliento, abre los ojos al dolor, desorientado' : S.gcs <= 14 ? 'adormilado, confuso' : 'consciente y orientado';
+      const glas = S.relTot > .6 ? 'relajado, no valorable' : S.sedTot > .7 ? 'bajo sedación' : S.E.ket > .4 && !seiz ? 'disociado por la ketamina: ojos abiertos con nistagmo, no responde a órdenes' : S.anxRate && S.spo2 < .93 && S.E.ket < .3 && S.E.mid < .2 && !seiz ? 'agitado por la hipoxia, no tolera la mascarilla' : S.cocE > .35 && !seiz ? 'agitado y desorientado, no colabora' : seiz ? 'convulsionando' : S.clin < S.postIctUntil ? 'postcrítico, obnubilado' : S.gcs <= 8 ? 'no abre los ojos, emite sonidos y localiza o retira al dolor' : S.gcs <= 12 ? 'somnoliento, abre los ojos al dolor, desorientado' : S.gcs <= 14 ? 'adormilado, confuso' : 'consciente y orientado';
       if (S.ped && !S.neo) f.push(tep(seiz));
       if (S.iface !== 'tube' || S.relTot < .5) f.push(`Nivel de conciencia: ${glas}${S.relTot > .6 ? '' : ` (${S.ped && S.age < 2 ? 'Glasgow pediátrica' : 'GCS'} ≈ ${S.gcs})`}.`);
       if (S.pat.pmax > 1 && !seiz) {
         f.push(`Cuentas ${Math.round(S.pat.rr)} respiraciones por minuto.`);
         if (S.neurog > .2 && S.weak > .2) f.push('Respiración abdominal paradójica: el tórax se hunde al inspirar (solo trabaja el diafragma).'); // v1.17
+        else if (S.iface !== 'tube' && (S.fbao > .3 || S.lspasm > .3 || (S.trach && S.trach.obs > .3))) f.push('Tiraje intenso y esfuerzos inspiratorios sin apenas entrada de aire.'); // v1.23: obstrucción
         else if (S.drive > .8) f.push('Tiraje supraclavicular e intercostal, uso de musculatura accesoria' + (P.hyper ? ', respiración con labios fruncidos.' : '.'));
         else if (S.drive > .5 || (S.spo2 < .9 && S.opi < .3 && S.sedTot < .3)) f.push('Trabajo respiratorio moderado.');
         else if (!S.dka) f.push('Respira tranquilo, sin tiraje.');
@@ -1188,6 +1198,10 @@ function create(opts) {
       if (S.deficit > .35 && S.vaso < .25 && S.neurog < .25) f.push('Piel fría y pálida, relleno capilar enlentecido.'); // en el shock distributivo la piel está caliente
       if (S.pace.on) f.push(S.pace.capture ? 'Pulso femoral a la frecuencia del marcapasos: hay captura mecánica.' : 'Espigas sin captura: el pulso no sigue al marcapasos.');
       if (S.anaf > .15) f.push(S.iface === 'tube' ? 'Eritema y habones generalizados' + (S.anaf > .4 ? ', edema facial y de párpados; sibilancias en ambos campos' : '') + '.' : 'Habones generalizados' + (S.anaf > .4 ? ', angioedema de labios y lengua, voz ronca' : '') + '.');
+      if (S.trach) f.push(S.trach.obs > 0 ? (S.trach.lar ? 'Laringectomizado: estoma traqueal en la base del cuello, sin comunicación con la boca. ' : 'Traqueostomía con cánula con balón. ') + 'No sale aire por la cánula, tiraje intenso y cianosis; la sonda de aspiración no progresa.' : 'Cánula permeable: entra y sale aire, se mueve el tórax.'); // v1.23
+      if (S.lspasm > .3 && S.iface !== 'tube') f.push('Estridor agudo y después silencio: movimientos respiratorios sin entrada de aire, tiraje y cianosis. Laringoespasmo.');
+      if (S.flags.collar) f.push(S.flags.mils ? 'Collarín abierto por delante; un compañero mantiene la estabilización manual en línea.' : 'Collarín cervical rígido bien colocado: casi no abre la boca.');
+      if (S.flags.ieca) f.push('Edema de lengua y labios sin habones ni prurito; toma enalapril desde hace años.' + (S.edAir > .5 ? ' Babea, voz apagada y estridor.' : ''));
       if (S.flags.mimic && S.glu < 60) f.push('Hemiparesia derecha y disartria, sudoroso y pálido; en la mesilla, su insulina.'); // v1.22
       else if (S.flags.mimic) f.push('Mueve los cuatro miembros y habla con normalidad: el déficit ha desaparecido.');
       if (S.flags.mening) f.push('Rigidez de nuca, Kernig y Brudzinski positivos, fotofobia; petequias en tronco y piernas que no blanquean a la presión.');

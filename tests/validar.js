@@ -47,7 +47,7 @@ function play(key, { seed = 1, idle = false } = {}) {
     else sim.action(k);
   }
   const prevIntub = S.onIntubated; S.onIntubated = () => { prevIntub(); if (sol.post) cfg(sol.post); };
-  const prevFail = S.onIntubFail; S.onIntubFail = w => { if (prevFail) prevFail(w); if (intubTries < 3) at(S.clin + .4, () => { if (S.relTot < .9) give('roc'); intubate(); }); };
+  const prevFail = S.onIntubFail; S.onIntubFail = w => { if (prevFail) prevFail(w); if (intubTries < (sol.maxTries || 3)) at(S.clin + .4, () => { if (S.relTot < .9) give('roc'); intubate(); }); };
   const OPS = {
     vt: kg => cfg({ vt: r10(kg * S.ibw) }), cfg, d: (id, when) => { if (!when || S.arr.type === when) give(id); }, a: act, p: perf,
     niv: o => { mark('act:toMask'); sim.setIface('mask'); S.mask.leak10 = Math.min(S.mask.leak10, 15); sim.setCfg(Object.assign({}, S.cfg, { mode: 'PSV', ps: 10, peep: 6, rise: .15, trigE: 40, timax: 1.2, trigI: 2, fio2: Math.max(S.cfg.fio2 || 60, 60), pmax: 30, fr: 12 }, o)); sim.setStandby(false); },
@@ -103,7 +103,7 @@ function play(key, { seed = 1, idle = false } = {}) {
     if (sol.bicQrs && S.clin >= tNext.bic) { tNext.bic += 3; if (S.ecg.qrs * 1000 > 120) give('bic'); }
     if (sol.nalox && S.clin >= tNext.nalox) { tNext.nalox += 2.5; if ((M.effN >= 2 ? M.effRR : 0) < 10) give('nalox'); }
     if (sol.atr && S.clin >= (tNext.atr || 0) && S.arr.type === 'sbrady' && S.tas < 90) { tNext.atr = S.clin + 3; give('atr'); }
-    if (sol.permissive && S.clin >= tNext.perm) { tNext.perm += 2; if (S.tas < 80) give('blood'); }
+    if (sol.permissive && S.clin >= tNext.perm) { tNext.perm += 2; if (S.tas < (sol.permissive === true ? 80 : sol.permissive)) give('blood'); }
   }
   function arrestTick() {
     if (!als) { als = { next: S.clin + 2, shocks: 0, adr: -9, amio: 0 };

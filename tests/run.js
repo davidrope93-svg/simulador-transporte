@@ -428,6 +428,27 @@ console.log('— Tanda de neurología (v1.22): basilar, HSA, imitador, meningiti
   let sz = 0; for (let sd = 1; sd <= 8; sd++) if (run('encefalopatiaHta', [], 20, sd).S.seizures > 0) sz++; check('Encefalopatía hipertensiva sin tratar: convulsiona (de 8)', sz, 2, 8);
   a = run('tumorHtic', [], 20); b = run('tumorHtic', [[.5, give('shs')]], 20); check('Glioblastoma: el Glasgow cae sin osmoterapia', a.S.gcs, 3, 11); check('… con salino hipertónico', b.S.gcs, 10, 15); }
 
+console.log('— Tanda de vía aérea (v1.23): laringectomizado, laringoespasmo, gestante, collarín, asma y shock');
+{ const run = (k, acts, m, seed) => { const L = load(k, { seed: seed || 4, scale: 10 }), s = L.sim; adv(s, .05); for (const [t, f] of acts) { if (s.S.clin < t) adv(s, t - s.S.clin); f(s); } adv(s, m - s.S.clin); return s; };
+  global.window = global; require('../src/drugs.js'); const DR = global.SIM_DRUGS;
+  const give = (id, kg) => s => { const it = DR.DRUGITEMS[id]; s.drug(it.k, DR.amountOf(it, kg || 70, false)); };
+  let a = run('traqueostomia', [], 4), b = run('traqueostomia', [[.2, s => s.action('trachInner')]], 4);
+  check('Laringectomizado: SpO₂ con la cánula obstruida', a.S.spo2 * 100, 0, 85, ' %'); check('… al retirar la cánula interna', b.S.spo2 * 100, 92, 100, ' %');
+  const t0 = load('traqueostomia', { seed: 4, scale: 10 }).sim; t0.S.relTot = 1; check('… no se puede intubar por la boca', t0.intubate().ok ? 1 : 0, 0, 0);
+  const ls = s => s.event('lspasm'); a = run('laringoespasmo', [[1.5, ls]], 5); b = run('laringoespasmo', [[1.5, ls], [1.6, s => s.action('bag')], [1.8, s => s.action('larson')], [2, give('propI', 24)], [2.6, s => s.action('larson')]], 6);
+  check('Laringoespasmo sin tratar: SpO₂ a 5 min', a.S.spo2 * 100, 0, 85, ' %'); check('… con bolsa, Larson y propofol', b.S.spo2 * 100, 94, 100, ' %'); check('… el espasmo cede', b.S.lspasm, 0, 0);
+  const apnea = k => { const s = run(k, [[.1, s => { s.S.access = 'iv'; s.S.cfg.o2dev = 'reserv'; }], [3, give('roc', 84)]], 6.75); return s.S.spo2 * 100; };
+  CASES.v_noPreg = Object.assign({}, CASES.intubacionObstetrica, { preg: 0, phen: null }); const sp1 = apnea('intubacionObstetrica'), sp2 = apnea('v_noPreg'); delete CASES.v_noPreg;
+  check('Gestante: desatura antes en apnea (SpO₂ tras preoxigenar y relajar, gestante − no gestante)', sp1 - sp2, -100, -10, ' puntos');
+  let fc = 0, fm = 0; for (let sd = 1; sd <= 12; sd++) for (const mils of [false, true]) { const L = load('collarinCervical', { seed: sd, scale: 10 }), s = L.sim; if (mils) s.action('mils'); s.S.relTot = 1; s.intubate(); if (s.S.isr && s.S.isr.fail) { if (mils) fm++; else fc++; } }
+  check('Collarín cerrado: laringoscopias fallidas (de 12)', fc, 6, 12); check('… con estabilización manual y collarín abierto', fm, 0, 6);
+  const ast = fr => { const s = run('isrAsma', [[.1, s => { s.S.access = 'iv'; }], [.15, give('salb', 60)], [.2, give('ket', 60)], [.25, give('roc', 60)], [1.6, s => s.intubate()], [3.2, s => { s.setCfg(Object.assign({}, s.S.cfg, { vt: 380, fr, ti: .7, peep: 0, pmax: 60 })); }]], 9.2); return s.S.iface === 'tube' ? s.S.peepiDyn : null; };
+  check('Asma: la PEEP intrínseca sube con la FR (FR 20 − FR 8)', ast(20) - ast(8), 5, 30, ' cmH₂O');
+  const hem = (pre, ind) => { let mn = 300; const s = run('isrHemorragico', [[.1, s => { s.S.access = 'iv'; }], ...pre, [2, give(ind, 78)], [2.05, give('roc', 78)], [3.2, s => s.intubate()]], 3.3); for (let i = 0; i < 24; i++) { adv(s, .25); mn = Math.min(mn, s.S.tas); } return mn; };
+  check('Shock hemorrágico: TAS mínima tras inducir con propofol sin resucitar', hem([], 'propI'), 0, 70, ' mmHg'); check('… con sangre y ketamina', hem([[.3, s => s.action('blood')], [1, s => s.action('blood')]], 'ket'), 75, 200, ' mmHg');
+  let rip0 = 0, rip1 = 0; for (let sd = 1; sd <= 6; sd++) { const x = run('secuenciaRetrasada', [[.3, s => s.setIface('mask')]], 4, sd), y = run('secuenciaRetrasada', [[.2, give('ket', 80)], [.3, s => s.setIface('mask')]], 4, sd); rip0 += x.S.log.filter(l => /agobia/.test(l[1])).length; rip1 += y.S.log.filter(l => /agobia/.test(l[1])).length; }
+  check('Secuencia retrasada: se arranca la mascarilla sin ketamina (episodios, 6 semillas)', rip0, 3, 99); check('… con ketamina disociativa', rip1, 0, 1); }
+
 console.log('— Instalable y sin conexión (v1.3): manifiesto, iconos y service worker');
 { const fs = require('fs'), path = require('path'), R = f => path.join(__dirname, '..', f);
   const man = JSON.parse(fs.readFileSync(R('manifest.webmanifest'), 'utf8'));
