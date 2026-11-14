@@ -51,6 +51,22 @@ const DRUGS = {
 };
 const SED_RATE = 3 * Math.LN2 / 15; // perfusión que mantiene la sedación de base al 75 %
 
+/* v1.11: pediatría por edad (APLS/ERC 2021) — constantes normales, peso estimado y material por tamaño ("cinta pediátrica") */
+const ageFromWeight = kg => kg < 10 ? Math.max(0, (kg - 4) * 2) / 12 : kg < 18 ? (kg - 8) / 2 : kg < 25 ? 5 + (kg - 18) / 7 : (kg - 7) / 3;
+const pesoPorEdad = a => a < 1 ? .5 * a * 12 + 4 : a <= 5 ? 2 * a + 8 : 3 * a + 7;
+function pedNorms(a) {
+  const r = a < 1 ? { fc: [110, 160], fr: [30, 40], vfr: [25, 30] } : a < 2 ? { fc: [100, 150], fr: [25, 35], vfr: [20, 25] } : a < 5 ? { fc: [95, 140], fr: [25, 30], vfr: [20, 25] } : a < 12 ? { fc: [80, 120], fr: [20, 25], vfr: [16, 20] } : { fc: [60, 100], fr: [15, 20], vfr: [12, 16] };
+  return Object.assign(r, { tasMin: a < 1 / 12 ? 60 : a < 1 ? 70 : a <= 10 ? Math.round(70 + 2 * a) : 90 });
+}
+function pedKit(kg, a) {
+  if (a == null) a = ageFromWeight(kg);
+  const r5 = x => Math.round(x * 2) / 2, neo = kg <= 5 && a < 1 / 12;
+  const tubo = neo ? (kg < 2 ? 3 : 3.5) : a < 1 ? 3.5 : a < 2 ? 4 : r5(a / 4 + 3.5);
+  const prof = neo ? Math.round(6 + kg) : a < 2 ? Math.round(3 * tubo) : Math.round(a / 2 + 12);
+  const igel = kg < 5 ? '1' : kg < 12 ? '1,5' : kg < 25 ? '2' : kg < 35 ? '2,5' : kg < 60 ? '3' : kg < 90 ? '4' : '5';
+  const pala = a < 1 ? 'recta (Miller) 0–1' : a < 2 ? 'Miller 1 o Macintosh 1' : a < 8 ? 'Macintosh 2' : 'Macintosh 3';
+  return { kg, a, tubo, prof, igel, pala, sonda: Math.round(tubo * 2), vt: [Math.round(6 * kg), Math.round(8 * kg)], fr: pedNorms(a).vfr, julios: Math.min(360, Math.round(4 * kg)), adr: Math.min(1000, Math.round(10 * kg)), liq: Math.round(10 * kg), glu: Math.round(2 * kg) };
+}
 const pesoIdeal = (sex, talla) => (sex === 'm' ? 45.5 : 50) + 0.91 * (talla - 152.4);
 const defaultCfg = () => ({ mode: 'VCV', vt: 450, fr: 14, ti: 1.0, tplat: 0, pinsp: 15, ps: 10, rise: .15, peep: 5, fio2: 50, trigI: 2, trigE: 25, timax: 1.5, pmax: 40, apneaT: 20, minvol: 100, flow: 40, o2dev: 'reserv' });
 const PRESS = { PCV: 1, PSV: 1, CPAP: 1, APV: 1, ASV: 1, PST: 1, CPV: 1, SIMV: 1 };
@@ -73,7 +89,7 @@ function create(opts) {
     P, pk: o.pheno, t: 0, clin: 0, scale: o.scale, iface: o.iface,
     dev: { vent: o.vent, pneumatic: o.vent === 'medumat' },
     cfg: Object.assign(defaultCfg(), o.cfg || {}),
-    ibw: ped ? o.peso : pesoIdeal(o.sex || P.sex, o.talla || P.talla), ped, kW, rrF: ped ? Math.pow(70 / o.peso, .35) : 1, rrCap: ped ? Math.min(80, 42 * Math.pow(70 / o.peso, .35)) : 42,
+    ibw: ped ? o.peso : pesoIdeal(o.sex || P.sex, o.talla || P.talla), ped, kW, age: ped ? (o.edad != null ? o.edad : ageFromWeight(o.peso)) : null, rrF: ped ? Math.pow(70 / o.peso, .35) : 1, rrCap: ped ? Math.min(80, 42 * Math.pow(70 / o.peso, .35)) : 42,
     V: 0, Paw: 0, Qlung: 0, Qvent: 0, palv: 0, pmus: 0, pmeanAlv: 6, pawMean: 5, vmeas: 0,
     pat: { next: 1, ts: -10, tin: 1, pmax: 0, rr: 14, open: false, id: 0, trig: 0, mid: 'exp', end: -10 },
     vent: { phase: 'exp', tb: -10, tc: 0, delivered: 0, peakQ: 0, trigHold: 0, rec: null, holdUntil: 0, lastTrig: 0, backup: false, kind: 'mand', nextMand: -99, mandDone: false },
@@ -562,7 +578,8 @@ function create(opts) {
     else if (S.ph < 6.88 && rnd() < dtc * .08 * clamp((6.92 - S.ph) / .1, 0, 1.5)) enterArrest('acid'); // v1.8: acidemia extrema
     else if (S.temp > 42.3 && rnd() < dtc * .1) enterArrest('primary');
     // escala de Glasgow aproximada
-    let g = 15 - 12 * S.sedTot - 3 * S.opi - 9 * gluN - 1.3 * clamp(32 - S.temp, 0, 8) - (S.pco2 > 80 ? (S.pco2 - 80) / 5 : 0) - (S.oxEff < .75 ? (.75 - S.oxEff) * 30 : 0) - (S.tas < 70 ? (70 - S.tas) / 5 : 0) - (S.cohb > .2 ? (S.cohb - .2) * 25 : 0) - (S.icp && S.icp.v > 22 ? (S.icp.v - 20) / 3 : 0) - 6 * naEff() - strokeGcs() - 5 * S.op - 1 * S.cocE - 1.5 * clamp(S.temp - 40.5, 0, 2.5) - 3 * clamp((7.1 - (S.ph || 7.4)) / .2, 0, 1);
+    const tLow = S.ped ? pedNorms(S.age || 0).tasMin - 8 : 70; // en el niño, la hipotensión que altera la conciencia depende de la edad
+    let g = 15 - 12 * S.sedTot - 3 * S.opi - 9 * gluN - 1.3 * clamp(32 - S.temp, 0, 8) - (S.pco2 > 80 ? (S.pco2 - 80) / 5 : 0) - (S.oxEff < .75 ? (.75 - S.oxEff) * 30 : 0) - (S.tas < tLow ? (tLow - S.tas) / 5 : 0) - (S.cohb > .2 ? (S.cohb - .2) * 25 : 0) - (S.icp && S.icp.v > 22 ? (S.icp.v - 20) / 3 : 0) - 6 * naEff() - strokeGcs() - 5 * S.op - 1 * S.cocE - 1.5 * clamp(S.temp - 40.5, 0, 2.5) - 3 * clamp((7.1 - (S.ph || 7.4)) / .2, 0, 1);
     if (seiz) g = Math.min(g, 5); else if (S.clin < S.postIctUntil) g -= 4;
     S.gcs = Math.round(clamp(g, 3, 15));
   }
@@ -604,6 +621,15 @@ function create(opts) {
     if (nn.hr60 == null && nn.hr >= 60 && S.clin > .2) nn.hr60 = S.clin; if (nn.hr100 == null && nn.hr >= 100 && S.clin > .2) nn.hr100 = S.clin;
     if (nn.apnea) { nn.oxyT = ox > .75 && nn.hr > 100 ? nn.oxyT + dtc : Math.max(0, nn.oxyT - dtc); if (nn.oxyT > 1 + 3 * (1 - nn.m0)) { nn.apnea = false; nn.firstBreath = S.clin; S.log.push([S.clin, 'Primeras respiraciones espontáneas; después, llanto']); } }
     else if (ox < .2 && nn.hr < 60) { nn.apnea = true; nn.oxyT = 0; S.log.push([S.clin, 'Vuelve a la apnea']); }
+  }
+  // triángulo de evaluación pediátrica: apariencia, trabajo respiratorio y circulación cutánea
+  function tep(seiz) {
+    if (S.iface === 'tube' || S.sedTot > .6 || S.relTot > .5) return 'Triángulo de evaluación pediátrica: no valorable (sedado y ventilado).';
+    const n = pedNorms(S.age || 0), A = S.gcs >= 14 && !seiz && S.glu > 55, rr = S.pat.pmax > 1 ? S.pat.rr : 0;
+    const B = !(S.drive > .75 || rr > n.fr[1] * 1.3 || S.croupEff > .25 || S.bs > 1.4 || S.anaf > .4 || S.spo2 < .9 || (S.pat.pmax <= 1 && !S.bag));
+    const C = !(S.deficit > .2 || S.tas < n.tasMin || S.vaso > .25 || S.anaf > .3 || S.fc > n.fc[1] * 1.25);
+    const imp = A && B && C ? 'estable' : A && !B && C ? 'dificultad respiratoria' : !A && !B && C ? 'fallo respiratorio' : A && B && !C ? 'shock compensado' : !A && B && !C ? 'shock descompensado' : !A && B && C ? 'disfunción del sistema nervioso central o metabólica' : A && !B && !C ? 'dificultad respiratoria con mala perfusión' : 'fallo cardiorrespiratorio';
+    return `Triángulo de evaluación pediátrica: apariencia ${A ? 'normal' : 'alterada'}, respiración ${B ? 'normal' : 'alterada'}, circulación ${C ? 'normal' : 'alterada'} → ${imp}.`;
   }
   function startSeizure() { S.seizUntil = S.clin + 1 + rnd() * 1.5; S.seizures++; S.log.push([S.clin, 'Convulsión tónico-clónica']); if (S.onSeizure) S.onSeizure(); }
 
@@ -1014,7 +1040,8 @@ function create(opts) {
       const seiz = S.clin < S.seizUntil;
       if (seiz) f.push('Convulsión tónico-clónica generalizada: mandíbula cerrada, cianosis peribucal, sialorrea.');
       const glas = S.relTot > .6 ? 'relajado, no valorable' : S.sedTot > .7 ? 'bajo sedación' : S.cocE > .35 && !seiz ? 'agitado y desorientado, no colabora' : seiz ? 'convulsionando' : S.clin < S.postIctUntil ? 'postcrítico, obnubilado' : S.gcs <= 8 ? 'no abre los ojos, emite sonidos y localiza o retira al dolor' : S.gcs <= 12 ? 'somnoliento, abre los ojos al dolor, desorientado' : S.gcs <= 14 ? 'adormilado, confuso' : 'consciente y orientado';
-      if (S.iface !== 'tube' || S.relTot < .5) f.push(`Nivel de conciencia: ${glas}${S.relTot > .6 ? '' : ` (GCS ≈ ${S.gcs})`}.`);
+      if (S.ped && !S.neo) f.push(tep(seiz));
+      if (S.iface !== 'tube' || S.relTot < .5) f.push(`Nivel de conciencia: ${glas}${S.relTot > .6 ? '' : ` (${S.ped && S.age < 2 ? 'Glasgow pediátrica' : 'GCS'} ≈ ${S.gcs})`}.`);
       if (S.pat.pmax > 1 && !seiz) {
         f.push(`Cuentas ${Math.round(S.pat.rr)} respiraciones por minuto.`);
         if (S.drive > .8) f.push('Tiraje supraclavicular e intercostal, uso de musculatura accesoria' + (P.hyper ? ', respiración con labios fruncidos.' : '.'));
@@ -1103,6 +1130,6 @@ function create(opts) {
   return api;
 }
 
-root.VMI = { create, PHENO, DRUGS, O2DEV, pesoIdeal, defaultCfg, sat, pbarAt, clamp };
+root.VMI = { create, PHENO, DRUGS, O2DEV, pesoIdeal, defaultCfg, sat, pbarAt, clamp, pedNorms, pedKit, ageFromWeight, pesoPorEdad };
 if (typeof module !== 'undefined') module.exports = root.VMI;
 })(typeof window !== 'undefined' ? window : globalThis);

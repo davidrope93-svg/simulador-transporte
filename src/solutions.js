@@ -44,6 +44,7 @@ const SOL = {
   obesoIsr: { s: [[.3, 'niv', { peep: 10, ps: 6, fio2: 100 }], [3, 'a', 'vl'], [3, 'a', 'apox'], [3.5, 'isr', { ind: 'ket' }]], post: { peep: 10 } },
   viaDificil: { s: [[.3, 'a', 'bag'], [.8, 'a', 'vl'], [1, 'isr', { ind: 'ket' }], [3, 'a', 'sga'], [4.2, 'a', 'cric']], post: { peep: 10 } },
   quemado: { s: [[.3, 'o2', 'reserv'], [.5, 'd', 'hidroxo'], [2.5, 'isr', { ind: 'ket', vl: true, apox: true }], [3.5, 'p', 'cris', 500], [4, 'a', 'warm']], post: { peep: 10 } },
+  tcePed: { s: [[.5, 'vt', 7], [.5, 'cfg', { fr: 18, peep: 5 }]] },
   bronquiolitis: { s: [[.5, 'hfnc', 'kg2', 60]] },
   crup: { s: [[.5, 'd', 'adrNeb'], [.7, 'd', 'dexa']] },
   anafPed: { s: [[.3, 'd', 'adrIM'], [.4, 'o2', 'reserv'], [.6, 'a', 'fluid'], [5, 'd', 'adrIM'], [5.5, 'd', 'salb']] },

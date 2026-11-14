@@ -439,6 +439,8 @@ body.exam #tutBtn{display:none}
 .coach .tok{color:var(--ok);font-weight:700}
 .coach .lost{background:color-mix(in srgb,var(--accent) 10%,transparent);border-radius:8px;padding:6px 8px;font-weight:500}
 .tdots{display:flex;gap:4px;flex-wrap:wrap}.tdots i{width:14px;height:5px;border-radius:3px;background:var(--line)}.tdots i.d{background:var(--ok)}.tdots i.c{background:var(--accent)}
+/* v1.11: cinta pediátrica */
+.pedkit{margin:0 0 10px;border:1px solid var(--line);border-radius:10px;padding:6px 10px}.pedkit summary{cursor:pointer;font-weight:600}.pedkit p{margin:4px 0;font-size:13px;line-height:1.4}
 </style>
 </head>
 <body>
@@ -447,7 +449,7 @@ body.exam #tutBtn{display:none}
 <main>
   <header class="top">
     <div class="brand">
-      <span class="eyebrow">Simulador docente · SVA terrestre y HEMS · v1.10</span>
+      <span class="eyebrow">Simulador docente · SVA terrestre y HEMS · v1.11</span>
       <h1>Ventilación, monitor y RCP</h1>
     </div>
     <div class="toolbar">
@@ -544,6 +546,7 @@ body.exam #tutBtn{display:none}
 
       <section class="card" aria-labelledby="actH" data-tabsec="act">
         <h2 id="actH">Acciones</h2>
+        <details class="pedkit" id="pedKit" hidden><summary>Cinta pediátrica</summary><div id="pedKitBody"></div></details>
         <div class="agroup"><span class="flabel">Vía aérea y soporte</span>
           <div class="abtns">
             <button class="btn primary" data-act="explore">Explorar</button>
@@ -782,6 +785,22 @@ const DRUGS = {
 };
 const SED_RATE = 3 * Math.LN2 / 15; // perfusión que mantiene la sedación de base al 75 %
 
+/* v1.11: pediatría por edad (APLS/ERC 2021) — constantes normales, peso estimado y material por tamaño ("cinta pediátrica") */
+const ageFromWeight = kg => kg < 10 ? Math.max(0, (kg - 4) * 2) / 12 : kg < 18 ? (kg - 8) / 2 : kg < 25 ? 5 + (kg - 18) / 7 : (kg - 7) / 3;
+const pesoPorEdad = a => a < 1 ? .5 * a * 12 + 4 : a <= 5 ? 2 * a + 8 : 3 * a + 7;
+function pedNorms(a) {
+  const r = a < 1 ? { fc: [110, 160], fr: [30, 40], vfr: [25, 30] } : a < 2 ? { fc: [100, 150], fr: [25, 35], vfr: [20, 25] } : a < 5 ? { fc: [95, 140], fr: [25, 30], vfr: [20, 25] } : a < 12 ? { fc: [80, 120], fr: [20, 25], vfr: [16, 20] } : { fc: [60, 100], fr: [15, 20], vfr: [12, 16] };
+  return Object.assign(r, { tasMin: a < 1 / 12 ? 60 : a < 1 ? 70 : a <= 10 ? Math.round(70 + 2 * a) : 90 });
+}
+function pedKit(kg, a) {
+  if (a == null) a = ageFromWeight(kg);
+  const r5 = x => Math.round(x * 2) / 2, neo = kg <= 5 && a < 1 / 12;
+  const tubo = neo ? (kg < 2 ? 3 : 3.5) : a < 1 ? 3.5 : a < 2 ? 4 : r5(a / 4 + 3.5);
+  const prof = neo ? Math.round(6 + kg) : a < 2 ? Math.round(3 * tubo) : Math.round(a / 2 + 12);
+  const igel = kg < 5 ? '1' : kg < 12 ? '1,5' : kg < 25 ? '2' : kg < 35 ? '2,5' : kg < 60 ? '3' : kg < 90 ? '4' : '5';
+  const pala = a < 1 ? 'recta (Miller) 0–1' : a < 2 ? 'Miller 1 o Macintosh 1' : a < 8 ? 'Macintosh 2' : 'Macintosh 3';
+  return { kg, a, tubo, prof, igel, pala, sonda: Math.round(tubo * 2), vt: [Math.round(6 * kg), Math.round(8 * kg)], fr: pedNorms(a).vfr, julios: Math.min(360, Math.round(4 * kg)), adr: Math.min(1000, Math.round(10 * kg)), liq: Math.round(10 * kg), glu: Math.round(2 * kg) };
+}
 const pesoIdeal = (sex, talla) => (sex === 'm' ? 45.5 : 50) + 0.91 * (talla - 152.4);
 const defaultCfg = () => ({ mode: 'VCV', vt: 450, fr: 14, ti: 1.0, tplat: 0, pinsp: 15, ps: 10, rise: .15, peep: 5, fio2: 50, trigI: 2, trigE: 25, timax: 1.5, pmax: 40, apneaT: 20, minvol: 100, flow: 40, o2dev: 'reserv' });
 const PRESS = { PCV: 1, PSV: 1, CPAP: 1, APV: 1, ASV: 1, PST: 1, CPV: 1, SIMV: 1 };
@@ -804,7 +823,7 @@ function create(opts) {
     P, pk: o.pheno, t: 0, clin: 0, scale: o.scale, iface: o.iface,
     dev: { vent: o.vent, pneumatic: o.vent === 'medumat' },
     cfg: Object.assign(defaultCfg(), o.cfg || {}),
-    ibw: ped ? o.peso : pesoIdeal(o.sex || P.sex, o.talla || P.talla), ped, kW, rrF: ped ? Math.pow(70 / o.peso, .35) : 1, rrCap: ped ? Math.min(80, 42 * Math.pow(70 / o.peso, .35)) : 42,
+    ibw: ped ? o.peso : pesoIdeal(o.sex || P.sex, o.talla || P.talla), ped, kW, age: ped ? (o.edad != null ? o.edad : ageFromWeight(o.peso)) : null, rrF: ped ? Math.pow(70 / o.peso, .35) : 1, rrCap: ped ? Math.min(80, 42 * Math.pow(70 / o.peso, .35)) : 42,
     V: 0, Paw: 0, Qlung: 0, Qvent: 0, palv: 0, pmus: 0, pmeanAlv: 6, pawMean: 5, vmeas: 0,
     pat: { next: 1, ts: -10, tin: 1, pmax: 0, rr: 14, open: false, id: 0, trig: 0, mid: 'exp', end: -10 },
     vent: { phase: 'exp', tb: -10, tc: 0, delivered: 0, peakQ: 0, trigHold: 0, rec: null, holdUntil: 0, lastTrig: 0, backup: false, kind: 'mand', nextMand: -99, mandDone: false },
@@ -1293,7 +1312,8 @@ function create(opts) {
     else if (S.ph < 6.88 && rnd() < dtc * .08 * clamp((6.92 - S.ph) / .1, 0, 1.5)) enterArrest('acid'); // v1.8: acidemia extrema
     else if (S.temp > 42.3 && rnd() < dtc * .1) enterArrest('primary');
     // escala de Glasgow aproximada
-    let g = 15 - 12 * S.sedTot - 3 * S.opi - 9 * gluN - 1.3 * clamp(32 - S.temp, 0, 8) - (S.pco2 > 80 ? (S.pco2 - 80) / 5 : 0) - (S.oxEff < .75 ? (.75 - S.oxEff) * 30 : 0) - (S.tas < 70 ? (70 - S.tas) / 5 : 0) - (S.cohb > .2 ? (S.cohb - .2) * 25 : 0) - (S.icp && S.icp.v > 22 ? (S.icp.v - 20) / 3 : 0) - 6 * naEff() - strokeGcs() - 5 * S.op - 1 * S.cocE - 1.5 * clamp(S.temp - 40.5, 0, 2.5) - 3 * clamp((7.1 - (S.ph || 7.4)) / .2, 0, 1);
+    const tLow = S.ped ? pedNorms(S.age || 0).tasMin - 8 : 70; // en el niño, la hipotensión que altera la conciencia depende de la edad
+    let g = 15 - 12 * S.sedTot - 3 * S.opi - 9 * gluN - 1.3 * clamp(32 - S.temp, 0, 8) - (S.pco2 > 80 ? (S.pco2 - 80) / 5 : 0) - (S.oxEff < .75 ? (.75 - S.oxEff) * 30 : 0) - (S.tas < tLow ? (tLow - S.tas) / 5 : 0) - (S.cohb > .2 ? (S.cohb - .2) * 25 : 0) - (S.icp && S.icp.v > 22 ? (S.icp.v - 20) / 3 : 0) - 6 * naEff() - strokeGcs() - 5 * S.op - 1 * S.cocE - 1.5 * clamp(S.temp - 40.5, 0, 2.5) - 3 * clamp((7.1 - (S.ph || 7.4)) / .2, 0, 1);
     if (seiz) g = Math.min(g, 5); else if (S.clin < S.postIctUntil) g -= 4;
     S.gcs = Math.round(clamp(g, 3, 15));
   }
@@ -1335,6 +1355,15 @@ function create(opts) {
     if (nn.hr60 == null && nn.hr >= 60 && S.clin > .2) nn.hr60 = S.clin; if (nn.hr100 == null && nn.hr >= 100 && S.clin > .2) nn.hr100 = S.clin;
     if (nn.apnea) { nn.oxyT = ox > .75 && nn.hr > 100 ? nn.oxyT + dtc : Math.max(0, nn.oxyT - dtc); if (nn.oxyT > 1 + 3 * (1 - nn.m0)) { nn.apnea = false; nn.firstBreath = S.clin; S.log.push([S.clin, 'Primeras respiraciones espontáneas; después, llanto']); } }
     else if (ox < .2 && nn.hr < 60) { nn.apnea = true; nn.oxyT = 0; S.log.push([S.clin, 'Vuelve a la apnea']); }
+  }
+  // triángulo de evaluación pediátrica: apariencia, trabajo respiratorio y circulación cutánea
+  function tep(seiz) {
+    if (S.iface === 'tube' || S.sedTot > .6 || S.relTot > .5) return 'Triángulo de evaluación pediátrica: no valorable (sedado y ventilado).';
+    const n = pedNorms(S.age || 0), A = S.gcs >= 14 && !seiz && S.glu > 55, rr = S.pat.pmax > 1 ? S.pat.rr : 0;
+    const B = !(S.drive > .75 || rr > n.fr[1] * 1.3 || S.croupEff > .25 || S.bs > 1.4 || S.anaf > .4 || S.spo2 < .9 || (S.pat.pmax <= 1 && !S.bag));
+    const C = !(S.deficit > .2 || S.tas < n.tasMin || S.vaso > .25 || S.anaf > .3 || S.fc > n.fc[1] * 1.25);
+    const imp = A && B && C ? 'estable' : A && !B && C ? 'dificultad respiratoria' : !A && !B && C ? 'fallo respiratorio' : A && B && !C ? 'shock compensado' : !A && B && !C ? 'shock descompensado' : !A && B && C ? 'disfunción del sistema nervioso central o metabólica' : A && !B && !C ? 'dificultad respiratoria con mala perfusión' : 'fallo cardiorrespiratorio';
+    return `Triángulo de evaluación pediátrica: apariencia ${A ? 'normal' : 'alterada'}, respiración ${B ? 'normal' : 'alterada'}, circulación ${C ? 'normal' : 'alterada'} → ${imp}.`;
   }
   function startSeizure() { S.seizUntil = S.clin + 1 + rnd() * 1.5; S.seizures++; S.log.push([S.clin, 'Convulsión tónico-clónica']); if (S.onSeizure) S.onSeizure(); }
 
@@ -1745,7 +1774,8 @@ function create(opts) {
       const seiz = S.clin < S.seizUntil;
       if (seiz) f.push('Convulsión tónico-clónica generalizada: mandíbula cerrada, cianosis peribucal, sialorrea.');
       const glas = S.relTot > .6 ? 'relajado, no valorable' : S.sedTot > .7 ? 'bajo sedación' : S.cocE > .35 && !seiz ? 'agitado y desorientado, no colabora' : seiz ? 'convulsionando' : S.clin < S.postIctUntil ? 'postcrítico, obnubilado' : S.gcs <= 8 ? 'no abre los ojos, emite sonidos y localiza o retira al dolor' : S.gcs <= 12 ? 'somnoliento, abre los ojos al dolor, desorientado' : S.gcs <= 14 ? 'adormilado, confuso' : 'consciente y orientado';
-      if (S.iface !== 'tube' || S.relTot < .5) f.push(`Nivel de conciencia: ${glas}${S.relTot > .6 ? '' : ` (GCS ≈ ${S.gcs})`}.`);
+      if (S.ped && !S.neo) f.push(tep(seiz));
+      if (S.iface !== 'tube' || S.relTot < .5) f.push(`Nivel de conciencia: ${glas}${S.relTot > .6 ? '' : ` (${S.ped && S.age < 2 ? 'Glasgow pediátrica' : 'GCS'} ≈ ${S.gcs})`}.`);
       if (S.pat.pmax > 1 && !seiz) {
         f.push(`Cuentas ${Math.round(S.pat.rr)} respiraciones por minuto.`);
         if (S.drive > .8) f.push('Tiraje supraclavicular e intercostal, uso de musculatura accesoria' + (P.hyper ? ', respiración con labios fruncidos.' : '.'));
@@ -1834,7 +1864,7 @@ function create(opts) {
   return api;
 }
 
-root.VMI = { create, PHENO, DRUGS, O2DEV, pesoIdeal, defaultCfg, sat, pbarAt, clamp };
+root.VMI = { create, PHENO, DRUGS, O2DEV, pesoIdeal, defaultCfg, sat, pbarAt, clamp, pedNorms, pedKit, ageFromWeight, pesoPorEdad };
 if (typeof module !== 'undefined') module.exports = root.VMI;
 })(typeof window !== 'undefined' ? window : globalThis);
 
@@ -2269,6 +2299,11 @@ const CASES = {
     targets: { spo2: [94, 100], tas: [90, 250] } }, O2),
 
   /* ---------- Pediatría (v0.7) ---------- */
+  tcePed: { lvl: 'Pediatría', title: 'TCE grave en un niño: ventilar por peso y edad', pheno: 'sano', sex: 'h', talla: 116, peso: 20, edad: 6, ped: true, pco2: 38, speed: 10, duration: 20,
+    cfg: { mode: 'VCV', vt: 450, fr: 12, ti: 1.0, tplat: 0, peep: 0, fio2: 100, pmax: 40 },
+    goal: 'Niño de 6 años y 20 kg atropellado: TCE grave (GCS 7), intubado con un tubo de 5,0 con balón. Lo han conectado al respirador con los ajustes del último adulto (Vt 450 mL, FR 12). Traslado al hospital con UCI pediátrica.',
+    hint: 'Usa la cinta pediátrica (en Acciones): con 20 kg, Vt 6–8 mL/kg = 120–160 mL, FR 16–20 a esta edad, PEEP 5 y la FiO₂ mínima para SpO₂ 94–98 %; EtCO₂ 35–40, sin hiperventilar. Comprueba el tubo: con balón, edad/4 + 3,5 = 5,0, a 15 cm de la comisura (edad/2 + 12). TAS mínima a esta edad: 70 + 2 × edad = 82 mmHg; en el TCE grave, mejor por encima de 90. Volumen 10 mL/kg si baja. Cabecero a 30°, normoglucemia y normotermia.',
+    targets: { vtkg: [6, 8], et: [35, 40], spo2: [94, 98], tas: [90, 150] } },
   bronquiolitis: Object.assign({ lvl: 'Pediatría', title: 'Bronquiolitis grave en un lactante', pheno: 'bronq', sex: 'h', talla: 62, peso: 6, ped: true, pco2: 50,
     cfg: { mode: 'HFNC', flow: 12, fio2: 50, o2dev: 'gafas' },
     goal: 'Lactante de 3 meses y 6 kg, cuarto día de catarro. Rechaza las tomas; FR 70, tiraje subcostal y aleteo nasal. SpO₂ 90 % con gafas a 2 L/min. Traslado al hospital de referencia.',
@@ -2458,13 +2493,13 @@ const CASES = {
   buceoDci: Object.assign({ lvl: 'Metabólico y ambiental', title: 'Enfermedad descompresiva: traslado en helicóptero desde El Hierro', pheno: 'sano', sex: 'h', talla: 176, peso: 84, dci: { sev: .65, neuro: 1, chokes: .4 }, deficit: .2, speed: 5, duration: 35,
     cfg: { o2dev: 'gafas' }, events: [{ at: 2.5, alt: 1500, txt: 'Despegue: el piloto propone 1.500 m para cruzar la cumbre' }],
     goal: 'Buceador de 45 años en La Restinga (El Hierro): inmersión a 38 m con ascenso rápido al quedarse sin aire. A los 20 min, dolor lumbar, hormigueo y debilidad en las piernas; no puede orinar. Tose y le duele el pecho. SpO₂ 94 % con gafas. Lo trasladáis en helicóptero al hospital con cámara hiperbárica.',
-    hint: 'Enfermedad descompresiva medular con afectación pulmonar. O₂ a la máxima FiO₂ posible desde el primer momento (mascarilla con reservorio o válvula a demanda), aunque la SpO₂ sea normal: lava el nitrógeno y encoge las burbujas. Volumen (oral si se puede, IV si no), decúbito supino y sin Trendelenburg. Vuelo a la menor altitud posible (≤ 300 m) o en cabina presurizada: por Boyle, a 1.500 m las burbujas crecen un 20 % y el déficit empeora. Descarta neumotórax por barotrauma. El tratamiento definitivo es la cámara hiperbárica: avisa antes de despegar.',
+    hint: 'Enfermedad descompresiva medular con afectación pulmonar. O₂ a la máxima FiO₂ posible desde el primer momento (mascarilla con reservorio a 15 L/min, bien ajustada), aunque la SpO₂ sea normal: lava el nitrógeno y encoge las burbujas. Volumen (oral si se puede, IV si no), decúbito supino y sin Trendelenburg. Vuelo a la menor altitud posible (≤ 300 m) o en cabina presurizada: por Boyle, a 1.500 m las burbujas crecen un 20 % y el déficit empeora. Descarta neumotórax por barotrauma. El tratamiento definitivo es la cámara hiperbárica: avisa antes de despegar.',
     checks: [['o2:reserv|act:toMask', 'O₂ al 100 %'], ['act:fluid|perf:cris', 'Volumen'], ['alt', 'Vuelo a baja cota']],
     targets: { spo2: [96, 100], alt: [0, 300] } }, O2),
   golpeCalor: Object.assign({ lvl: 'Metabólico y ambiental', title: 'Golpe de calor por esfuerzo', pheno: 'sano', sex: 'h', talla: 175, peso: 70, heat: true, temp: 41.9, tempRate: 1.2, deficit: .22, fcAdj: 25, access: false, speed: 5, duration: 30,
     cfg: { o2dev: 'gafas' },
     goal: 'Corredor de 31 años en la maratón de Santa Cruz, con calima y 32 °C. Se desploma en el km 38; está confuso y agresivo, con la piel caliente y sudorosa. FC 150, TAS 95.',
-    hint: 'Hipertermia > 40 °C con alteración neurológica tras un esfuerzo = golpe de calor: enfría primero y traslada después. Temperatura central (rectal) y enfriamiento activo ya: inmersión en agua fría si se puede; si no, desnudar, agua pulverizada con ventilación, hielo en cuello, axilas e ingles y suero frío. Objetivo: bajar de 39 °C en 30 min y parar el enfriamiento entre 38,5 y 39 °C. Los antitérmicos no sirven. Glucemia, vía, cristaloide frío para la hipotensión y midazolam si convulsiona o tirita mucho. Vigila rabdomiólisis, hiperpotasemia y coagulopatía.',
+    hint: 'Hipertermia > 40 °C con alteración neurológica tras un esfuerzo = golpe de calor: enfría primero y traslada después. Temperatura central (rectal) y enfriamiento activo ya: desnudar, agua pulverizada con ventilación, hielo en cuello, axilas e ingles y suero frío. Objetivo: bajar de 39 °C en 30 min y parar el enfriamiento entre 38,5 y 39 °C. Los antitérmicos no sirven. Glucemia, vía, cristaloide frío para la hipotensión y midazolam si convulsiona o tirita mucho. Vigila rabdomiólisis, hiperpotasemia y coagulopatía.',
     checks: [['act:temp', 'Temperatura central'], ['act:cool', 'Enfriamiento activo'], ['act:glu', 'Glucemia'], ['act:fluid|perf:cris', 'Volumen']],
     targets: { temp: [37.5, 39.5], tas: [90, 170] } }, O2),
 
@@ -2648,6 +2683,7 @@ const META = {
   obesoIsr: ['t', 3, 'ISR en obesidad mórbida: rampa, preoxigenación y apnea corta'],
   viaDificil: ['t', 3, 'No intubable, no oxigenable: supraglótico y cricotiroidotomía'],
   quemado: ['t', 3, 'Inhalación de humo: intubación precoz, monóxido y cianuro'],
+  tcePed: ['t', 2, 'TCE pediátrico: cinta pediátrica, Vt por peso y FR por edad'],
   bronquiolitis: ['t', 1, 'Alto flujo a 2 L/kg/min en el lactante y cuándo escalar'],
   crup: ['t', 2, 'Crup grave: dexametasona, adrenalina nebulizada y no agitar al niño'],
   anafPed: ['t', 2, 'Anafilaxia pediátrica: adrenalina IM por peso, volumen y vía aérea'],
@@ -2905,7 +2941,7 @@ const fmt = (x, d = 0) => (x == null || !isFinite(x)) ? '–' : x.toFixed(d).rep
 const { SPEC, PKEYS, KEYS, DEVS, KEYLAB, MONS } = window.SIM_DEV;
 const CASES = window.SIM_CASES, GROUPS = window.SIM_GROUPS;
 const N = 750, SR = .02, GAP = 12, ZN = 750, ZSR = .008, ZGAP = 20;
-const MODEL_KEYS = ['pco2', 'deficit', 'bs', 'opioid', 'rhythm', 'arrPen', 'tep', 'anaf', 'cohb', 'cn', 'icp', 'icpGrow', 'weak', 'dav', 'edAir', 'edAirRate', 'asp', 'arrest', 'arrestCause', 'comp', 'bav', 'tasAdj', 'fcAdj', 'sevFloor', 'bottleL', 'bottleBar', 'leak10', 'relCe', 'sedE', 'sedStopped', 'sev', 'ptx', 'ptxTension', 'shockMul', 'bmv', 'sgaFail', 'peso', 'k', 'kRate', 'glu', 'gluT', 'temp', 'tempRate', 'bleed', 'bleedSrc', 'tca', 'ecl', 'croup', 'postRosc', 'access', 'arrestCause2', 'hco3Off', 'stemi', 'tamp', 'tampRate', 'vaso', 'vasoRate', 'neurog', 'fluidTol', 'htx', 'flail', 'pain', 'burn', 'se', 'stroke', 'na', 'cv', 'op', 'opRate', 'cocaine', 'dka', 'neo', 'dci', 'heat', 'drown'];
+const MODEL_KEYS = ['pco2', 'deficit', 'bs', 'opioid', 'rhythm', 'arrPen', 'tep', 'anaf', 'cohb', 'cn', 'icp', 'icpGrow', 'weak', 'dav', 'edAir', 'edAirRate', 'asp', 'arrest', 'arrestCause', 'comp', 'bav', 'tasAdj', 'fcAdj', 'sevFloor', 'bottleL', 'bottleBar', 'leak10', 'relCe', 'sedE', 'sedStopped', 'sev', 'ptx', 'ptxTension', 'shockMul', 'bmv', 'sgaFail', 'peso', 'k', 'kRate', 'glu', 'gluT', 'temp', 'tempRate', 'bleed', 'bleedSrc', 'tca', 'ecl', 'croup', 'postRosc', 'access', 'arrestCause2', 'hco3Off', 'stemi', 'tamp', 'tampRate', 'vaso', 'vasoRate', 'neurog', 'fluidTol', 'htx', 'flail', 'pain', 'burn', 'se', 'stroke', 'na', 'cv', 'op', 'opRate', 'cocaine', 'dka', 'neo', 'dci', 'heat', 'drown', 'edad'];
 const O2LAB = { gafas: 'gafas nasales 2 L/min', venturi28: 'Venturi 28 %', venturi35: 'Venturi 35 %', venturi50: 'Venturi 50 %', reserv: 'mascarilla con reservorio 15 L/min' };
 const IFLAB = { tube: 'tubo endotraqueal', mask: 'mascarilla oronasal', nasal: 'cánula nasal de alto flujo', o2: 'paciente sin conectar' };
 const IFSHORT = { tube: 'intubado', mask: 'VMNI', nasal: 'alto flujo', o2: 'oxigenoterapia' };
@@ -3066,7 +3102,7 @@ function loadCase(k) {
   $('#zPace').checked = false; $('#zPaceMode').value = 'demand'; paceRateOpts(70); $('#zMode').value = 'manual';
   $('#findings').hidden = true; $('#log').innerHTML = '';
   setLimits(true);
-  renderDrugs(); applyDevUI(); applyMonUI();
+  renderDrugs(); renderPedKit(); applyDevUI(); applyMonUI();
   logIt('Caso: ' + c.title + ' · ' + DEVS[dev].short + ' · ' + MONS[$('#monSel').value].short);
   renderCase(); renderVent(); updateUI();
   if (!S.arrest) measurePni(true);
@@ -3700,7 +3736,7 @@ function readingsMain(out) {
   if (!S.arrest && S.neurog > .2 && S.pam < 80) out.push(['bad', 'Shock neurogénico', `PAM ≈ ${fmt(S.pam)} con FC ${fmt(S.fc)} y piel caliente.`, 'Descarta la hemorragia; volumen prudente, atropina si FC < 50 y noradrenalina para PAM ≥ 80–85.']);
   if (!S.arrest && S.tamp > .35 && S.tas < 100) out.push(['bad', 'Shock obstructivo', 'Hipotensión con ingurgitación yugular y tonos apagados.', 'Ecografía clínica; si hay taponamiento, volumen y pericardiocentesis. Evita intubar y la PEEP alta.']);
   if (!S.arrest && S.tep > .3) out.push(['warn', 'Patrón de TEP', `EtCO₂ ${fmt(M.et)} frente a PaCO₂ ≈ ${fmt(S.pco2)} mmHg: espacio muerto.`, 'Noradrenalina para TAS ≥ 90, volumen prudente, PEEP baja y fibrinólisis si es de alto riesgo.']);
-  if (!S.arrest && S.anaf > .2) out.push([S.tas < 90 ? 'bad' : 'warn', 'Anafilaxia activa', `TAS ${fmt(S.tas)}, broncoespasmo y angioedema.`, 'Adrenalina IM 0,5 mg (repite a los 5 min), volumen; perfusión de adrenalina si es refractaria.']);
+  if (!S.arrest && S.anaf > .2) out.push([S.tas < (isPed() ? VMI.pedNorms(S.age || 0).tasMin : 90) ? 'bad' : 'warn', 'Anafilaxia activa', `TAS ${fmt(S.tas)}, broncoespasmo y angioedema.`, `Adrenalina IM ${isPed() ? fmt(Math.min(.5, .01 * peso), 2) + ' mg (0,01 mg/kg)' : '0,5 mg'} en el muslo (repite a los 5 min), volumen${isPed() ? ' 10 mL/kg' : ''}; perfusión de adrenalina si es refractaria.`]);
   const seizing = S.clin < S.seizUntil;
   if (!S.arrest && seizing && !S.se) out.push(['bad', 'Convulsión', 'Crisis tónico-clónica activa.', S.ecl ? 'Sulfato de magnesio 4 g IV (si no lo lleva) y midazolam si no cede; O₂ y lateral izquierdo.' : `Midazolam ${S.access ? 'IV 2–5 mg' : 'intranasal o bucal 10 mg (0,3 mg/kg)'}; O₂ y vía aérea. Glucemia.`]);
   if (!S.arrest && !S.access && !S.accessPend && (S.tas < 90 || S.gcs <= 12 || S.bleed > 0 || seizing)) out.push(['warn', 'Sin acceso vascular', 'Lo vas a necesitar para fármacos y volumen.', 'Vía venosa periférica; si fallan dos intentos o es urgente, intraósea.']);
@@ -3725,10 +3761,10 @@ function readingsMain(out) {
     else if (S.fluidRate > rate * 1.6) out.push(['warn', 'Demasiado ritmo de fluidos', `${fmt(S.fluidRate)} mL/h.`, `En la fase prehospitalaria bastan ${rate} mL/h: el exceso da edema, síndrome compartimental y peor vía aérea.`]);
     if (!S.warm) out.push(['warn', 'Quemado sin aislar del frío', 'Pierde calor por la piel quemada y mojada.', 'Sábanas limpias y secas, manta térmica y habitáculo caliente; no sigas enfriando.']); }
   // v1.10: ambiental
-  if (!S.arrest && S.temp > 40 && !S.cool) out.push(['bad', 'Hipertermia grave', track.tempAt != null ? `${fmt(S.temp, 1)} °C.` : 'Piel muy caliente, confuso.', 'Enfriamiento activo ya: inmersión en agua fría si se puede; si no, desnudar, agua pulverizada con ventilación, hielo en cuello, axilas e ingles y suero frío. Los antitérmicos no sirven.']);
+  if (!S.arrest && S.temp > 40 && !S.cool) out.push(['bad', 'Hipertermia grave', track.tempAt != null ? `${fmt(S.temp, 1)} °C.` : 'Piel muy caliente, confuso.', 'Enfriamiento activo ya: desnudar, agua pulverizada con ventilación, hielo en cuello, axilas e ingles y suero frío. Los antitérmicos no sirven.']);
   if (!S.arrest && S.cool && S.temp < 38.6) out.push(['warn', 'Para el enfriamiento', `${fmt(S.temp, 1)} °C.`, 'Entre 38,5 y 39 °C, retira el enfriamiento activo para no provocar hipotermia.']);
   if (!S.arrest && S.dci && S.dciE > .2) {
-    if (S.fiEff < .7) out.push(['bad', 'Enfermedad descompresiva sin O₂ al 100 %', 'El O₂ lava el nitrógeno y encoge las burbujas.', 'Máxima FiO₂ posible (reservorio a 15 L/min o válvula a demanda) aunque la SpO₂ sea normal.']);
+    if (S.fiEff < .7) out.push(['bad', 'Enfermedad descompresiva sin O₂ al 100 %', 'El O₂ lava el nitrógeno y encoge las burbujas.', 'Máxima FiO₂ posible: mascarilla con reservorio a 15 L/min bien ajustada, aunque la SpO₂ sea normal.']);
     if (S.altitude > 300) out.push(['bad', 'Altitud de cabina', `${fmt(S.altitude)} m: por Boyle las burbujas crecen × ${fmt(760 / S.pbar, 2)}.`, 'Pide al piloto la cota más baja posible (≤ 300 m) o cabina presurizada.']);
     if ((S.fluidKg || 0) < 8 && !(S.fluidRate > 0)) out.push(['warn', 'Volumen', 'La deshidratación empeora la descompresión.', 'Cristaloide 1 L IV (o líquidos orales si está consciente y sin náuseas).']); }
   if (!S.arrest && (S.asp > .3 || S.drown > .3) && ifc === 'o2' && S.spo2 < .92) out.push(['bad', 'Hipoxemia con crepitantes', `SpO₂ ${fmt(S.spo2 * 100)} % con ${O2LAB[c.o2dev] || 'O₂'}.`, 'Agua o contenido en el alveolo: VMNI con PEEP 8–10 y FiO₂ alta si está consciente y protege la vía aérea; si no, intubación.']);
@@ -3776,7 +3812,11 @@ function readingsMain(out) {
   if (!S.arrest && S.ecl && pniS != null && pniS >= 160) out.push(['warn', 'TA grave en la gestante', `PNI ${fmt(pniS)} mmHg.`, 'Labetalol 20 mg IV (repetible a los 10 min) o urapidilo, hasta 140–150.']);
   if (!S.arrest && S.croupEff > .4 && S.E.adrN < .3) out.push(['bad', 'Obstrucción de la vía aérea alta', 'Estridor en reposo y tiraje.', `Adrenalina nebulizada ${isPed() ? fmt(Math.min(5, .5 * peso), 1) + ' mg (0,5 mg/kg)' : '5 mg'} y dexametasona; no lo agites.`]);
   if (!S.arrest && S.postRosc && pniS != null && pniS < 100) out.push(['bad', 'TA baja tras la RCE', `PNI ${fmt(pniS)} mmHg: riesgo de nueva parada.`, 'Cristaloide y noradrenalina para TAS ≥ 100 (PAM ≥ 65).']);
-  if (!S.arrest && isPed() && !tube && M.effN >= 2 && M.effRR > (peso < 10 ? 60 : peso < 20 ? 40 : 30)) out.push(['warn', 'Taquipnea con trabajo respiratorio', `FR ${fmt(M.effRR)} rpm para ${fmt(peso)} kg.`, ifc === 'nasal' ? 'Alto flujo a 2 L/kg/min; si no mejora en 1 h, CPAP o intubación.' : `Alto flujo a 2 L/kg/min (${fmt(Math.min(60, 2 * peso))} L/min) o VMNI.`]);
+  const pn = isPed() ? VMI.pedNorms(S.age || 0) : null;
+  if (!S.arrest && isPed() && S.fc < 60 && (S.tas < pn.tasMin || S.spo2 < .9)) out.push(['bad', 'Bradicardia con mala perfusión', `FC ${fmt(S.fc)} lpm: en el niño es una parada inminente.`, 'Ventila con O₂ al 100 %; si sigue por debajo de 60 con mala perfusión, compresiones 15:2 y adrenalina 10 mcg/kg.']);
+  if (!S.arrest && isPed() && tube && !ventOffNow() && c.mode !== 'PSV' && (c.fr < pn.vfr[0] - 4 || c.fr > pn.vfr[1] + 8)) out.push(['warn', 'FR para la edad', `FR ${fmt(c.fr)} rpm.`, `A esta edad, ${pn.vfr[0]}–${pn.vfr[1]} rpm; ajústala después por la EtCO₂.`]);
+  if (!S.arrest && isPed() && tube && S.dev.vent === 'medumat' && c.mode === 'VCV' && peso < 15) out.push(['warn', 'Vt pequeño en el Medumat', 'El Vt se ajusta de 50 en 50 mL.', 'En el niño pequeño, ventila por presión (PCV) y vigila el Vt espirado.']);
+  if (!S.arrest && isPed() && !tube && M.effN >= 2 && M.effRR > pn.fr[1] * 1.3) out.push(['warn', 'Taquipnea con trabajo respiratorio', `FR ${fmt(M.effRR)} rpm (normal a esta edad: ${pn.fr[0]}–${pn.fr[1]}).`, ifc === 'nasal' ? 'Alto flujo a 2 L/kg/min; si no mejora en 1 h, CPAP o intubación.' : `Alto flujo a 2 L/kg/min (${fmt(Math.min(60, 2 * peso))} L/min) o VMNI.`]);
   if (!S.arrest && S.cohb > .1) out.push(['warn', 'Carboxihemoglobina', `SpCO ${fmt(M.spco)} %: la SpO₂ de ${fmt(S.spo2 * 100)} % sobrestima el O₂ real.`, S.fiEff < .8 ? 'O₂ al 100 %: reservorio bien ajustado, VMNI con FiO₂ 100 % o intubación.' : 'Mantén O₂ al 100 % y valora cámara hiperbárica.']);
   if (!S.arrest && S.cn > .2) out.push(['bad', 'Posible cianuro', 'Shock y lactato muy alto en un incendio cerrado.', 'Hidroxocobalamina 5 g IV.']);
   if (!S.arrest && S.edAir > .45 && !tube) out.push(['bad', 'Vía aérea que se cierra', 'Estridor y voz ronca: el edema progresa.', 'Intuba ya, con videolaringoscopio; prepara la cricotiroidotomía.']);
@@ -3829,7 +3869,7 @@ function readingsMain(out) {
   if (!S.arrest && P.edema && pniS != null && pniS > 160 && S.E.ntg < .4) out.push(['bad', 'TA alta con edema', `PNI ${fmt(pniS)} mmHg.`, 'Nitroglicerina a dosis alta: bolo y perfusión.']);
   if (!S.arrest && P.edema && pniS != null && pniS < 90 && S.E.ntg > .2) out.push(['bad', 'Nitratos con hipotensión', `PNI ${fmt(pniS)} mmHg.`, 'Para la nitroglicerina; noradrenalina.']);
   if (!S.arrest) {
-    if (pniS != null && pniS < 90 && !(S.cv && S.cvT > .35)) out.push(['bad', 'Hipotensión', `PNI ${fmt(pniS)} mmHg.`, 'Auto-PEEP, neumotórax, hipovolemia, sedación, nitratos, PEEP alta, arritmia, TEP o anafilaxia.']);
+    if (pniS != null && pniS < (isPed() ? VMI.pedNorms(S.age || 0).tasMin : 90) && !(S.cv && S.cvT > .35)) out.push(['bad', 'Hipotensión', `PNI ${fmt(pniS)} mmHg${isPed() ? ` (mínima para la edad: ${VMI.pedNorms(S.age || 0).tasMin})` : ''}.`, 'Auto-PEEP, neumotórax, hipovolemia, sedación, nitratos, PEEP alta, arritmia, TEP o anafilaxia.']);
     else if (!pniMeas && (!pni || S.clin - pni.at > 10)) out.push(['warn', 'Sin TA reciente', 'La última PNI tiene más de 10 min.', 'Mide la PNI o programa la automática.']);
   }
   if (!S.o2.supply && !off) out.push(['bad', 'Sin O₂', ifc === 'o2' || ifc === 'nasal' ? 'El paciente respira aire ambiente.' : 'El equipo de turbina sigue ventilando con aire (FiO₂ 0,21).', 'Cambia la botella.']);
@@ -3854,6 +3894,15 @@ function truthRows() {
 function logIt(t) { const s = Math.round((S ? S.clin : 0) * 60); const hh = String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); const e = document.createElement('span'); e.textContent = hh + ' · ' + t; $('#log').prepend(e); }
 
 /* ---------- fármacos ---------- */
+function renderPedKit() { // v1.11: material, normalidad y dosis por peso y edad
+  const box = $('#pedKit'); if (!box) return; box.hidden = !isPed(); if (!isPed()) return;
+  const a = S.age || 0, k = VMI.pedKit(peso, a), n = VMI.pedNorms(a), neo = !!S.neo, edad = a < 1 ? (a * 12 < 1 ? 'recién nacido' : `${fmt(a * 12)} meses`) : `${fmt(a, a < 3 ? 1 : 0)} años`;
+  $('#pedKitBody').innerHTML = [`<p><b>${edad}</b> · ${fmt(peso, peso < 10 ? 1 : 0)} kg${a >= 1 ? ` (por edad se estimarían ${fmt(VMI.pesoPorEdad(a))} kg)` : ''}</p>`,
+    `<p>Normalidad: FC ${n.fc[0]}–${n.fc[1]} · FR ${n.fr[0]}–${n.fr[1]} · TAS mínima ${n.tasMin} mmHg</p>`,
+    `<p>Vía aérea: tubo ${neo || a < 1 ? fmt(k.tubo, 1) : `con balón ${fmt(k.tubo, 1)} (sin balón ${fmt(k.tubo + .5, 1)})`} a ${k.prof} cm de la comisura · i-gel ${k.igel} · pala ${k.pala} · sonda de aspiración ${k.sonda} Fr</p>`,
+    `<p>Ventilación: Vt ${k.vt[0]}–${k.vt[1]} mL (6–8 mL/kg) · FR ${k.fr[0]}–${k.fr[1]}</p>`,
+    `<p>Desfibrilación 4 J/kg = ${k.julios} J · adrenalina ${neo ? `20 mcg/kg = ${fmt(20 * peso)}` : `10 mcg/kg = ${k.adr}`} mcg · líquidos 10 mL/kg = ${k.liq} mL · glucosa 10 % 2 mL/kg = ${k.glu} mL</p>`].join('');
+}
 function renderDrugs() {
   const btn = it => { const ds = it.act ? null : doseOf(it), pd = pedOf(it);
     const sub = it.note && ds == null ? it.note : ds != null && it.u ? `${fmt(ds, dd(ds))} ${it.u}${pd ? ' · ' + pd.t : it.mgkg ? ' · ' + fmt(it.mgkg, it.mgkg % 1 ? 1 : 0) + ' ' + it.u + '/kg' : it.tnk ? ' por peso' : ''}` : it.note || '';
@@ -4477,7 +4526,7 @@ const PARAMS = { pco2: 'PaCO₂ inicial (mmHg)', deficit: 'Pérdida de volemia (
   tep: 'TEP (0–1)', anaf: 'Anafilaxia (0–1)', cohb: 'COHb (fracción)', cn: 'Cianuro (0–1)', icp: 'PIC (mmHg)', icpGrow: 'Subida de la PIC (mmHg/min)', weak: 'Debilidad muscular (0–1)', dav: 'Intubación fallida (probabilidad)', edAir: 'Edema de vía aérea (0–1)', edAirRate: 'Progresión del edema (/min)',
   asp: 'Broncoaspiración (0–1)', ptx: 'Neumotórax (0–1)', ptxTension: 'Neumotórax a tensión (1)', tasAdj: 'Ajuste de TAS (mmHg)', fcAdj: 'Ajuste de FC (lpm)', sevFloor: 'Edema pulmonar mínimo (0–1)', bottleL: 'Botella (L)', bottleBar: 'Botella (bar)', leak10: 'Fuga de mascarilla',
   altitude: 'Altitud de cabina (m)', bmv: 'Eficacia de la bolsa (0–1)', sgaFail: 'Fallo del supraglótico (0–1)', k: 'Potasio (mmol/L)', kRate: 'Subida de potasio (mmol/L/h)', glu: 'Glucemia (mg/dL)', gluT: 'Glucemia a la que tiende', temp: 'Temperatura (°C)', tempRate: 'Cambio de temperatura (°C/h)',
-  bleed: 'Sangrado (fracción de volemia/min)', bleedSrc: 'Foco: ext, pelv, uter, int, thor (hemotórax)', htx: 'Hemotórax inicial (L)', flail: 'Volet costal (0–1)', pain: 'Dolor (0–1)', burn: 'Superficie quemada (%)', na: 'Sodio (mmol/L)', op: 'Organofosforado (0–1)', opRate: 'Absorción del organofosforado (/min)', cocaine: 'Cocaína (0–1)', drown: 'Ahogamiento: agua en el alveolo (0–1)', tca: 'Tricíclicos (0–1)', ecl: 'Eclampsia (1)', croup: 'Crup (0–1)', postRosc: 'Recién recuperado de una parada (1)', tamp: 'Taponamiento (0–1)', tampRate: 'Crecimiento del derrame (/min)', vaso: 'Vasoplejia séptica (0–1)', vasoRate: 'Progresión de la vasoplejia (/min)', neurog: 'Shock neurogénico (0–1)', fluidTol: 'Volumen que tolera el pulmón (mL/kg)', access: 'Vía venosa al empezar (1 sí, 0 no)', hco3Off: 'Cambio de bicarbonato (mmol/L)',
+  bleed: 'Sangrado (fracción de volemia/min)', bleedSrc: 'Foco: ext, pelv, uter, int, thor (hemotórax)', htx: 'Hemotórax inicial (L)', flail: 'Volet costal (0–1)', pain: 'Dolor (0–1)', burn: 'Superficie quemada (%)', na: 'Sodio (mmol/L)', edad: 'Edad en años (pediatría; 0,5 = 6 meses)', op: 'Organofosforado (0–1)', opRate: 'Absorción del organofosforado (/min)', cocaine: 'Cocaína (0–1)', drown: 'Ahogamiento: agua en el alveolo (0–1)', tca: 'Tricíclicos (0–1)', ecl: 'Eclampsia (1)', croup: 'Crup (0–1)', postRosc: 'Recién recuperado de una parada (1)', tamp: 'Taponamiento (0–1)', tampRate: 'Crecimiento del derrame (/min)', vaso: 'Vasoplejia séptica (0–1)', vasoRate: 'Progresión de la vasoplejia (/min)', neurog: 'Shock neurogénico (0–1)', fluidTol: 'Volumen que tolera el pulmón (mL/kg)', access: 'Vía venosa al empezar (1 sí, 0 no)', hco3Off: 'Cambio de bicarbonato (mmol/L)',
   sedE: 'Sedación de base (0 = despierto)', relCe: 'Relajante de base (0 = no)', sedStopped: 'Bomba de sedación parada (1)' };
 const BOOLK = { bav: 1, ptxTension: 1, ecl: 1, postRosc: 1, access: 1, sedStopped: 1, ped: 1 };
 const CFGK = ['mode', 'vt', 'fr', 'ti', 'tplat', 'pinsp', 'ps', 'rise', 'peep', 'fio2', 'trigI', 'trigE', 'timax', 'pmax', 'minvol', 'flow', 'o2dev'];
@@ -4878,6 +4927,7 @@ const TUT = {
   obesoIsr: [R, D('act:toMask', 'Coloca la VMNI (PEEP 8–10, FiO₂ 100 %).', 'Preoxigenar con presión gana minutos de apnea.', 'vmni'), { t: 'Pulsa «Iniciar ventilación» y deja 3–5 min.', at: 'iniciar ventilacion', ok: TU.run }, D('act:apox', 'Gafas a 15 L/min para la laringoscopia.', 'Oxigenación apneica.', 'gafas a 15'), D('act:vl', 'Videolaringoscopio de primeras.', null, 'videolaringoscopio'), ...IND, ...IOT, VTS(6, 8), CF('peep', 10, 12, 'PEEP 10–12 y confirma.'), END],
   viaDificil: [R, D('act:bag', 'Ambú con reservorio mientras preparas.', null, 'ambu'), D('act:vl', 'Videolaringoscopio y bougie.', null, 'videolaringoscopio'), ...IND, { t: 'Al minuto del relajante, «Intubar».', at: 'intuba', ok: () => track.attempts > 0 || !!S.isr || S.iface === 'tube' }, { t: 'Si no pasa el tubo: dispositivo supraglótico.', at: 'supraglotico', ok: () => S.iface === 'tube' || TU.used('act:sga')(), when: () => S.iface !== 'tube' }, { t: 'Si tampoco oxigenas: cricotiroidotomía, sin esperar a la parada.', at: 'cricotiroidotomia', ok: () => (S.iface === 'tube' && !S.air.sga) || TU.used('act:cric')(), when: () => S.iface !== 'tube' || S.air.sga && S.spo2 < .85 }, { t: 'Pulsa «Iniciar ventilación».', at: 'iniciar ventilacion', ok: TU.tube }, END],
   quemado: [R, { t: 'Mira la SpCO en el monitor: la SpO₂ no ve el CO.', at: ['#zSpT'] }, { t: 'O₂ al 100 %: mascarilla con reservorio.', at: 'reservorio', ok: () => S.cfg.o2dev === 'reserv' || S.iface !== 'o2' }, D('drug:hidroxo', 'Hidroxocobalamina 5 g.', 'Shock y lactato alto en un incendio cerrado: cianuro.', 'hidroxocobalamina'), D('act:vl', 'Prepara el videolaringoscopio: la vía aérea se cierra.', null, 'videolaringoscopio'), ...IND, ...IOT, { t: 'Gran quemado: cristaloide en bomba a 500 mL/h.', w: 'Sin bolos: el exceso de volumen empeora el edema de la vía aérea.', at: ['#pf_cris'], ok: 'perf:cris' }, END],
+  tcePed: [R, { t: 'Abre la cinta pediátrica (en Acciones): material, normalidad y dosis para su peso y su edad.', at: ['#pedKit'], ok: () => !!($('#pedKit') && $('#pedKit').open) }, VTS(6, 8, 'Con 450 mL está en ≈ 22 mL/kg: barotrauma e hiperventilación.'), CF('fr', 16, 22, 'Pon la FR en 16–20, la de su edad, y confirma.'), CF('peep', 4, 6, 'PEEP 5 y confirma.'), TG('et', 'EtCO₂ 35–40: ajusta la FR poco a poco.', 'El CO₂ tarda minutos en estabilizarse.', 'fr'), TG('tas', 'TAS ≥ 90 (la mínima para su edad es 82).', 'Volumen 10 mL/kg si baja.', 'cristaloide'), END],
   bronquiolitis: [R, D('act:toNasal', 'Coloca el alto flujo.', null, 'alto flujo'), CF('flow', 10, 14, 'Ajusta el flujo a 2 L/kg/min (12 L/min) y confirma.'), { t: 'Pulsa «Iniciar ventilación».', at: 'iniciar ventilacion', ok: TU.run }, TG('spo2', 'FiO₂ para SpO₂ ≥ 92 %.', null, 'fio2'), TG('rr', 'Comprueba que baja la FR.', 'Si a la hora sigue > 70 o tiene apneas: CPAP o intubación.'), END],
   crup: [R, { t: 'Que no llore: en brazos de su madre y O₂ sin forzar.', w: 'El llanto empeora la obstrucción.' }, D('drug:adrN', 'Adrenalina nebulizada 0,5 mg/kg.', null, 'adrenalina nebulizada'), D('drug:dexa', 'Dexametasona 0,6 mg/kg.', null, 'dexametasona'), TG('pco2', 'Vigila que no se agote.', 'Si baja la conciencia o sube la pCO₂: intubación con tubo medio número menor.'), END],
   anafPed: [R, D('drug:adrIM', 'Adrenalina IM 0,01 mg/kg en el muslo.', 'Es el tratamiento; lo demás es secundario.', 'adrenalina im'), D('act:fluid', 'Cristaloide 10 mL/kg.', null, 'cristaloide'), TG('tas', 'Si a los 5 min no mejora, segunda dosis IM.', null, 'adrenalina im'), D('drug:salb', 'Salbutamol si persisten las sibilancias.', null, 'salbutamol'), END],

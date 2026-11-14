@@ -427,12 +427,14 @@ body.exam #tutBtn{display:none}
 .coach .tok{color:var(--ok);font-weight:700}
 .coach .lost{background:color-mix(in srgb,var(--accent) 10%,transparent);border-radius:8px;padding:6px 8px;font-weight:500}
 .tdots{display:flex;gap:4px;flex-wrap:wrap}.tdots i{width:14px;height:5px;border-radius:3px;background:var(--line)}.tdots i.d{background:var(--ok)}.tdots i.c{background:var(--accent)}
+/* v1.11: cinta pediátrica */
+.pedkit{margin:0 0 10px;border:1px solid var(--line);border-radius:10px;padding:6px 10px}.pedkit summary{cursor:pointer;font-weight:600}.pedkit p{margin:4px 0;font-size:13px;line-height:1.4}
 </style>
 
 <main>
   <header class="top">
     <div class="brand">
-      <span class="eyebrow">Simulador docente · SVA terrestre y HEMS · v1.10</span>
+      <span class="eyebrow">Simulador docente · SVA terrestre y HEMS · v1.11</span>
       <h1>Ventilación, monitor y RCP</h1>
     </div>
     <div class="toolbar">
@@ -529,6 +531,7 @@ body.exam #tutBtn{display:none}
 
       <section class="card" aria-labelledby="actH" data-tabsec="act">
         <h2 id="actH">Acciones</h2>
+        <details class="pedkit" id="pedKit" hidden><summary>Cinta pediátrica</summary><div id="pedKitBody"></div></details>
         <div class="agroup"><span class="flabel">Vía aérea y soporte</span>
           <div class="abtns">
             <button class="btn primary" data-act="explore">Explorar</button>

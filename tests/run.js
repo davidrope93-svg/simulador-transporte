@@ -260,6 +260,17 @@ console.log('— Ambiental de Canarias (v1.10): ahogamiento, enfermedad descompr
   const dr = niv => { const a = load('ahogVmni', { seed: 4, scale: 10 }), s = a.sim; adv(s, .3); if (niv) { s.setIface('mask'); s.S.mask.leak10 = 15; s.setCfg(Object.assign({}, s.S.cfg, { mode: 'PSV', ps: 6, peep: 10, fio2: 100, trigI: 2, trigE: 40, rise: .15, timax: 1.2, pmax: 30, fr: 12 })); s.setStandby(false); } adv(s, 6); return s.S.spo2 * 100; };
   check('Ahogamiento: VMNI con PEEP 10 frente a reservorio', dr(true) - dr(false), 5, 14, ' puntos de SpO₂'); }
 
+console.log('— Pediatría por edad (v1.11): normalidad, peso estimado, cinta pediátrica y triángulo de evaluación');
+{ const n6 = VMI.pedNorms(6), n05 = VMI.pedNorms(.5), n15 = VMI.pedNorms(15);
+  check('TAS mínima a los 6 años (70 + 2 × edad)', n6.tasMin, 82, 82, ' mmHg'); check('FC normal del lactante (límite alto)', n05.fc[1], 160, 160, ' lpm'); check('TAS mínima a los 15 años', n15.tasMin, 90, 90, ' mmHg');
+  check('Peso estimado a los 6 años (3 × edad + 7)', VMI.pesoPorEdad(6), 25, 25, ' kg'); check('Peso estimado a los 6 meses', VMI.pesoPorEdad(.5), 7, 7, ' kg'); check('Edad estimada con 25 kg', VMI.ageFromWeight(25), 5.8, 6.2, ' años');
+  const k = VMI.pedKit(20, 6); check('Tubo con balón a los 6 años (edad/4 + 3,5)', k.tubo, 5, 5); check('Profundidad oral (edad/2 + 12)', k.prof, 15, 15, ' cm'); check('i-gel con 20 kg', +k.igel, 2, 2); check('Desfibrilación 4 J/kg', k.julios, 80, 80, ' J');
+  const kn = VMI.pedKit(3.4, 0); check('Recién nacido: tubo 3,5', kn.tubo, 3.5, 3.5); check('Recién nacido: profundidad 6 + kg', kn.prof, 9, 9, ' cm');
+  const tepOf = key => { const L = load(key, { seed: 4, scale: 10 }); adv(L.sim, .5); return L.sim.explore().join(' '); };
+  check('Triángulo en la bronquiolitis: respiración alterada', /respiración alterada/.test(tepOf('bronquiolitis')) ? 1 : 0, 1, 1); check('Triángulo en la anafilaxia pediátrica: circulación alterada', /circulación alterada/.test(tepOf('anafPed')) ? 1 : 0, 1, 1);
+  check('Niño intubado: triángulo no valorable', /no valorable/.test(tepOf('tcePed')) ? 1 : 0, 1, 1); check('Lactante: Glasgow pediátrica', /Glasgow pediátrica/.test(tepOf('bronquiolitis')) ? 1 : 0, 1, 1);
+  const L = load('tcePed', { seed: 4, scale: 10 }); check('Edad del caso en el motor', L.S.age, 6, 6, ' años'); }
+
 console.log('— Instalable y sin conexión (v1.3): manifiesto, iconos y service worker');
 { const fs = require('fs'), path = require('path'), R = f => path.join(__dirname, '..', f);
   const man = JSON.parse(fs.readFileSync(R('manifest.webmanifest'), 'utf8'));

@@ -80,7 +80,7 @@ function play(key, { seed = 1, idle = false } = {}) {
   function tick(Lx, M) {
     for (const q of queue) if (!q.done && S.clin >= q.t) { q.done = true; q.fn(); }
     if (idle) return;
-    if (!explored && S.clin >= .3) { explored = true; act('explore'); if (chk.some(x => /act:glu/.test(x))) act('glu'); if (chk.some(x => /act:temp/.test(x))) act('temp'); if (chk.some(x => x === 'act:gas')) act('gas'); }
+    if (!explored && S.clin >= .3) { explored = true; act('explore'); if (chk.some(x => /act:glu/.test(x))) act('glu'); if (chk.some(x => /act:temp/.test(x))) act('temp'); if (chk.some(x => x === 'act:gas')) act('gas'); if (chk.some(x => /act:(iv|io)/.test(x)) && !hasAcc() && !S.arrest) access(); }
     for (const e of L.sched) if (e.fired && !e.resp) { e.resp = true; lastEv = S.clin; if (RESP[e.k]) at(S.clin + .7, RESP[e.k]); }
     if (S.neo && S.bag && S.neo.obs > .35 && S.clin >= (tNext.neo || 0)) { tNext.neo = S.clin + 1; act('neoPos'); act('neoSuct'); act('infl'); } // el tórax no se mueve: corrige la ventilación
     if (S.arrest) { arrestTick(); return; } else als = null;
