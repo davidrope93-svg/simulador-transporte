@@ -323,11 +323,12 @@ text.tl-lab{stroke:none}
 .small.err{color:var(--bad)}.small.okm{color:var(--ok)}
 .codebig{font-family:var(--mono);font-size:2.6rem;letter-spacing:.2em;text-align:center;padding:10px;background:var(--surface2);border-radius:12px;border:1px solid var(--line)}
 /* instructor */
-body.instr-mode main{display:none}
+body.instr-mode main,body.instr-mode .tabbar{display:none!important}
 .instr{max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
 .ihead{display:flex;flex-wrap:wrap;gap:10px 20px;justify-content:space-between;align-items:flex-end}
 .ihead input{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 9px}
 .ibar{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.ibar.card{flex-direction:row}.ibar .field{flex:1 1 280px;min-width:0}.ibar .field select{width:100%}
 .igrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:12px;align-items:start}
 .igrid .iwide{grid-column:1/-1}
 .ivit{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px;margin-top:8px}
@@ -337,6 +338,14 @@ body.instr-mode main{display:none}
 .iv small{font-size:.72rem;color:var(--muted)}
 .iv.wide{grid-column:1/-1}.iv b.rt{font-size:1.1rem}
 .score-i{font-family:var(--display);font-size:2rem;font-weight:700}
+.roster{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr));gap:8px;margin-top:8px}
+.stu{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:8px 10px;color:var(--ink);cursor:pointer;font:inherit;min-height:44px}
+.stu b{font-family:var(--display);font-size:1.05rem}
+.stu .stv{font-family:var(--mono);font-size:.8rem}
+.stu.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
+.stu.off{opacity:.55}
+.stu.arr{border-color:var(--bad)}
+.aulacode{font-family:var(--mono);font-size:1.6rem;letter-spacing:.18em;padding:2px 10px;border-radius:10px;background:var(--surface2);border:1px solid var(--line)}
 /* móvil: pestañas */
 .tabbar{display:none}
 @media (max-width:760px){
@@ -449,7 +458,7 @@ body.exam #tutBtn{display:none}
 <main>
   <header class="top">
     <div class="brand">
-      <span class="eyebrow">Simulador docente · SVA terrestre y HEMS · v1.24</span>
+      <span class="eyebrow">Simulador docente · SVA terrestre y HEMS · v1.25</span>
       <h1>Ventilación, monitor y RCP</h1>
     </div>
     <div class="toolbar">
@@ -707,11 +716,16 @@ body.exam #tutBtn{display:none}
   <div class="modal" id="linkModal" hidden role="dialog" aria-modal="true" aria-labelledby="lkH">
     <div class="sheet">
       <span class="eyebrow">Instructor en otro dispositivo</span>
-      <h3 id="lkH" style="font-size:1.4rem">Código de enlace</h3>
-      <div class="codebig" id="linkCode">·····</div>
+      <h3 id="lkH" style="font-size:1.4rem">Unirse al aula</h3>
+      <p class="small">Escribe el código que muestra el instructor al pulsar «Abrir aula».</p>
+      <div class="inrow"><label class="small" for="roomCode">Código del aula</label><input id="roomCode" maxlength="5" placeholder="código" autocomplete="off" autocapitalize="characters" style="width:8ch;text-transform:uppercase;font-family:var(--mono);font-size:1.2rem"><button class="btn primary" id="roomJoin">Unirme</button></div>
+      <details id="linkOwn"><summary>O que el instructor se conecte a este equipo</summary>
+        <div class="codebig" id="linkCode">·····</div>
+        <div class="inrow"><button class="btn" id="linkGen">Generar código</button></div>
+      </details>
       <p class="small" id="linkSt">—</p>
-      <p class="small">La conexión es directa entre los dos navegadores (WebRTC); un servidor público solo pone en contacto los equipos. Si la red lo bloquea, usa dos ventanas del mismo equipo: se conectan solas.</p>
-      <div class="inrow"><button class="btn primary" id="linkClose">Cerrar</button></div>
+      <p class="small">La conexión es directa entre los navegadores (WebRTC); un servidor público solo pone en contacto los equipos. Si la red lo bloquea, usa varias ventanas del mismo equipo: se conectan solas.</p>
+      <div class="inrow"><button class="btn" id="linkClose">Cerrar</button></div>
     </div>
   </div>
 
@@ -5553,7 +5567,7 @@ function teachDebrief(reason) {
   const hist = LS.get('simvmi.hist', []); hist.push(att); while (hist.length > 500) hist.shift(); LS.set('simvmi.hist', hist);
   const idx = hist.length - 1;
   $('#dbName').addEventListener('change', e => { student = e.target.value.trim().slice(0, 60); LS.set('simvmi.name', student); $('#stuName').value = student; const h = LS.get('simvmi.hist', []); if (h[idx] && h[idx].d === att.d) { h[idx].name = student; LS.set('simvmi.hist', h); } });
-  linkSend({ t: 'debrief', title: c.title, reason: reason || '', score: sc.total, parts: sc.parts.map(p => [p.lab, Math.round(p.v * 100), p.det]), name: student });
+  linkSend({ t: 'debrief', sid: SID, key: caseKey, vcode: c.vcode || null, exam, min: Math.round(S.clin * 10) / 10, title: c.title, reason: reason || '', score: sc.total, parts: sc.parts.map(p => [p.lab, Math.round(p.v * 100), p.det]), name: student });
 }
 
 /* ---------- modo examen ---------- */
@@ -5564,8 +5578,13 @@ function setExam(on, silent) {
   sendState(true);
 }
 
-/* ---------- enlace con el instructor: otra ventana (BroadcastChannel) u otro dispositivo (WebRTC con PeerJS) ---------- */
+/* ---------- enlace con el instructor: otra ventana (BroadcastChannel) u otro dispositivo (WebRTC con PeerJS) ----------
+   v1.25 (Instructor 2.0): cada alumno tiene su identificador (SID) y las órdenes pueden ir a uno o a todos («to»);
+   el instructor abre un aula con un código y los alumnos se unen; variantes, eventos programados y resultados de la clase */
 const LINK = { bc: null, peer: null, conns: [], code: null };
+const CODEABC = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789', rid = n => Array.from({ length: n }, () => CODEABC[Math.floor(Math.random() * CODEABC.length)]).join('');
+const SID = (() => { try { let x = sessionStorage.getItem('simvmi.sid'); if (!x) { x = rid(6); sessionStorage.setItem('simvmi.sid', x); } return x; } catch (e) { return rid(6); } })();
+const forMe = to => to == null || to === '*' || to === SID || (Array.isArray(to) && to.includes(SID));
 function linkSend(m) { try { if (LINK.bc) LINK.bc.postMessage(m); } catch (e) { /* canal cerrado */ } LINK.conns.forEach(c => { try { if (c.open) c.send(m); } catch (e) { /* conexión caída */ } }); }
 function loadPeer() {
   if (window.Peer) return Promise.resolve(window.Peer);
@@ -5575,9 +5594,13 @@ function loadPeer() {
 function hostMsg(m) {
   if (!m || typeof m !== 'object') return;
   if (m.t === 'hello' || m.t === 'ping') { const was = performance.now() - instrSeen < 8000; instrSeen = performance.now(); if (!was) logIt('Instructor conectado'); if (m.t === 'hello') sendState(true); $('#instrDot').hidden = false; return; }
-  if (m.t !== 'cmd') return;
+  if (m.t !== 'cmd' || !forMe(m.to)) return;
   switch (m.c) {
     case 'event': if (EVLAB[m.k]) fireEvent(m.k, null, false); break;
+    case 'eventAt': if (EVLAB[m.k] && sched) { const d = clamp(+m.in || 0, 0, 60); if (d > 0) { sched.push({ at: S.clin + d, k: m.k, txt: 'Instructor: ' + EVLAB[m.k], fired: false, instr: true }); } else fireEvent(m.k, null, false); } break;
+    case 'schedFire': { const e = sched && sched[+m.i]; if (e && !e.fired) e.at = S.clin; break; }
+    case 'schedCancel': { let n = 0; (sched || []).forEach(e => { if (!e.fired) { e.fired = true; e.cancel = true; n++; } }); if (n) logIt(`Instructor: ${n} evento${n > 1 ? 's' : ''} programado${n > 1 ? 's' : ''} cancelado${n > 1 ? 's' : ''}`); break; }
+    case 'variant': if (CASES[m.k]) loadVariant(m.k, Number.isFinite(+m.seed) ? +m.seed : Math.floor(Math.random() * 1679616), true); break;
     case 'load': if (CASES[m.k]) { $('#caseSel').value = m.k; loadCase(m.k); } break;
     case 'pause': paused = !!m.v; setPauseBtn(); break;
     case 'speed': if ([1, 5, 10, 20].includes(+m.v)) setSpeed(+m.v); break;
@@ -5595,7 +5618,8 @@ function sendState(force) {
   if (!force && now - stateAt < 1000) return;
   stateAt = now;
   const c = CASES[caseKey];
-  linkSend({ t: 'state', key: caseKey, title: c.title, lvl: c.lvl, clin: S.clin, scale, paused, exam, name: student,
+  linkSend({ t: 'state', sid: SID, key: caseKey, base: c.vbase || null, vcode: c.vcode || null, ended, title: c.title, lvl: c.lvl, clin: S.clin, scale, paused, exam, name: student,
+    sched: (sched || []).map((e, i) => ({ i, at: Math.round(e.at * 10) / 10, txt: e.txt || (e.alt != null ? 'Altitud ' + e.alt + ' m' : EVLAB[e.k] || e.k), fired: !!e.fired, cancel: !!e.cancel, instr: !!e.instr })),
     dev: DEVS[S.dev.vent].short, mon: MONS[$('#monSel').value].short, iface: IFSHORT[S.iface], mode: S.iface === 'o2' ? O2LAB[S.cfg.o2dev] : modeLabel(uMode(S.cfg)) + (S.standby ? ' (en espera)' : ''),
     v: { spo2: S.spo2 * 100, tas: S.arrest ? null : S.tas, pni: pni && pni.sys ? pni.sys : null, fc: S.arrest ? null : S.fc, et: M.et, rr: M.effN >= 2 ? M.effRR : 0, rhy: rhyLab(S.rhythm) + (S.arrest ? ' · sin pulso' : ''), arrest: S.arrest, gcs: S.relTot > .6 ? null : S.gcs, comp: S.cpr.comp },
     truth: truthRows(), reads: lastReads, log: [...document.querySelectorAll('#log span')].slice(0, 40).map(x => x.textContent),
@@ -5606,7 +5630,7 @@ function hostLinkInit() {
 }
 function hostRemote() {
   const code = Array.from({ length: 5 }, () => 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 31)]).join('');
-  $('#linkCode').textContent = '·····'; $('#linkSt').textContent = 'Cargando la conexión…'; $('#linkModal').hidden = false;
+  $('#linkCode').textContent = '·····'; $('#linkSt').textContent = 'Cargando la conexión…'; $('#linkModal').hidden = false; $('#linkOwn').open = true;
   loadPeer().then(Peer => {
     if (LINK.peer) { try { LINK.peer.destroy(); } catch (e) { /* ya cerrado */ } }
     const peer = new Peer('simvmi-' + code); LINK.peer = peer; LINK.code = code;
@@ -5615,63 +5639,120 @@ function hostRemote() {
     peer.on('error', e => { $('#linkSt').textContent = 'Error de conexión: ' + (e && e.type ? e.type : 'desconocido') + '. Prueba en la misma red o usa dos ventanas del mismo equipo.'; });
   }).catch(e => { $('#linkSt').textContent = e.message; });
 }
+function joinRoom(code) {
+  code = String(code || '').trim().toUpperCase(); const st = t => { $('#linkSt').textContent = t; };
+  if (!/^[A-Z0-9]{5}$/.test(code)) { st('El código del aula tiene 5 caracteres.'); return; }
+  st('Conectando con el aula ' + code + '…');
+  loadPeer().then(Peer => {
+    const peer = new Peer(); LINK.room = peer;
+    peer.on('open', () => { const conn = peer.connect('simvmi-aula-' + code, { reliable: true });
+      conn.on('open', () => { LINK.conns.push(conn); instrSeen = performance.now(); conn.send({ t: 'join', sid: SID, name: student }); sendState(true); st('Conectado al aula ' + code + '. Puedes cerrar este cuadro.'); $('#instrDot').hidden = false; logIt('Unido al aula ' + code); });
+      conn.on('data', hostMsg); conn.on('close', () => { LINK.conns = LINK.conns.filter(x => x !== conn); logIt('Desconectado del aula'); }); });
+    peer.on('error', e => st('No se pudo entrar en el aula: ' + (e && e.type === 'peer-unavailable' ? 'código no encontrado (¿está abierta?)' : e && e.type ? e.type : 'error de conexión') + '.'));
+  }).catch(e => st(e.message));
+}
 function toast(t) { const el = $('#toast'); el.textContent = t; el.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { el.hidden = true; }, 12000); }
 
-/* ---------- vista del instructor ---------- */
+/* ---------- vista del instructor (v1.25: varios alumnos, aula con código, variantes y eventos programados) ---------- */
 function startInstructor() {
   document.body.classList.add('instr-mode');
   const box = $('#instr'); box.hidden = false;
+  const caseOpts = GROUPS.map(g => `<optgroup label="${esc(g)}">` + Object.entries(CASES).filter(([, c]) => c.lvl === g).map(([k, c]) => `<option value="${k}">${esc(c.title)}</option>`).join('') + '</optgroup>').join('');
   box.innerHTML = `<header class="ihead"><div><span class="eyebrow">Simulador docente · vista del instructor</span><h1>Instructor</h1></div>
-      <div class="inrow"><span class="chip" id="iConn">sin conexión</span><label class="small" for="iCode">Otro dispositivo</label><input id="iCode" maxlength="5" placeholder="código" autocomplete="off" style="width:7ch;text-transform:uppercase"><button class="btn" id="iJoin">Conectar a otro dispositivo</button></div></header>
-    <p class="small">Abre el simulador en la pantalla del alumno. En el mismo equipo (otra ventana o pestaña) se conecta solo; en otro dispositivo, el alumno pulsa «Enlazar instructor» y te da un código.</p>
-    <div class="ibar card"><div class="field"><label for="iCase">Caso</label><select id="iCase">${GROUPS.map(g => `<optgroup label="${esc(g)}">` + Object.entries(CASES).filter(([, c]) => c.lvl === g).map(([k, c]) => `<option value="${k}">${esc(c.title)}</option>`).join('') + '</optgroup>').join('')}</select></div>
-      <button class="btn primary" data-i="load">Cargar en el alumno</button><button class="btn" data-i="pause" id="iPause">Pausa</button>
+      <div class="inrow"><span class="chip" id="iConn">sin alumnos</span><button class="btn primary" id="iRoom">Abrir aula</button><span class="aulacode" id="iRoomCode" hidden></span><button class="btn sm" id="iRoomLink" hidden>Copiar enlace del aula</button></div></header>
+    <p class="small" id="iHelp">En el mismo equipo (otras ventanas o pestañas del simulador) los alumnos se conectan solos. En otros dispositivos: pulsa «Abrir aula» y que cada alumno pulse «Enlazar instructor» y escriba el código (o abra el enlace del aula).</p>
+    <details class="small"><summary>Conectar a un alumno que me da su código</summary><div class="inrow" style="margin-top:6px"><input id="iCode" maxlength="5" placeholder="código" autocomplete="off" style="width:7ch;text-transform:uppercase"><button class="btn" id="iJoin">Conectar</button></div></details>
+    <section class="card"><div class="ihead"><h2>Alumnos</h2><div class="seg" id="iTo" role="group" aria-label="Enviar las órdenes a"><button data-to="sel" aria-pressed="true">Al seleccionado</button><button data-to="all" aria-pressed="false">A todos</button></div></div><div class="roster" id="iRoster"><p class="small">Esperando alumnos…</p></div></section>
+    <div class="ibar card"><div class="field"><label for="iCase">Caso</label><select id="iCase">${caseOpts}</select></div>
+      <button class="btn primary" data-i="load">Cargar caso</button><button class="btn" data-i="var" title="La misma variante (mismo paciente y complicación) para los destinatarios">Variante</button><button class="btn" data-i="varEach" id="iVarEach" title="Una variante distinta para cada alumno" hidden>Variante distinta para cada uno</button>
+      <button class="btn" data-i="pause" id="iPause">Pausa</button>
       <div class="seg" id="iSpeed">${[1, 5, 10, 20].map(v => `<button data-s="${v}">×${v}</button>`).join('')}</div>
       <div class="seg" id="iExam"><button data-x="0">Práctica</button><button data-x="1">Examen</button></div><button class="btn" data-i="end">Terminar caso</button></div>
     <div class="igrid">
       <section class="card"><h2 id="iTitle">Sin datos</h2><p class="small" id="iSub">—</p><div class="ivit" id="iVit"></div><div class="targets" id="iTg"></div></section>
-      <section class="card"><h2>Provocar</h2><div class="abtns" id="iEv">${Object.entries(EVLAB).map(([k, l]) => `<button class="btn" data-ev="${k}">${l}</button>`).join('')}</div>
+      <section class="card"><h2>Provocar</h2>
+        <div class="inrow"><label class="small" for="iWhen">Cuándo</label><select id="iWhen"><option value="0">Ahora</option><option value="1">En 1 min</option><option value="2">En 2 min</option><option value="5">En 5 min</option><option value="10">En 10 min</option></select><span class="small">(minutos del caso)</span></div>
+        <div class="abtns" id="iEv">${Object.entries(EVLAB).map(([k, l]) => `<button class="btn" data-ev="${k}">${l}</button>`).join('')}</div>
         <div class="inrow" style="margin-top:8px"><input id="iMsg" placeholder="Mensaje al alumno (p. ej. «el paciente refiere dolor torácico»)" style="flex:1;min-width:12ch"><button class="btn" id="iSend">Enviar</button></div>
         <div class="range"><label class="small" for="iAlt">Altitud de cabina</label><input type="range" id="iAlt" min="0" max="3000" step="100" value="0"><span class="num small" id="iAltV">0 m</span></div></section>
+      <section class="card"><h2>Eventos programados</h2><div id="iSched"><p class="small">—</p></div><div class="inrow" style="margin-top:6px"><button class="btn sm" data-i="schedCancel">Cancelar los pendientes</button></div></section>
       <section class="card iwide"><h2>Evolución</h2><div id="iTl"></div></section>
       <section class="card"><h2>Lectura (el alumno no la ve en examen)</h2><div class="read" id="iRead"></div></section>
       <section class="card"><h2>Lo que pasa dentro</h2><dl class="truth" id="iTruth"></dl></section>
       <section class="card"><h2>Registro</h2><div class="log" id="iLog"></div></section>
-      <section class="card" id="iDbBox" hidden><h2>Último debrief</h2><div id="iDb"></div></section>
+      <section class="card iwide"><div class="ihead"><h2>Resultados de la clase</h2><button class="btn sm" id="iCsv" disabled>Exportar CSV</button></div><div id="iRes"><p class="small">Aún no ha terminado nadie.</p></div></section>
     </div>`;
-  let last = null, lastAt = 0;
-  const send = m => linkSend(m), cmd = (c, extra) => send(Object.assign({ t: 'cmd', c }, extra || {}));
+  const studs = new Map(), results = []; let sel = null, toAll = false, room = null;
+  const send = m => linkSend(m), alive = s => performance.now() - s.at < 6000;
+  const targets = () => toAll ? [...studs.values()].filter(alive).map(s => s.st.sid) : sel ? [sel] : [];
+  const cmd = (c, extra, to) => { const t = to || (toAll ? '*' : sel); if (!t) { $('#iConn').textContent = 'elige un alumno'; return; } send(Object.assign({ t: 'cmd', c, to: t }, extra || {})); };
+  const nameOf = st => st.name || 'Alumno ' + st.sid;
   const onMsg = m => {
     if (!m || typeof m !== 'object') return;
-    if (m.t === 'state') { last = m; lastAt = performance.now(); render(m); }
-    if (m.t === 'debrief') { $('#iDbBox').hidden = false; $('#iDb').innerHTML = `<p><b>${esc(m.title)}</b>${m.name ? ' · ' + esc(m.name) : ''}${m.reason ? ' · ' + esc(m.reason) : ''}</p><p class="score-i">${fmt(m.score, 1)} / 10</p><table class="dtable">${m.parts.map(([l, v, d]) => `<tr><td>${esc(l)}<br><span class="small">${esc(d)}</span></td><td class="n">${v} %</td></tr>`).join('')}</table>`; }
+    if (m.t === 'state') { const sid = String(m.sid || 'local').slice(0, 12); m.sid = sid; studs.set(sid, { st: m, at: performance.now() }); if (!sel || !studs.has(sel)) sel = sid; renderRoster(); if (sid === sel) render(m); }
+    if (m.t === 'debrief') { results.push({ sid: String(m.sid || 'local'), name: String(m.name || ''), title: String(m.title || ''), vcode: m.vcode || '', exam: !!m.exam, score: +m.score, min: +m.min || null, reason: String(m.reason || ''), parts: Array.isArray(m.parts) ? m.parts : [], at: new Date() }); renderRes(); }
   };
   try { LINK.bc = new BroadcastChannel('simvmi'); LINK.bc.onmessage = e => onMsg(e.data); } catch (e) { LINK.bc = null; }
-  send({ t: 'hello' }); setInterval(() => { send({ t: 'ping' }); const ok = performance.now() - lastAt < 4000; $('#iConn').textContent = ok ? 'conectado' : 'sin conexión'; $('#iConn').className = 'chip ' + (ok ? 'ok' : 'off'); }, 2000);
+  send({ t: 'hello' });
+  setInterval(() => { send({ t: 'ping' }); const n = [...studs.values()].filter(alive).length; $('#iConn').textContent = n ? n + (n > 1 ? ' alumnos conectados' : ' alumno conectado') : 'sin alumnos'; $('#iConn').className = 'chip ' + (n ? 'ok' : 'off'); for (const [k, s] of studs) if (performance.now() - s.at > 120000) studs.delete(k); renderRoster(); }, 2000);
   const vit = (l, v, u, d) => `<div class="iv"><span>${l}</span><b>${v == null || !isFinite(v) ? '–' : fmt(v, d || 0)}</b><small>${u}</small></div>`;
+  function renderRoster() {
+    const list = [...studs.values()].sort((a, b) => nameOf(a.st).localeCompare(nameOf(b.st), 'es'));
+    if (!list.length) { $('#iRoster').innerHTML = '<p class="small">Esperando alumnos…</p>'; return; }
+    $('#iRoster').innerHTML = list.map(({ st: m, at }) => { const v = m.v || {}, off = performance.now() - at > 6000, tg = (m.tg || []).filter(x => x[1] != null), avg = tg.length ? Math.round(tg.reduce((a, x) => a + x[1], 0) / tg.length) : null, bad = (m.reads || []).filter(r => r[0] === 'bad').length;
+      return `<button class="stu${m.sid === sel ? ' on' : ''}${off ? ' off' : ''}${v.arrest ? ' arr' : ''}" data-sid="${esc(m.sid)}" aria-pressed="${m.sid === sel}"><b>${esc(nameOf(m))}</b><span class="small">${esc(m.title)}${m.vcode && !String(m.title).includes(m.vcode) ? ' · ' + esc(m.vcode) : ''}</span>
+        <span class="stv">SpO₂ ${v.spo2 == null ? '–' : fmt(v.spo2)} · TAS ${v.tas == null ? '–' : fmt(v.tas)} · FC ${v.fc == null ? '–' : fmt(v.fc)}</span>
+        <span class="small">${off ? 'desconectado' : `min ${fmt(m.clin, 1)}${m.paused ? ' · pausa' : ''}${m.exam ? ' · examen' : ''}${m.ended ? ' · terminado' : ''}`}${avg != null ? ` · objetivos ${avg} %` : ''}${bad ? ` · ${bad} alerta${bad > 1 ? 's' : ''}` : ''}${v.arrest ? ' · PARADA' : ''}</span></button>`; }).join('');
+  }
   function render(m) {
-    $('#iTitle').textContent = m.title; $('#iSub').textContent = `${m.lvl} · ${m.dev} · ${m.mon} · ${m.iface} · ${m.mode} · min ${fmt(m.clin, 1)} · ×${m.scale}${m.paused ? ' · en pausa' : ''}${m.exam ? ' · examen' : ''}${m.name ? ' · ' + m.name : ''}`;
+    $('#iTitle').textContent = nameOf(m) + ' · ' + m.title; $('#iSub').textContent = `${m.lvl}${m.vcode && !String(m.title).includes(m.vcode) ? ' · variante ' + m.vcode : ''} · ${m.dev} · ${m.mon} · ${m.iface} · ${m.mode} · min ${fmt(m.clin, 1)} · ×${m.scale}${m.paused ? ' · en pausa' : ''}${m.exam ? ' · examen' : ''}`;
     const v = m.v;
     $('#iVit').innerHTML = vit('SpO₂', v.spo2, '%') + vit('TAS real', v.tas, 'mmHg') + vit('PNI', v.pni, 'mmHg') + vit('FC', v.fc, 'lpm') + vit('EtCO₂', v.et, 'mmHg') + vit('FR', v.rr, 'rpm') + vit('GCS', v.gcs, '') + `<div class="iv wide"><span>Ritmo</span><b class="rt">${esc(v.rhy)}</b><small>${v.arrest ? (v.comp !== 'off' ? 'RCP en curso' : 'sin compresiones') : ''}</small></div>`;
     $('#iTg').innerHTML = m.tg.map(([l, p]) => `<span class="chip ${p == null ? '' : p >= 80 ? 'ok' : p < 50 ? 'off' : ''}">${esc(l)} ${p == null ? '–' : p + ' %'}</span>`).join('');
     $('#iRead').innerHTML = m.reads.map(([l, t, dd, f]) => `<div class="ri ${l}"><b>${esc(t)}</b><p>${esc(dd)}</p><p class="fix">→ ${esc(f)}</p></div>`).join('') || '<p class="small">—</p>';
     $('#iTruth').innerHTML = m.truth.map(([k, x]) => `<dt>${esc(k)}</dt><dd>${esc(x)}</dd>`).join('');
     $('#iLog').innerHTML = m.log.map(x => `<span>${esc(x)}</span>`).join('');
+    $('#iSched').innerHTML = (m.sched || []).length ? `<table class="dtable">${m.sched.map(e => `<tr><td class="n">${fmt(e.at, 1)}′</td><td>${esc(e.txt)}</td><td class="n">${e.cancel ? '<span class="small">cancelado</span>' : e.fired ? '<span class="small">hecho</span>' : `<button class="btn sm" data-fire="${e.i}">Ya</button>`}</td></tr>`).join('')}</table>` : '<p class="small">Este caso no tiene eventos programados.</p>';
     $('#iTl').innerHTML = m.series.length > 2 ? timelineSVG(m.series.map(s => [s[0] - m.series[0][0], ...s.slice(1)]), [], [], { compact: true }) : '<p class="small">Aún no hay datos.</p>';
     $$('#iSpeed button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.s === m.scale ? 'true' : 'false'));
     $$('#iExam button').forEach(b => b.setAttribute('aria-pressed', (+b.dataset.x === 1) === m.exam ? 'true' : 'false'));
     $('#iPause').textContent = m.paused ? 'Seguir' : 'Pausa';
-    if (document.activeElement !== $('#iCase')) $('#iCase').value = m.key;
+    if (document.activeElement !== $('#iCase')) $('#iCase').value = m.base && CASES[m.base] ? m.base : CASES[m.key] ? m.key : $('#iCase').value;
+  }
+  function renderRes() {
+    $('#iCsv').disabled = !results.length;
+    if (!results.length) { $('#iRes').innerHTML = '<p class="small">Aún no ha terminado nadie.</p>'; return; }
+    $('#iRes').innerHTML = `<table class="dtable"><tr><th>Hora</th><th>Alumno</th><th>Caso</th><th>Modo</th><th class="n">Min</th><th class="n">Nota</th></tr>${results.slice().reverse().map(r => `<tr><td>${r.at.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</td><td>${esc(r.name || 'Alumno ' + r.sid)}</td><td>${esc(r.title)}${r.vcode && !r.title.includes(r.vcode) ? ' · ' + esc(r.vcode) : ''}${r.reason ? '<br><span class="small">' + esc(r.reason) + '</span>' : ''}</td><td>${r.exam ? 'examen' : 'práctica'}</td><td class="n">${r.min == null ? '–' : fmt(r.min, 1)}</td><td class="n">${fmt(r.score, 1)}</td></tr>`).join('')}</table>`;
+  }
+  function openRoom() {
+    const code = rid(5); $('#iRoomCode').hidden = false; $('#iRoomCode').textContent = '·····'; $('#iHelp').textContent = 'Abriendo el aula…';
+    loadPeer().then(Peer => {
+      if (room) { try { room.destroy(); } catch (e) { /* ya cerrada */ } }
+      const peer = new Peer('simvmi-aula-' + code); room = peer;
+      peer.on('open', () => { $('#iRoomCode').textContent = code; $('#iRoomLink').hidden = false; $('#iHelp').textContent = `Aula abierta: cada alumno pulsa «Enlazar instructor» y escribe ${code} (o abre el enlace del aula).`; });
+      peer.on('connection', conn => { LINK.conns.push(conn); conn.on('data', onMsg); conn.on('open', () => conn.send({ t: 'hello' })); conn.on('close', () => { LINK.conns = LINK.conns.filter(x => x !== conn); }); });
+      peer.on('error', e => { $('#iHelp').textContent = 'No se pudo abrir el aula: ' + (e && e.type === 'unavailable-id' ? 'código en uso, vuelve a pulsar' : e && e.type ? e.type : 'error de conexión') + '. En el mismo equipo, las ventanas se conectan sin aula.'; });
+    }).catch(e => { $('#iHelp').textContent = e.message; });
   }
   box.addEventListener('click', e => {
+    const st = e.target.closest('.stu'); if (st) { sel = st.dataset.sid; const s = studs.get(sel); renderRoster(); if (s) render(s.st); return; }
     const b = e.target.closest('button'); if (!b) return;
-    if (b.dataset.ev) cmd('event', { k: b.dataset.ev });
+    const when = +$('#iWhen').value || 0;
+    if (b.dataset.ev) cmd(when ? 'eventAt' : 'event', { k: b.dataset.ev, in: when });
+    else if (b.dataset.fire != null) cmd('schedFire', { i: +b.dataset.fire }, sel);
+    else if (b.dataset.to) { toAll = b.dataset.to === 'all'; $$('#iTo button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); $('#iVarEach').hidden = !toAll; }
     else if (b.dataset.i === 'load') cmd('load', { k: $('#iCase').value });
-    else if (b.dataset.i === 'pause') cmd('pause', { v: !(last && last.paused) });
+    else if (b.dataset.i === 'var') cmd('variant', { k: $('#iCase').value, seed: Math.floor(Math.random() * 1679616) });
+    else if (b.dataset.i === 'varEach') targets().forEach(sid => cmd('variant', { k: $('#iCase').value, seed: Math.floor(Math.random() * 1679616) }, sid));
+    else if (b.dataset.i === 'schedCancel') cmd('schedCancel', {}, sel);
+    else if (b.dataset.i === 'pause') { const s = studs.get(sel); cmd('pause', { v: !(s && s.st.paused) }); }
     else if (b.dataset.i === 'end') cmd('end');
     else if (b.dataset.s) cmd('speed', { v: +b.dataset.s });
     else if (b.dataset.x != null && b.closest('#iExam')) cmd('exam', { v: b.dataset.x === '1' });
     else if (b.id === 'iSend') { const t = $('#iMsg').value.trim(); if (t) { cmd('msg', { txt: t }); $('#iMsg').value = ''; } }
+    else if (b.id === 'iRoom') openRoom();
+    else if (b.id === 'iRoomLink') { const u = location.href.split('#')[0] + '#aula=' + $('#iRoomCode').textContent; (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(() => { $('#iHelp').textContent = 'Enlace copiado: ' + u; }, () => { $('#iHelp').textContent = 'Enlace del aula: ' + u; }); }
+    else if (b.id === 'iCsv') { const rows = [['hora', 'alumno', 'caso', 'variante', 'modo', 'minutos', 'nota', 'motivo', 'partes'].join(';')].concat(results.map(r => [r.at.toISOString(), r.name || 'Alumno ' + r.sid, r.title, r.vcode, r.exam ? 'examen' : 'practica', r.min == null ? '' : String(r.min).replace('.', ','), String(Math.round(r.score * 10) / 10).replace('.', ','), r.reason, r.parts.map(p => p[0] + ' ' + p[1] + '%').join(' | ')].map(x => '"' + String(x).replace(/"/g, '""') + '"').join(';'))); download('resultados-clase-' + new Date().toISOString().slice(0, 10) + '.csv', '﻿' + rows.join('\n'), 'text/csv;charset=utf-8'); }
     else if (b.id === 'iJoin') {
       const code = $('#iCode').value.trim().toUpperCase(); if (code.length !== 5) { $('#iConn').textContent = 'código de 5 caracteres'; return; }
       $('#iConn').textContent = 'conectando…';
@@ -5793,14 +5874,16 @@ function loadSharedFromHash() {
 }
 
 /* ---------- variantes: otro paciente y otra complicación a partir del caso abierto (variants.js) ---------- */
-function newVariant() {
-  const c = CASES[caseKey]; if (!c || !c.pheno || !window.SIM_VARIANT) return;
-  const base = c.vbase && CASES[c.vbase] ? c.vbase : caseKey;
-  const v = SIM_VARIANT.make(base, Math.floor(Math.random() * 1679616)); if (!v) { toast('Este caso no admite variantes.'); return; }
+function loadVariant(key, seed, byInstr) {
+  const c = CASES[key]; if (!c || !c.pheno || !window.SIM_VARIANT) return false;
+  const base = c.vbase && CASES[c.vbase] ? c.vbase : key;
+  const v = SIM_VARIANT.make(base, seed); if (!v) { toast('Este caso no admite variantes.'); return false; }
   v.speed = v.speed || GROUP_SPEED[v.vlvl] || 10;
   CASES.u_var = v; installCustom(); $('#caseSel').value = 'u_var'; loadCase('u_var');
-  logIt(`Variante ${v.vcode} de «${CASES[base].title}»`); toast(`Variante ${v.vcode}: lee el planteamiento, ha cambiado el paciente.`);
+  logIt(`${byInstr ? 'Instructor: v' : 'V'}ariante ${v.vcode} de «${CASES[base].title}»`); toast(`Variante ${v.vcode}: lee el planteamiento, ha cambiado el paciente.`);
+  return true;
 }
+function newVariant() { loadVariant(caseKey, Math.floor(Math.random() * 1679616)); }
 function saveVariant() {
   const c = CASES[caseKey]; if (!c || !c.vbase) return;
   const cc = customCases(), key = 'u_v' + c.vcode.toLowerCase() + (c.vbase || '').slice(0, 6);
@@ -5825,7 +5908,11 @@ function teachInit() {
   $('#stuName').value = student;
   $('#stuName').addEventListener('change', e => { student = e.target.value.trim().slice(0, 60); LS.set('simvmi.name', student); sendState(true); });
   $('#instrOpen').addEventListener('click', () => { const u = location.href.split('#')[0] + '#instructor'; const w = window.open(u, 'simvmi-instructor', 'width=1200,height=900'); if (!w) toast('El navegador bloqueó la ventana: abre esta misma dirección terminada en #instructor.'); });
-  $('#instrLink').addEventListener('click', hostRemote);
+  $('#instrLink').addEventListener('click', () => { $('#linkModal').hidden = false; $('#linkSt').textContent = LINK.conns.some(c => c.open) ? 'Ya estás conectado con el instructor.' : '—'; setTimeout(() => $('#roomCode').focus(), 50); });
+  $('#linkGen').addEventListener('click', hostRemote);
+  $('#roomJoin').addEventListener('click', () => joinRoom($('#roomCode').value));
+  $('#roomCode').addEventListener('keydown', e => { if (e.key === 'Enter') joinRoom(e.target.value); });
+  { const am = location.hash.match(/^#aula=([A-Za-z0-9]{5})$/); if (am) { $('#roomCode').value = am[1].toUpperCase(); $('#linkModal').hidden = false; setTimeout(() => joinRoom(am[1]), 400); } } // enlace del aula que comparte el instructor
   $('#linkClose').addEventListener('click', () => { $('#linkModal').hidden = true; });
   $('#histBtn').addEventListener('click', () => { renderHist(); $('#histModal').hidden = false; });
   $('#hiName').addEventListener('change', renderHist);

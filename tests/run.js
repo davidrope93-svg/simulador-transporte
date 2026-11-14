@@ -469,6 +469,14 @@ console.log('— HEMS e interhospitalario (v1.24): balón y altitud, trombólisi
   a = run('politraumaFrio', [], 32); b = run('politraumaFrio', [[.2, s => s.action('warm')]], 32); check('Politrauma en vuelo largo sin calor: temperatura', a.S.temp, 30, 34.6, ' °C'); check('… con calor activo', b.S.temp, 35.5, 38, ' °C');
   a = run('bronquiolitisHierro', [], 20); check('Lactante en alto flujo que se agota: pCO₂ a 20 min', a.S.pco2, 62, 150, ' mmHg'); }
 
+console.log('— Instructor 2.0 (v1.25): varios alumnos, órdenes con destinatario, variantes y eventos programados');
+{ const fs = require('fs'), path = require('path'), src = fs.readFileSync(path.join(__dirname, '..', 'src', 'teach.js'), 'utf8');
+  const m = src.match(/const forMe = ([^\n]+);/), forMe = m ? eval('(SID => (' + m[1] + '))')('ABC123') : null;
+  check('Órdenes del instructor: al alumno, a todos, a una lista que lo incluye y sin destinatario', forMe && [forMe('ABC123'), forMe('*'), forMe(undefined), forMe(['XYZ789', 'ABC123'])].every(Boolean) ? 1 : 0, 1, 1);
+  check('… y no a otro alumno', forMe && !forMe('ZZZ999') && !forMe(['ZZZ999']) ? 1 : 0, 1, 1);
+  check('El alumno atiende variantes, eventos programados (lanzar ya y cancelar) y se identifica en el estado y el debrief', ["case 'variant'", "case 'eventAt'", "case 'schedFire'", "case 'schedCancel'", "t: 'state', sid: SID", "t: 'debrief', sid: SID"].every(x => src.includes(x)) ? 1 : 0, 1, 1);
+  check('Aula: el instructor la abre con código y el alumno se une (también por enlace #aula=)', ["'simvmi-aula-' + code"].every(x => src.split(x).length >= 3) && /#aula=/.test(src) ? 1 : 0, 1, 1); }
+
 console.log('— Instalable y sin conexión (v1.3): manifiesto, iconos y service worker');
 { const fs = require('fs'), path = require('path'), R = f => path.join(__dirname, '..', f);
   const man = JSON.parse(fs.readFileSync(R('manifest.webmanifest'), 'utf8'));
