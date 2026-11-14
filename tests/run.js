@@ -357,6 +357,23 @@ console.log('— Tanda de trauma (v1.17): torniquete, parche valvulado, aplastam
   a = run('epidural', [], 20); check('Hematoma epidural sin tratar: la herniación deprime la respiración (pCO₂)', a.S.pco2, 50, 150, ' mmHg');
   a = run('tetraplejia', [], 20); check('Lesión C4 sin soporte: hipercapnia por agotamiento a los 20 min', a.S.pco2, 48, 150, ' mmHg'); }
 
+console.log('— Tanda de VMI terrestre (v1.18): obeso, hipercapnia permisiva, EPOC, TEP, CO, anafilaxia, estatus y gestante');
+{ const run = (k, acts, m, seed) => { const L = load(k, { seed: seed || 4, scale: 10 }), s = L.sim; adv(s, .05); for (const [t, f] of acts) { if (s.S.clin < t) adv(s, t - s.S.clin); f(s); } adv(s, m - s.S.clin); return s; };
+  global.window = global; require('../src/drugs.js'); const DR = global.SIM_DRUGS;
+  const cfg = o => s => s.setCfg(Object.assign({}, s.S.cfg, o)), give = (id, kg) => s => { const it = DR.DRUGITEMS[id]; s.drug(it.k, DR.amountOf(it, kg || 75, false)); };
+  let a = run('obesoVmi', [], 10), b = run('obesoVmi', [[.3, cfg({ vt: 460, peep: 12, fr: 16 })]], 10); check('Obeso con PEEP 5: SpO₂ con FiO₂ 60 %', a.S.spo2 * 100, 75, 91, ' %'); check('… con Vt por peso ideal y PEEP 12', b.S.spo2 * 100, 92, 100, ' %');
+  a = run('sdraPermisiva', [], 15); b = run('sdraPermisiva', [[.3, cfg({ fr: 30, ti: .7 })]], 15); check('SDRA con FR 14: pH', a.S.ph, 7, 7.19); check('… FR 30 y Ti 0,7: pH ≥ 7,20', b.S.ph, 7.2, 7.4);
+  b = run('sdraPermisiva', [[.3, cfg({ vt: 480, tplat: .3 })]], 3); check('… subir el Vt a 8,5 mL/kg dispara la meseta', b.monitor().pplat, 30, 60, ' cmH₂O');
+  a = run('epocAlcalosis', [], 20); b = run('epocAlcalosis', [[.3, cfg({ vt: 460, fr: 18, ti: .8 })]], 20); check('EPOC con bicarbonato alto e hiperventilado: alcalosis', a.S.ph, 7.48, 7.7); check('… con su volumen minuto: pH', b.S.ph, 7.28, 7.42);
+  a = run('tepIntubado', [], 3); check('TEP intubado: la EtCO₂ infraestima la pCO₂', a.S.pco2 - a.monitor().et, 12, 50, ' mmHg');
+  b = run('tepIntubado', [[.3, s => DR.PERFS.find(p => p.id === 'nor').run(s, .15, 1)], [.5, give('tnk', 74)]], 15); a = run('tepIntubado', [], 15); check('… sin tratar: TAS a 15 min', a.S.tas, 0, 85, ' mmHg'); check('… con noradrenalina y tenecteplasa', b.S.tas, 90, 160, ' mmHg');
+  a = run('coIntubado', [], 30); b = run('coIntubado', [[.3, cfg({ fio2: 100 })]], 30); check('CO con FiO₂ 40 %: COHb a 30 min', a.S.cohb * 100, 32, 38, ' %'); check('… con FiO₂ 100 %', b.S.cohb * 100, 24, 31, ' %');
+  a = run('anafIntubado', [[1.5, s => s.event('anaf')]], 12); b = run('anafIntubado', [[1.5, s => s.event('anaf')], [2, give('adrP')], [2.2, s => s.action('fluid')], [2.5, s => DR.PERFS.find(p => p.id === 'adrI').run(s, 5, 1)], [3.5, s => s.action('fluid')]], 12); check('Anafilaxia en el intubado sin adrenalina: TAS a 12 min', a.S.tas, 0, 100, ' mmHg'); check('… con bolo, perfusión y volumen', b.S.tas, 100, 170, ' mmHg');
+  a = run('estatusIntubado', [], 3); check('Estatus relajado: la exploración delata la crisis', /midriasis/.test(a.explore().join(' ')) ? 1 : 0, 1, 1); let off = 0; for (let sd = 1; sd <= 6; sd++) { const x = run('estatusIntubado', [[.3, give('lev', 80)], [.4, give('propI', 80)], [.5, s => DR.PERFS.find(p => p.id === 'prop').run(s, 250, 1)]], 15, sd); if (!x.S.se.on) off++; } check('… perfusión de propofol y levetiracetam: crisis controlada (de 6)', off, 5, 6);
+  a = run('gestanteIntubada', [[.3, cfg({ fr: 20 })]], 10); check('Gestante intubada con FR 20: EtCO₂ en 30–35', a.monitor().et, 28, 35, ' mmHg');
+  a = run('eapIntubado', [], 10); b = run('eapIntubado', [[.3, cfg({ peep: 10 })], [.5, s => s.setNtg(200)]], 10); check('EAP intubado con PEEP 5: SpO₂', a.S.spo2 * 100, 70, 89, ' %'); check('… PEEP 10 y nitroglicerina: SpO₂', b.S.spo2 * 100, 92, 100, ' %'); check('… y TAS', b.S.tas, 110, 165, ' mmHg');
+  a = run('ptxSdra', [[.3, cfg({ tplat: .3 })]], 3); check('SDRA con 650 mL (9,6 mL/kg de peso ideal): meseta', a.monitor().pplat, 31, 60, ' cmH₂O'); }
+
 console.log('— Instalable y sin conexión (v1.3): manifiesto, iconos y service worker');
 { const fs = require('fs'), path = require('path'), R = f => path.join(__dirname, '..', f);
   const man = JSON.parse(fs.readFileSync(R('manifest.webmanifest'), 'utf8'));

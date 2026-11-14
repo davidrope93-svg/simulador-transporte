@@ -78,6 +78,7 @@ const o2Fi = (dev, ve) => { const d = O2DEV[dev]; return d.k ? .21 + (d.fi - .21
 function create(opts) {
   const o = Object.assign({ pheno: 'sano', seed: 1, scale: 10, iface: 'tube', vent: 'monnal' }, opts || {});
   const P = Object.assign({}, PHENO[o.pheno]);
+  if (o.phen) Object.assign(P, o.phen); // v1.18: ajustes del fenotipo propios del caso
   if (o.retainer) Object.assign(P, { hyper: true, co2set: 52, hco3: 31 }); // v1.16: retenedor crónico de CO₂ (obesidad-hipoventilación)
   // pediatría (peso < 40 kg): pulmón, espacio muerto y metabolismo escalados al peso; resistencias y frecuencias más altas; constantes por edad
   const ped = o.peso != null && o.peso < 40, kW = ped ? o.peso / 70 : 1;
@@ -1091,7 +1092,8 @@ function create(opts) {
         return g; }
       if (S.isr) return ['Laringoscopia en curso: el paciente está en apnea.'];
       const seiz = S.clin < S.seizUntil;
-      if (seiz) f.push('Convulsión tónico-clónica generalizada: mandíbula cerrada, cianosis peribucal, sialorrea.');
+      if (seiz && S.relTot > .6) f.push('No se mueve (relajado), pero tiene midriasis, taquicardia, hipertensión y sudoración sin estímulo: puede seguir en estatus bajo el relajante.'); // v1.18
+      else if (seiz) f.push('Convulsión tónico-clónica generalizada: mandíbula cerrada, cianosis peribucal, sialorrea.');
       const glas = S.relTot > .6 ? 'relajado, no valorable' : S.sedTot > .7 ? 'bajo sedación' : S.cocE > .35 && !seiz ? 'agitado y desorientado, no colabora' : seiz ? 'convulsionando' : S.clin < S.postIctUntil ? 'postcrítico, obnubilado' : S.gcs <= 8 ? 'no abre los ojos, emite sonidos y localiza o retira al dolor' : S.gcs <= 12 ? 'somnoliento, abre los ojos al dolor, desorientado' : S.gcs <= 14 ? 'adormilado, confuso' : 'consciente y orientado';
       if (S.ped && !S.neo) f.push(tep(seiz));
       if (S.iface !== 'tube' || S.relTot < .5) f.push(`Nivel de conciencia: ${glas}${S.relTot > .6 ? '' : ` (${S.ped && S.age < 2 ? 'Glasgow pediátrica' : 'GCS'} ≈ ${S.gcs})`}.`);
@@ -1143,7 +1145,7 @@ function create(opts) {
       if (S.iface === 'tube' && S.awake > .35 && S.relTot < .5) f.push('Abre los ojos, tose con el tubo y lleva las manos hacia él.');
       if (S.deficit > .35 && S.vaso < .25 && S.neurog < .25) f.push('Piel fría y pálida, relleno capilar enlentecido.'); // en el shock distributivo la piel está caliente
       if (S.pace.on) f.push(S.pace.capture ? 'Pulso femoral a la frecuencia del marcapasos: hay captura mecánica.' : 'Espigas sin captura: el pulso no sigue al marcapasos.');
-      if (S.anaf > .15) f.push('Habones generalizados' + (S.anaf > .4 ? ', angioedema de labios y lengua, voz ronca' : '') + '.');
+      if (S.anaf > .15) f.push(S.iface === 'tube' ? 'Eritema y habones generalizados' + (S.anaf > .4 ? ', edema facial y de párpados; sibilancias en ambos campos' : '') + '.' : 'Habones generalizados' + (S.anaf > .4 ? ', angioedema de labios y lengua, voz ronca' : '') + '.');
       if (S.edAir > .25 && S.iface !== 'tube') f.push('Hollín en fosas nasales, vibrisas chamuscadas, voz ronca' + (S.edAir > .55 ? ' y estridor inspiratorio.' : '.'));
       if (S.cohb > .15 && S.iface !== 'tube') f.push('Cefalea, náuseas y confusión' + (S.cohb > .3 ? '; responde mal a órdenes.' : '.'));
       if (S.tep > .3) f.push('Ingurgitación yugular sin crepitantes; extremidades frías.');

@@ -449,7 +449,7 @@ body.exam #tutBtn{display:none}
 <main>
   <header class="top">
     <div class="brand">
-      <span class="eyebrow">Simulador docente · SVA terrestre y HEMS · v1.17</span>
+      <span class="eyebrow">Simulador docente · SVA terrestre y HEMS · v1.18</span>
       <h1>Ventilación, monitor y RCP</h1>
     </div>
     <div class="toolbar">
@@ -820,6 +820,7 @@ const o2Fi = (dev, ve) => { const d = O2DEV[dev]; return d.k ? .21 + (d.fi - .21
 function create(opts) {
   const o = Object.assign({ pheno: 'sano', seed: 1, scale: 10, iface: 'tube', vent: 'monnal' }, opts || {});
   const P = Object.assign({}, PHENO[o.pheno]);
+  if (o.phen) Object.assign(P, o.phen); // v1.18: ajustes del fenotipo propios del caso
   if (o.retainer) Object.assign(P, { hyper: true, co2set: 52, hco3: 31 }); // v1.16: retenedor crónico de CO₂ (obesidad-hipoventilación)
   // pediatría (peso < 40 kg): pulmón, espacio muerto y metabolismo escalados al peso; resistencias y frecuencias más altas; constantes por edad
   const ped = o.peso != null && o.peso < 40, kW = ped ? o.peso / 70 : 1;
@@ -1833,7 +1834,8 @@ function create(opts) {
         return g; }
       if (S.isr) return ['Laringoscopia en curso: el paciente está en apnea.'];
       const seiz = S.clin < S.seizUntil;
-      if (seiz) f.push('Convulsión tónico-clónica generalizada: mandíbula cerrada, cianosis peribucal, sialorrea.');
+      if (seiz && S.relTot > .6) f.push('No se mueve (relajado), pero tiene midriasis, taquicardia, hipertensión y sudoración sin estímulo: puede seguir en estatus bajo el relajante.'); // v1.18
+      else if (seiz) f.push('Convulsión tónico-clónica generalizada: mandíbula cerrada, cianosis peribucal, sialorrea.');
       const glas = S.relTot > .6 ? 'relajado, no valorable' : S.sedTot > .7 ? 'bajo sedación' : S.cocE > .35 && !seiz ? 'agitado y desorientado, no colabora' : seiz ? 'convulsionando' : S.clin < S.postIctUntil ? 'postcrítico, obnubilado' : S.gcs <= 8 ? 'no abre los ojos, emite sonidos y localiza o retira al dolor' : S.gcs <= 12 ? 'somnoliento, abre los ojos al dolor, desorientado' : S.gcs <= 14 ? 'adormilado, confuso' : 'consciente y orientado';
       if (S.ped && !S.neo) f.push(tep(seiz));
       if (S.iface !== 'tube' || S.relTot < .5) f.push(`Nivel de conciencia: ${glas}${S.relTot > .6 ? '' : ` (${S.ped && S.age < 2 ? 'Glasgow pediátrica' : 'GCS'} ≈ ${S.gcs})`}.`);
@@ -1885,7 +1887,7 @@ function create(opts) {
       if (S.iface === 'tube' && S.awake > .35 && S.relTot < .5) f.push('Abre los ojos, tose con el tubo y lleva las manos hacia él.');
       if (S.deficit > .35 && S.vaso < .25 && S.neurog < .25) f.push('Piel fría y pálida, relleno capilar enlentecido.'); // en el shock distributivo la piel está caliente
       if (S.pace.on) f.push(S.pace.capture ? 'Pulso femoral a la frecuencia del marcapasos: hay captura mecánica.' : 'Espigas sin captura: el pulso no sigue al marcapasos.');
-      if (S.anaf > .15) f.push('Habones generalizados' + (S.anaf > .4 ? ', angioedema de labios y lengua, voz ronca' : '') + '.');
+      if (S.anaf > .15) f.push(S.iface === 'tube' ? 'Eritema y habones generalizados' + (S.anaf > .4 ? ', edema facial y de párpados; sibilancias en ambos campos' : '') + '.' : 'Habones generalizados' + (S.anaf > .4 ? ', angioedema de labios y lengua, voz ronca' : '') + '.');
       if (S.edAir > .25 && S.iface !== 'tube') f.push('Hollín en fosas nasales, vibrisas chamuscadas, voz ronca' + (S.edAir > .55 ? ' y estridor inspiratorio.' : '.'));
       if (S.cohb > .15 && S.iface !== 'tube') f.push('Cefalea, náuseas y confusión' + (S.cohb > .3 ? '; responde mal a órdenes.' : '.'));
       if (S.tep > .3) f.push('Ingurgitación yugular sin crepitantes; extremidades frías.');
@@ -2273,6 +2275,77 @@ const CASES = {
     goal: 'Varón de 55 años con SDRA en una UCI comarcal, PEEP 12 y FiO₂ 70 %. Lo trasladas a un hospital con ECMO. En el minuto 3 toca desconectarlo para pasarlo a tu equipo.',
     hint: 'Antes de desconectar, pinza el tubo (acción «Pinzar el tubo») y reconecta rápido: sin PEEP el pulmón se desrecluta y tarda en recuperarse. Si se desrecluta, reconecta, sube la FiO₂ y valora una maniobra de reclutamiento (cuidado con la TA).',
     targets: { spo2: [88, 96], pplat: [0, 30] } },
+
+  /* v1.18 — fase 3, sesión 15: VMI terrestre */
+  dopeTraslado: { lvl: 'VMI · SVA', title: 'DOPE en un traslado: fuga, tapón y tubo que se mete', pheno: 'neumo', sex: 'm', talla: 158, peso: 64, speed: 5, duration: 30,
+    cfg: inv({ vt: 360, fr: 18, peep: 8, fio2: 50 }),
+    events: [{ at: 4, k: 'leak', txt: 'Alarma de volumen minuto bajo y gorgoteo' }, { at: 12, k: 'obst', txt: 'Alarma de presión alta: el Vt no entra' }, { at: 20, k: 'sel', txt: 'La pasáis de la camilla a la cama del hospital comarcal' }],
+    goal: 'Mujer de 74 años con neumonía y secreciones abundantes, intubada en su centro de salud (tubo 7,5, a 21 cm de la comisura). Traslado de 30 min. Te toca vigilar el respirador.',
+    hint: 'Ante cualquier deterioro del paciente ventilado: DOPE. Desplazamiento (marca del tubo, auscultación asimétrica, capnografía), Obstrucción (sonda de aspiración que no pasa, presión pico alta con meseta normal), neumotórax (Pneumothorax) y Equipo (desconecta y ventila con ambú). Fuga con gorgoteo: infla el balón a 20–30 cmH₂O. Tapón: aspira. Tubo metido 3 cm: desinfla, retira 2 cm, reinfla y ausculta.',
+    checks: [['act:cuff', 'Balón inflado'], ['act:suction', 'Aspiración del tubo'], ['act:pull', 'Tubo recolocado']],
+    targets: { spo2: [92, 98], vtkg: [5.5, 8.5] } },
+  ptxSdra: { lvl: 'VMI · SVA', title: 'Neumotórax a tensión en el SDRA ventilado', pheno: 'sdra', sex: 'h', talla: 172, peso: 95, speed: 5, duration: 25,
+    cfg: inv({ vt: 650, fr: 18, peep: 12, fio2: 80, tplat: .3, pmax: 50 }),
+    events: [{ at: 6, k: 'ptx', txt: 'La presión pico se dispara, la SpO₂ cae y la TA se hunde' }],
+    goal: 'Varón de 61 años con neumonía bilateral y SDRA, intubado en urgencias de un hospital comarcal. Lo trasladas a la UCI de referencia. Lo ventilan con 650 mL (7 mL/kg de su peso real) y PEEP 12.',
+    hint: 'Peso ideal ≈ 68 kg: Vt 6 mL/kg ≈ 410 mL, meseta < 30 y driving < 15; con 650 mL la meseta pasa de 35: barotrauma. Si de golpe sube la presión pico y la meseta, cae la SpO₂ y la TA y el hemitórax no se mueve: neumotórax a tensión. Descompresión inmediata (aguja en el 4.º–5.º espacio, línea medioaxilar, o toracostomía con el dedo) y drenaje. Después, Vt protector.',
+    checks: [['act:decomp|act:drain', 'Descompresión'], ['act:drain', 'Drenaje torácico']],
+    targets: { spo2: [88, 96], tas: [90, 160], pplat: [0, 30], vtkg: [5.5, 7] } },
+  anafIntubado: { lvl: 'VMI · SVA', title: 'Shock y broncoespasmo tras intubar: anafilaxia', pheno: 'sano', sex: 'h', talla: 178, peso: 84, asp: .1, speed: 5, duration: 25,
+    cfg: inv({ vt: 500, fr: 14, peep: 5, fio2: 50 }),
+    events: [{ at: 1.5, k: 'anaf', txt: 'Exantema, TA que cae y presión pico que sube' }],
+    goal: 'Varón de 52 años intubado con ketamina y rocuronio por coma tras una intoxicación con alcohol y benzodiacepinas; broncoaspiró antes de llegar. Acabas de poner amoxicilina-clavulánico 2 g IV.',
+    hint: 'Hipotensión, broncoespasmo (presión pico alta, capnografía en aleta de tiburón, auto-PEEP) y eritema tras un fármaco: anafilaxia (en el intubado no hay prurito ni disnea que avisen). Suspende el fármaco. Adrenalina IV en bolos de 50 mcg (o IM 0,5 mg si aún no tienes la jeringa), perfusión si hace falta más de dos o tres bolos, volumen a chorro (1–2 L), salbutamol en línea y FR baja con espiración larga mientras dure el broncoespasmo. Corticoide y antihistamínico después.',
+    checks: [['drug:adr|drug:adrIM|perf:adrI', 'Adrenalina'], ['act:fluid', 'Volumen'], ['drug:salb', 'Broncodilatador']],
+    targets: { tas: [90, 180], spo2: [92, 100], peepi: [0, 8] } },
+  obesoVmi: { lvl: 'VMI · SVA', title: 'Obesidad mórbida intubada: Vt por peso ideal y PEEP alta', pheno: 'obeso', sex: 'h', talla: 170, peso: 150, phen: { shunt0: .3, shuntPeep: .02 }, pco2: 58, retainer: true, speed: 5, duration: 25,
+    cfg: inv({ vt: 750, fr: 12, peep: 5, fio2: 60 }),
+    goal: 'Varón de 48 años, 170 cm y 150 kg, con obesidad-hipoventilación, intubado por coma hipercápnico. Le han puesto 750 mL «a 5 mL/kg». SpO₂ 88 % con FiO₂ 60 %.',
+    hint: 'El Vt va por el peso ideal (≈ 66 kg): 6–8 mL/kg ≈ 400–530 mL, aunque pese 150. El problema es la atelectasia por la pared y el abdomen: PEEP 10–14 (la meseta puede llegar a 30 por la pared torácica), cabecero a 30° o antitrendelemburg, FiO₂ para SpO₂ 92–96 %. Es retenedor crónico: no le bajes la pCO₂ por debajo de su basal.',
+    checks: [['act:explore', 'Exploración']],
+    targets: { vtkg: [6, 8], spo2: [92, 98], pplat: [0, 30] } },
+  sdraPermisiva: { lvl: 'VMI · SVA', title: 'SDRA con hipercapnia: sube la FR, no el Vt', pheno: 'sdra', sex: 'm', talla: 165, peso: 70, pco2: 72, speed: 5, duration: 25,
+    cfg: inv({ vt: 340, fr: 14, peep: 12, fio2: 70, tplat: .3, pmax: 45 }),
+    goal: 'Mujer de 50 años con SDRA por gripe, intubada y ventilada con Vt protector (6 mL/kg). En la gasometría pCO₂ 72 y pH 7,14. El médico de la UCI comarcal pide «subir el volumen para lavar el CO₂».',
+    hint: 'Hipercapnia permisiva: se tolera pH ≥ 7,20 con pCO₂ alta. Para bajar la pCO₂, sube la FR (hasta 30–35) acortando el Ti para que no aparezca auto-PEEP, y reduce el espacio muerto instrumental (quita el HME/alargadera si llevas humidificador activo). No subas el Vt: la meseta pasaría de 30 y el driving de 15.',
+    checks: [['act:gas', 'Gasometría']],
+    targets: { ph: [7.2, 7.45], pplat: [0, 30], dp: [0, 15], vtkg: [5.5, 7], spo2: [88, 96] } },
+  eapIntubado: { lvl: 'VMI · SVA', title: 'EAP intubado: PEEP y nitroglicerina', pheno: 'eap', sex: 'm', talla: 158, peso: 72, speed: 5, duration: 25,
+    cfg: inv({ vt: 400, fr: 16, peep: 5, fio2: 100 }), sedE: 1.5,
+    goal: 'Mujer de 78 años intubada en su domicilio por un EAP hipertensivo con agotamiento y bajo nivel de conciencia. Sale espuma rosada por el tubo. TAS 195, SpO₂ 86 % con FiO₂ 100 %.',
+    hint: 'La PEEP es el tratamiento: 8–12 cmH₂O reabre el alveolo inundado y baja la precarga y la poscarga del VI. Nitroglicerina a dosis altas (bolos de 1 mg o perfusión de 100–200 mcg/min) para TAS 110–160, sedación adecuada (también baja la TA) y furosemida si hay sobrecarga. Aspira la espuma solo si obstruye. Después baja la FiO₂.',
+    checks: [['drug:ntg|perf:ntg', 'Nitroglicerina'], ['drug:furo', 'Furosemida']],
+    targets: { spo2: [92, 98], tas: [100, 160] } },
+  tepIntubado: { lvl: 'VMI · SVA', title: 'TEP masivo intubado: la EtCO₂ engaña', pheno: 'sano', sex: 'm', talla: 166, peso: 74, tep: .7, speed: 5, duration: 25,
+    cfg: inv({ vt: 450, fr: 14, peep: 8, fio2: 100 }),
+    goal: 'Mujer de 44 años, puérpera de 12 días, con disnea súbita y síncope. La han intubado por bajo nivel de conciencia antes de que llegaras. TAS 82, EtCO₂ 24 con FR 14, yugulares ingurgitadas.',
+    hint: 'En el TEP la EtCO₂ cae por el espacio muerto: la pCO₂ real es mucho más alta (gasometría). No bajes la FR guiándote por la EtCO₂: la hipercapnia y la acidosis aumentan la resistencia pulmonar y hunden el VD. PEEP baja (5), Vt 6–7 mL/kg, noradrenalina para TAS ≥ 90, volumen prudente (250 mL como mucho) y fibrinólisis (tenecteplasa) en el TEP de alto riesgo.',
+    checks: [['act:gas', 'Gasometría'], ['perf:nor', 'Noradrenalina'], ['drug:tnk', 'Fibrinólisis']],
+    targets: { tas: [90, 160], spo2: [92, 100], pco2: [30, 50] } },
+  coIntubado: { lvl: 'VMI · SVA', title: 'Coma por monóxido de carbono intubado', pheno: 'sano', sex: 'h', talla: 175, peso: 76, cohb: .38, speed: 5, duration: 30,
+    cfg: inv({ vt: 480, fr: 14, peep: 5, fio2: 40 }),
+    goal: 'Varón de 58 años encontrado inconsciente en un garaje con el motor encendido. Intubado por GCS 6. Como la SpO₂ marca 100 %, han bajado la FiO₂ a 40 %.',
+    hint: 'La pulsioximetría convencional lee la COHb como oxihemoglobina: la SpO₂ de 100 % es falsa. FiO₂ 100 % todo el traslado (vida media de la COHb ≈ 5 h con aire, ≈ 70 min con O₂ al 100 %), SpCO y gasometría con cooximetría. Normocapnia. Coma o pérdida de conciencia: valora cámara hiperbárica. Si hubo incendio, piensa también en el cianuro.',
+    checks: [['act:gas', 'Gasometría con cooximetría']],
+    targets: { fio2: [100, 100], et: [35, 45] } },
+  epocAlcalosis: { lvl: 'VMI · SVA', title: 'EPOC intubado: no normalices la pCO₂', pheno: 'epoc', sex: 'h', talla: 170, peso: 68, phen: { hco3: 34 }, pco2: 62, speed: 5, duration: 25,
+    cfg: inv({ vt: 600, fr: 22, ti: 1.2, peep: 5, fio2: 60 }),
+    goal: 'Varón de 70 años con EPOC grave (bicarbonato habitual 34, pCO₂ basal ≈ 60) intubado por fracaso de la VMNI. Para «bajar el CO₂» le han puesto 600 mL a 22 rpm con Ti 1,2 s.',
+    hint: 'Tiene un bicarbonato alto compensando su hipercapnia crónica: si bajas la pCO₂ a 40, el pH sube por encima de 7,50 (alcalosis posthipercápnica: arritmias, convulsiones, hipopotasemia). Objetivo: su pH (7,30–7,40), no su pCO₂: déjala en 60–70. Además, con FR 22 y Ti 1,2 la espiración dura 1,5 s: auto-PEEP, hiperinsuflación e hipotensión. Vt 6–7 mL/kg, Ti 0,8 s y FR 14–18 (espiración ≥ 2,5 s: la curva de flujo tiene que llegar a cero), FiO₂ para SpO₂ 88–92 % y gasometría de control.',
+    checks: [['act:gas', 'Gasometría']],
+    targets: { ph: [7.28, 7.45], peepi: [0, 6], tas: [90, 170], spo2: [88, 94] } },
+  gestanteIntubada: { lvl: 'VMI · SVA', title: 'Eclampsia intubada a las 34 semanas', pheno: 'sano', sex: 'm', talla: 162, peso: 80, preg: 34, ecl: true, tasAdj: 80, speed: 5, duration: 25,
+    cfg: inv({ vt: 430, fr: 12, peep: 5, fio2: 60 }),
+    goal: 'Gestante de 34 semanas con eclampsia: dos convulsiones, aspiración e intubación en el domicilio. Ya ha recibido midazolam. Está tumbada boca arriba en la camilla. TAS 185.',
+    hint: 'En el embarazo la pCO₂ normal es 30–32 (hiperventilación fisiológica): EtCO₂ 30–35, no 40, para que el feto pueda eliminar su CO₂. SpO₂ ≥ 95 %. Desplaza el útero a la izquierda (cuña o inclinación de 15–30°). Sulfato de magnesio 4 g en 15–20 min y 1 g/h, labetalol para TAS 140–160 y traslado a un hospital con obstetricia y UCI.',
+    checks: [['act:lud', 'Desplazamiento uterino'], ['drug:mg', 'Sulfato de magnesio'], ['drug:labet|drug:urap', 'Antihipertensivo']],
+    targets: { et: [28, 35], spo2: [95, 100], tas: [130, 165] } },
+  estatusIntubado: { lvl: 'VMI · SVA', title: 'Estatus intubado: ¿sigue convulsionando bajo el relajante?', pheno: 'sano', sex: 'h', talla: 176, peso: 80, se: { r: .9, since: 25 }, glu: 135, temp: 37.8, tasAdj: 20, fcAdj: 30, speed: 5, duration: 25,
+    cfg: inv({ vt: 500, fr: 14, peep: 5, fio2: 50 }), sedE: 1,
+    goal: 'Varón de 30 años con estatus epiléptico de 25 min. Recibió dos dosis de midazolam y lo intubaron con etomidato y rocuronio. Ahora no se mueve: «ya no convulsiona».',
+    hint: 'El relajante quita los movimientos, no la crisis. Taquicardia, hipertensión, midriasis, hipertermia y lactato que sube sin otra causa = estatus no convulsivo bajo el relajante. Perfusión anestésica (propofol 2–4 mg/kg/h o midazolam 0,2 mg/kg/h) tras un bolo, antiepiléptico de 2.ª línea (levetiracetam 60 mg/kg, máx. 4.500 mg) si no lo ha recibido, glucemia y temperatura. Evita relajar de nuevo salvo que haga falta: impide ver las crisis.',
+    checks: [['perf:prop|perf:mid', 'Perfusión anestésica'], ['drug:lev|drug:vpa', 'Antiepiléptico de 2.ª línea'], ['act:glu', 'Glucemia']],
+    targets: { seizFree: [1, 1], spo2: [94, 100], temp: [35, 38.3] } },
 
   /* ---------- VMI · HEMS ---------- */
   movil: { lvl: 'VMI · HEMS', title: 'Desaturación al pasar a la camilla del helicóptero', pheno: 'sano', sex: 'h', talla: 182, peso: 85,
@@ -2986,6 +3059,17 @@ const META = {
   traslado: ['i', 1, 'Autonomía de la botella y FiO₂ mínima en un traslado largo'],
   despierta: ['t', 1, 'Desadaptación al pasarse la sedación: reconocerla y tratarla'],
   cambioVent: ['i', 3, 'SDRA: paso al ventilador de transporte sin desreclutar'],
+  dopeTraslado: ['t', 1, 'DOPE: fuga del balón, tapón de moco e intubación selectiva en un mismo traslado'],
+  ptxSdra: ['i', 2, 'Barotrauma: neumotórax a tensión en el SDRA con Vt por peso real'],
+  anafIntubado: ['t', 2, 'Anafilaxia en el paciente intubado: adrenalina IV, volumen y broncoespasmo'],
+  obesoVmi: ['t', 2, 'Obesidad mórbida: Vt por peso ideal, PEEP alta y meseta'],
+  sdraPermisiva: ['i', 3, 'Hipercapnia permisiva: FR alta y Ti corto, sin subir el Vt'],
+  eapIntubado: ['t', 2, 'EAP intubado: PEEP, nitroglicerina y sedación'],
+  tepIntubado: ['t', 3, 'TEP intubado: EtCO₂ baja por espacio muerto, noradrenalina y fibrinólisis'],
+  coIntubado: ['t', 1, 'CO: la SpO₂ miente, FiO₂ 100 % todo el traslado'],
+  epocAlcalosis: ['t', 2, 'EPOC intubado: pH y no pCO₂, auto-PEEP e hipotensión'],
+  gestanteIntubada: ['t', 2, 'Gestante intubada: EtCO₂ 30–35, útero a la izquierda, magnesio y TA'],
+  estatusIntubado: ['t', 3, 'Estatus bajo el relajante: perfusión anestésica y antiepiléptico'],
   movil: ['h', 2, 'Desaturación al movilizar: DOPE e intubación selectiva'],
   hemsApv: ['h', 2, 'Modo adaptativo en vuelo: sube la presión y el Vt no cae'],
   epocHems: ['h', 3, 'EPOC intubado: auto-PEEP, hipercapnia permisiva y altitud'],
@@ -3307,7 +3391,7 @@ const fmt = (x, d = 0) => (x == null || !isFinite(x)) ? '–' : x.toFixed(d).rep
 const { SPEC, PKEYS, KEYS, DEVS, KEYLAB, MONS } = window.SIM_DEV;
 const CASES = window.SIM_CASES, GROUPS = window.SIM_GROUPS;
 const N = 750, SR = .02, GAP = 12, ZN = 750, ZSR = .008, ZGAP = 20;
-const MODEL_KEYS = ['pco2', 'deficit', 'bs', 'opioid', 'rhythm', 'arrPen', 'tep', 'anaf', 'cohb', 'cn', 'icp', 'icpGrow', 'weak', 'dav', 'edAir', 'edAirRate', 'asp', 'arrest', 'arrestCause', 'comp', 'bav', 'tasAdj', 'fcAdj', 'sevFloor', 'bottleL', 'bottleBar', 'leak10', 'relCe', 'sedE', 'sedStopped', 'sev', 'ptx', 'ptxTension', 'shockMul', 'bmv', 'sgaFail', 'peso', 'k', 'kRate', 'glu', 'gluT', 'temp', 'tempRate', 'bleed', 'bleedSrc', 'tca', 'ecl', 'croup', 'postRosc', 'access', 'arrestCause2', 'hco3Off', 'stemi', 'tamp', 'tampRate', 'vaso', 'vasoRate', 'neurog', 'fluidTol', 'htx', 'flail', 'pain', 'burn', 'se', 'stroke', 'na', 'cv', 'op', 'opRate', 'cocaine', 'dka', 'neo', 'dci', 'heat', 'drown', 'edad', 'tire', 'pneu', 'cedema', 'tbi', 'witnessed', 'preg', 'tdp', 'retainer', 'hape', 'anxRate', 'anxBase', 'irritant', 'ptxRate', 'drive0', 'ptxOpen', 'crush'];
+const MODEL_KEYS = ['pco2', 'deficit', 'bs', 'opioid', 'rhythm', 'arrPen', 'tep', 'anaf', 'cohb', 'cn', 'icp', 'icpGrow', 'weak', 'dav', 'edAir', 'edAirRate', 'asp', 'arrest', 'arrestCause', 'comp', 'bav', 'tasAdj', 'fcAdj', 'sevFloor', 'bottleL', 'bottleBar', 'leak10', 'relCe', 'sedE', 'sedStopped', 'sev', 'ptx', 'ptxTension', 'shockMul', 'bmv', 'sgaFail', 'peso', 'k', 'kRate', 'glu', 'gluT', 'temp', 'tempRate', 'bleed', 'bleedSrc', 'tca', 'ecl', 'croup', 'postRosc', 'access', 'arrestCause2', 'hco3Off', 'stemi', 'tamp', 'tampRate', 'vaso', 'vasoRate', 'neurog', 'fluidTol', 'htx', 'flail', 'pain', 'burn', 'se', 'stroke', 'na', 'cv', 'op', 'opRate', 'cocaine', 'dka', 'neo', 'dci', 'heat', 'drown', 'edad', 'tire', 'pneu', 'cedema', 'tbi', 'witnessed', 'preg', 'tdp', 'retainer', 'hape', 'anxRate', 'anxBase', 'irritant', 'ptxRate', 'drive0', 'ptxOpen', 'crush', 'phen'];
 const O2LAB = { gafas: 'gafas nasales 2 L/min', venturi28: 'Venturi 28 %', venturi35: 'Venturi 35 %', venturi50: 'Venturi 50 %', reserv: 'mascarilla con reservorio 15 L/min' };
 const IFLAB = { tube: 'tubo endotraqueal', mask: 'mascarilla oronasal', nasal: 'cánula nasal de alto flujo', o2: 'paciente sin conectar' };
 const IFSHORT = { tube: 'intubado', mask: 'VMNI', nasal: 'alto flujo', o2: 'oxigenoterapia' };
@@ -3336,6 +3420,7 @@ const TGT = {
   fight: { lab: 'Sin lucha', u: '', get: () => S.fight || 0, d: 2, fmt: true },
   sinus: { lab: 'Ritmo sinusal', u: '', get: () => S.arr.type || S.arrest ? 0 : 1, d: 0, fmt: true },
   glu: { lab: 'Glucemia', u: 'mg/dL', get: () => S.glu, d: 0 }, temp: { lab: 'Temperatura', u: '°C', get: () => S.temp, d: 1 }, na: { lab: 'Na⁺', u: 'mmol/L', get: () => S.na, d: 0 }, fc: { lab: 'FC', u: 'lpm', get: () => S.arrest ? null : S.fc, d: 0 }, gcs: { lab: 'Glasgow', u: '', get: () => S.arrest ? null : S.gcs, d: 0 }, alt: { lab: 'Altitud de cabina', u: 'm', get: () => S.altitude, d: 0 }, k: { lab: 'K⁺', u: 'mmol/L', get: () => S.k, d: 1 }, naUp: { lab: 'Subida de Na⁺', u: 'mmol/L', get: () => S.na - S.na0, d: 1 }, seizFree: { lab: 'Sin convulsión', u: '', get: () => S.arrest ? null : (S.clin >= S.seizUntil ? 1 : 0), d: 0, fmt: true }, fluidRate: { lab: 'Cristaloide en bomba', u: 'mL/h', get: () => S.fluidRate || 0, d: 0 }, spco: { lab: 'SpCO', u: '%', get: () => S.cohb * 100, d: 0 }, reperf: { lab: 'Reperfusión adecuada', u: '', get: () => reperfOk() ? 1 : 0, d: 0, fmt: true }, qrs: { lab: 'QRS', u: 'ms', get: () => S.arrest ? null : S.ecg.qrs * 1000, d: 0 },
+  ph: { lab: 'pH', u: '', get: () => S.ph, d: 2 },
   fio2: { lab: 'FiO₂', u: '%', get: () => (S.iface === 'tube' || S.iface === 'mask') && !ventOffNow() ? S.cfg.fio2 : null, d: 0 }
 };
 const EVLAB = { release: 'Liberación del atrapamiento', edema: 'Edema pulmonar lesional', seiz: 'Convulsión', move: 'Movilización brusca', rebleed: 'Resangrado', extub: 'Extubación o retirada de mascarilla', disc: 'Desconexión', sel: 'Intubación selectiva', obst: 'Tapón o acodamiento', bronco: 'Broncoespasmo', ptx: 'Neumotórax a tensión', leak: 'Fuga', o2: 'Fallo de O₂', wake: 'Se despierta', anx: 'Ansiedad', cough: 'Tos', vf: 'Fibrilación ventricular', aspir: 'Broncoaspiración', tep: 'TEP', anaf: 'Anafilaxia', tsv: 'TSV', fa: 'FA rápida', tvp: 'TV con pulso' };
@@ -4143,7 +4228,10 @@ function readingsMain(out) {
   else if (!S.arrest && S.bleed > 0 && !S.hemo && S.bleedSrc && S.bleedSrc !== 'thor') out.push(['bad', 'Sangrado activo', S.bleedSrc === 'ext' ? 'Hemorragia externa activa.' : S.bleedSrc === 'pelv' ? 'Pelvis inestable: sangrado retroperitoneal.' : S.bleedSrc === 'uter' ? 'Atonía uterina.' : S.bleedSrc === 'femur' ? 'Fractura de fémur: sangra dentro del muslo.' : 'Sangrado interno.', HEMOLAB[S.bleedSrc] + (S.bleedSrc === 'uter' ? ' y oxitocina 10 UI.' : ' ya.')]);
   if (!S.arrest && S.ptxOpen) out.push(['bad', 'Neumotórax abierto', 'La herida aspira aire en cada inspiración y el pulmón se colapsa.', 'Parche torácico valvulado (o apósito fijado por tres lados), O₂ y analgesia; tras sellar, vigila el neumotórax a tensión.']); // v1.17
   if (!S.arrest && S.crush > 0 && !S.released) out.push(['warn', 'Miembro atrapado', 'Al liberarlo entrarán potasio, ácido y mioglobina.', `${!S.access ? 'Vía venosa, ' : ''}suero fisiológico 1–1,5 L antes de soltar, monitor y analgesia; ten preparados calcio, salbutamol, bicarbonato e insulina con glucosa.`]);
-  if (!S.arrest && S.preg >= 20 && !S.lud && S.tas < 110) out.push(['bad', 'Gestante en decúbito supino', `${S.preg} semanas: el útero comprime la cava (TAS ${fmt(S.tas)}).`, 'Desplaza el útero a la izquierda o inclina el tablero 15–30°; O₂ alto y volumen sin hipotensión permisiva.']);
+  if (!S.arrest && S.iface === 'tube' && track.gasAt != null && S.P.hyper && S.ph > 7.48) out.push(['bad', 'Alcalosis posthipercápnica', `pH ${fmt(S.ph, 2)} con pCO₂ ${fmt(S.pco2)} y bicarbonato alto de base.`, 'Ventila para su pH (7,30–7,40), no para una pCO₂ de 40: baja el volumen minuto y deja la pCO₂ en su basal.']);
+  if (!S.arrest && S.iface === 'tube' && track.gasAt != null && !S.dka && S.ph < 7.2 && S.pco2 > 55) out.push(['warn', 'Acidosis respiratoria', `pH ${fmt(S.ph, 2)} con pCO₂ ${fmt(S.pco2)} mmHg.`, 'Sube la FR (hasta 30–35) acortando el Ti para que no aparezca auto-PEEP; si la meseta está cerca de 30, no subas el Vt. Un pH ≥ 7,20 se tolera (hipercapnia permisiva).']);
+  if (!S.arrest && S.iface === 'tube' && S.preg >= 20 && M.et != null && M.et > 36) out.push(['warn', 'EtCO₂ alta para una gestante', `EtCO₂ ${fmt(M.et)} mmHg.`, 'En el embarazo la pCO₂ normal es 30–32: EtCO₂ 30–35 para que el feto elimine su CO₂. Sube la FR.']);
+  if (!S.arrest && S.preg >= 20 && !S.lud) out.push([S.tas < 110 ? 'bad' : 'warn', 'Gestante en decúbito supino', `${S.preg} semanas: el útero comprime la cava${S.tas < 110 ? ` (TAS ${fmt(S.tas)})` : ' y reduce el flujo placentario'}.`, 'Desplaza el útero a la izquierda o inclina el tablero 15–30°; O₂ alto y volumen sin hipotensión permisiva.']);
   if (!S.arrest && S.fcAdj <= -30 && S.deficit > .15 && S.tas < 115) out.push(['warn', 'Shock con la FC frenada', `FC ${fmt(S.fc)} con TAS ${fmt(S.tas)}: el betabloqueante oculta la taquicardia.`, 'Mira el lactato, la perfusión y la conciencia; volumen o sangre para TAS ≥ 110, tranexámico y calor.']);
   if (!S.arrest && S.tbi > 0 && S.bleed > 0 && S.tas < 90) out.push(['bad', 'Shock hemorrágico con TCE', `TAS ${fmt(S.tas)} mmHg: la hipotensión daña el cerebro lesionado.`, `${!S.access ? 'Intraósea si la vena no sale a la primera; después, ' : ''}sangre 10 mL/kg (${fmt(10 * peso)} mL) o cristaloide 10 mL/kg si no hay, hasta TAS ≥ 90 (nada de hipotensión permisiva con TCE). Traslado rápido a cirugía pediátrica.`]); // v1.14
   if (!S.arrest && S.tbi > 0 && !S.warm && S.temp < 36.5) out.push(['warn', 'Evita la hipotermia', 'En el TCE y la hemorragia, el frío empeora el cerebro y la coagulación.', 'Retíralo del suelo, manta térmica y habitáculo caliente.']);
@@ -4194,7 +4282,7 @@ function readingsMain(out) {
       if (tube && S.pco2 > S.ced.pRef + 8) out.push(['bad', 'Normoventilada tras intubar', `pCO₂ ${fmt(S.pco2)} mmHg (traía ≈ ${fmt(S.ced.pRef)}).`, 'Sube la FR y el Vt hasta su pCO₂ previa: la subida del CO₂ empeora la acidosis y la presión intracraneal.']); }
     else if (S.fluidKg < 15 && !(S.fluidRate > 0)) out.push(['warn', 'Deshidratación', 'Déficit de agua de 5–8 L.', 'Cristaloide 500–1.000 mL/h la primera hora.']); }
   // v1.7: neurología y sodio
-  if (!S.arrest && S.se && S.se.on && S.relTot > .6) out.push(['bad', 'Crisis que no se ve bajo el relajante', 'El rocuronio quita los movimientos, no la crisis: sigue taquicárdico, hipertenso y con midriasis.', 'Perfusión anestésica ya: propofol 2–4 mg/kg/h o midazolam 0,2 mg/kg/h.']);
+  if (!S.arrest && S.se && S.se.on && S.relTot > .6) out.push(['bad', 'Crisis que no se ve bajo el relajante', 'El rocuronio quita los movimientos, no la crisis: sigue taquicárdico, hipertenso y con midriasis.', 'Perfusión anestésica ya: propofol 2–4 mg/kg/h o midazolam 0,2 mg/kg/h, levetiracetam 60 mg/kg si no lo lleva, y no vuelvas a relajar si no hace falta.']);
   else if (!S.arrest && S.se && S.se.on) { const aed = (S.E.lev || 0) + (S.E.vpa || 0) > .3;
     out.push(['bad', 'Estatus epiléptico', `${fmt(S.se.since)} min de crisis: cada minuto las benzodiacepinas funcionan peor.`, S.E.mid < .3 ? `Midazolam ${isPed() ? fmt(Math.min(10, .2 * peso), 1) + ' mg (0,2 mg/kg)' : '10 mg'} IM o IV ya.` : !aed ? 'Segunda línea sin esperar: levetiracetam 60 mg/kg (máx. 4.500 mg) o valproato 40 mg/kg (máx. 3.000 mg) IV en 10 min.' : 'Refractario: ISR con propofol o midazolam y perfusión anestésica.']); }
   if (!S.arrest && S.se && !S.se.on && S.se.by === 'anes' && !tube) out.push(['warn', 'Crisis controlada con dosis anestésicas', 'Sin la vía aérea protegida.', 'ISR y perfusión anestésica: al bajar la dosis, el estatus refractario vuelve.']);
@@ -5347,6 +5435,17 @@ const TUT = {
   traslado: [R, { t: 'Baja la FiO₂ a 35–40 % (en el Medumat, Air Mix) y confirma.', w: 'Con FiO₂ 100 % la botella no llega.', at: 'fio2 air mix', ok: TU.fio2(45) }, { t: 'Mira la autonomía en la tarjeta de la botella.', at: ['#o2Gauge'] }, TG('spo2', 'Mantén SpO₂ 94–98 %.', null, 'fio2'), END],
   despierta: [R, { t: 'Vigila: en el minuto 2 se acaba la bomba.', ok: TU.ev('wake') }, D('act:sedperf', 'Reanuda la bomba de sedación.', null, 'reanuda'), D('drug:sed', 'Da un bolo de la bomba.', 'La bomba sola tarda en volver a sedar.', 'bolo de la bomba'), TG('fight', 'Comprueba que deja de luchar.', null, 'sedacion'), END],
   cambioVent: [R, D('act:clamp', 'Antes del minuto 3, pinza el tubo («Pinzar tubo»).', 'Sin PEEP, el pulmón se desrecluta en segundos.', 'pinza'), { t: 'Ahora se desconecta: reconecta rápido.', at: 'reconecta', ok: () => TU.ev('disc')() && !S.air.disc }, TG('spo2', 'Si ha caído la SpO₂, sube la FiO₂ y valora un reclutamiento.', null, 'fio2 reclutamiento'), END],
+  dopeTraslado: [R, { t: 'Vigila presiones, Vt espirado y capnografía. Ante cualquier alarma o desaturación: DOPE (desplazamiento, obstrucción, neumotórax, equipo).', at: ['#caseCard'], ok: () => S.clin > 3 }, D('act:cuff', 'Volumen minuto bajo con gorgoteo en la boca: fuga. Mira la marca del tubo e infla el balón a 20–30 cmH₂O.', 'Si el tubo ha salido, el balón queda entre las cuerdas y no sella.', 'inflar balon'), D('act:suction', 'Presión pico al máximo y Vt que no entra: aspira el tubo.', 'Meseta normal con pico alto = resistencia en el tubo. Si la sonda no pasa, cambia el tubo.', 'aspira'), D('act:pull', 'Tras pasarla de camilla: murmullo abolido a la izquierda y el tubo 3 cm más dentro. Retira el tubo 2 cm.', 'Desinfla el balón, retira, reinfla, ausculta los dos campos y refija anotando la marca.', 'retira 2 cm'), TG('spo2', 'SpO₂ 92–98 %.', null, 'fio2'), END],
+  ptxSdra: [R, VTS(6, 6.5, 'Con 650 mL va a 9,6 mL/kg de peso ideal: meseta > 35.'), { t: 'Sube la FR a 22–26 para compensar el menor Vt y confirma.', at: 'fr', ok: TU.cf('fr', 22, 30) }, { t: 'Si de golpe sube la presión, cae la SpO₂ y la TA: neumotórax a tensión. Descompresión.', w: 'Hemitórax que no se mueve, sin murmullo e hipotensión: no esperes a la radiografía.', at: 'descompresion', ok: () => !TU.ev('ptx')() || TU.used('act:decomp|act:drain')() }, D('act:drain', 'Drenaje torácico tras la descompresión.', '5.º espacio, línea medioaxilar.', 'drenaje'), TG('pplat', 'Meseta < 30.', null, 'vt'), END],
+  anafIntubado: [R, { t: 'Al poco del antibiótico: TA que cae, presión pico alta y eritema. Explora.', at: 'explora', ok: () => TU.ev('anaf')() && TU.used('act:explore', true)() }, D('drug:adr|drug:adrIM', 'Adrenalina IV en bolos de 50 mcg (o 0,5 mg IM).', 'Repite cada 1–2 min según la TA.', 'bolo de 10-20 mcg'), D('act:fluid', 'Volumen a chorro: 1–2 L de cristaloide.', 'La vasodilatación vacía el lecho vascular.', 'cristaloide'), { t: 'Si necesitas más de dos o tres bolos: perfusión de adrenalina.', at: ['#pf_adrI'], ok: 'perf:adrI' }, D('drug:salb', 'Salbutamol en línea.', 'Y FR baja con espiración larga mientras dure el broncoespasmo.', 'salbutamol'), TG('tas', 'TAS ≥ 90.', 'Después, corticoide y antihistamínico.', 'perfusion de adrenalina'), END],
+  obesoVmi: [R, X('Mira la tarjeta: 170 cm y 150 kg.'), VTS(6, 8, 'Peso ideal ≈ 66 kg: 400–530 mL, aunque pese 150.'), CF('peep', 10, 14, 'Sube la PEEP a 10–14 y confirma.', 'La pared torácica y el abdomen colapsan las bases.'), TG('spo2', 'SpO₂ 92–96 %.', 'Cabecero a 30° o antitrendelemburg ayuda.', 'fio2'), TG('pplat', 'Meseta < 30.', null, 'vt'), END],
+  sdraPermisiva: [R, D('act:gas', 'Gasometría: pH y pCO₂.', null, 'gasometria'), { t: 'Sube la FR a 28–32 y acorta el Ti (0,7–0,8 s) para que no aparezca auto-PEEP.', w: 'El Vt se queda en 6 mL/kg: si lo subes, la meseta pasa de 30.', at: 'fr', ok: () => TU.cf('fr', 26, 35)() }, TG('ph', 'pH ≥ 7,20.', 'Hipercapnia permisiva: no hace falta una pCO₂ normal.', 'fr'), TG('pplat', 'Meseta < 30 y driving < 15.', null, 'vt'), END],
+  eapIntubado: [R, X('Espuma rosada por el tubo y crepitantes hasta los vértices.'), CF('peep', 8, 12, 'PEEP 8–12 y confirma.', 'La PEEP reabre el alveolo inundado y baja la poscarga del VI.'), D('drug:ntg|perf:ntg', 'Nitroglicerina: bolo de 1 mg y perfusión de 100–200 mcg/min.', 'Dosis altas: es una crisis hipertensiva.', 'nitroglicerina'), D('drug:furo', 'Furosemida 40–80 mg.', null, 'furosemida'), TG('tas', 'TAS 110–160.', 'La sedación también baja la TA.', 'nitroglicerina'), TG('spo2', 'Cuando suba la SpO₂, baja la FiO₂.', null, 'fio2'), END],
+  tepIntubado: [R, D('act:gas', 'Gasometría: compara la pCO₂ con la EtCO₂.', 'En el TEP la EtCO₂ infraestima mucho la pCO₂ (espacio muerto).', 'gasometria'), { t: 'No bajes la FR por la EtCO₂ baja: sube la FR a 18–22 y deja la PEEP en 5.', w: 'La hipercapnia y la PEEP alta aumentan la resistencia pulmonar y hunden el VD.', at: 'fr', ok: () => TU.cf('fr', 18, 26)() && TU.cf('peep', 4, 6)() }, { t: 'Noradrenalina para TAS ≥ 90.', at: ['#pf_nor'], ok: 'perf:nor' }, D('drug:tnk', 'Tenecteplasa: TEP de alto riesgo con shock.', 'Dosis según peso; no la retrases.', 'tenecteplasa'), TG('pco2', 'pCO₂ 30–50.', null, 'fr'), END],
+  coIntubado: [R, { t: 'La SpO₂ de 100 % es falsa: mira la SpCO en el monitor.', at: ['#zSpT'] }, CF('fio2', 100, 100, 'FiO₂ 100 % y confirma.', 'La vida media de la COHb baja de ≈ 5 h a ≈ 70 min.'), D('act:gas', 'Gasometría con cooximetría.', 'COHb y lactato.', 'gasometria'), TG('et', 'Normocapnia: EtCO₂ 35–45.', 'Coma o pérdida de conciencia: valora cámara hiperbárica.', 'fr'), END],
+  epocAlcalosis: [R, D('act:gas', 'Gasometría: pH, pCO₂ y bicarbonato.', 'Bicarbonato alto de base: si bajas la pCO₂ a 40, el pH pasa de 7,50.', 'gasometria'), VTS(6, 7), { t: 'Ti 0,8 s y FR 14–18: la curva de flujo espiratorio tiene que llegar a cero.', w: 'Con FR 22 y Ti 1,2 la espiración dura 1,5 s: auto-PEEP.', at: 'fr inspiracion ti', ok: () => TU.cf('ti', .6, .9)() && TU.cf('fr', 12, 18)() }, TG('ph', 'pH 7,30–7,40 aunque la pCO₂ quede en 60–70.', null, 'fr'), TG('spo2', 'SpO₂ 88–92 %: baja la FiO₂.', null, 'fio2'), END],
+  gestanteIntubada: [R, D('act:lud', 'Desplaza el útero a la izquierda (cuña o inclinación de 15–30°).', 'El útero comprime la cava: menos retorno y peor flujo placentario.', 'utero'), D('drug:mg', 'Sulfato de magnesio 4 g en 15–20 min.', 'Previene nuevas convulsiones.', 'magnesio'), { t: 'Perfusión de magnesio a 1 g/h.', at: ['#pf_mgP'], ok: 'perf:mgP' }, { t: 'Sube la FR para EtCO₂ 30–35.', w: 'En el embarazo la pCO₂ normal es 30–32.', at: 'fr', ok: TU.tg('et') }, D('drug:labet|drug:urap', 'Labetalol 20 mg IV para TAS 140–160.', null, 'labetalol'), TG('tas', 'TAS 140–160.', null, 'labetalol'), END],
+  estatusIntubado: [R, X('No se mueve, pero mira las pupilas, la FC y la TA.'), D('act:glu', 'Glucemia capilar.', null, 'glucemia'), D('drug:lev|drug:vpa', 'Levetiracetam 60 mg/kg (máx. 4.500 mg).', null, 'levetiracetam'), D('drug:prop', 'Bolo de propofol.', 'Vigila la TA.', 'propofol'), { t: 'Perfusión de propofol a 2–4 mg/kg/h.', w: 'El relajante quita los movimientos, no la crisis.', at: ['#pf_prop'], ok: 'perf:prop|perf:mid' }, TG('temp', 'Temperatura < 38,3 °C.', null, 'temperatura'), END],
   movil: [R, { t: 'Vigila las presiones del ventilador.', ok: TU.ev('sel') }, { t: 'Suben pico y meseta: explora.', at: 'explora', ok: TU.used('act:explore', true) }, D('act:pull', 'Murmullo abolido en un lado y tubo más dentro: retira 2 cm.', null, 'retirar tubo'), END],
   hemsApv: [R, VTS(6, 8), TG('et', 'Ajusta la FR para EtCO₂ 35–40.', null, 'fr'), { t: 'Vigila la Pcontrol y la Cstat.', ok: TU.ev('sel') }, { t: 'Sube la presión y cae la Cstat: explora.', at: 'explora', ok: TU.used('act:explore', true) }, D('act:pull', 'Selectiva: retira 2 cm.', null, 'retirar tubo'), { t: 'Sigue vigilando: sube la Rinsp más tarde.', ok: TU.ev('obst') }, D('act:suction', 'Tapón: aspira el tubo.', null, 'aspira'), END],
   epocHems: [R, { t: 'Haz una «Pausa esp.» para medir el auto-PEEP (en el T1 sale calculado).', at: 'pausa espiratoria', when: () => !!$('#vk_exhold'), ok: () => TU.used('key:exhold')() || S.dev.vent === 't1' }, CF('fr', 8, 12, 'Baja la FR a 10–12 y confirma.'), { t: 'Ti 0,8–1,0 s y confirma.', at: 'inspiracion ti', ok: () => S.cfg.ti <= 1.05 }, VTS(5.5, 7.5), D('drug:salb', 'Broncodilatadores en línea.', null, 'salbutamol'), TG('spo2', 'FiO₂ para SpO₂ 88–94 %.', 'Es retenedor: más O₂ sube la pCO₂.', 'fio2'), END],
