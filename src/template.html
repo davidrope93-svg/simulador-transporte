@@ -437,6 +437,7 @@ body.proj .coach{display:none}
 .ptst.lock .lbi{opacity:.55;cursor:not-allowed}
 .ptdb{margin:8px 0;padding:10px 12px;border:1px solid var(--accent);border-radius:10px;background:color-mix(in srgb,var(--accent) 8%,transparent)}
 .ptdb .inrow{margin-top:6px}
+.cta-card{--cta-bg:var(--surface);--cta-ink:var(--ink);--cta-line:var(--line);--cta-acc:var(--accent);--cta-acc-ink:var(--accent-ink);--cta-ok:var(--ok);--cta-warn:var(--warn);--cta-bad:var(--bad)}
 .ptdb.warn{border-color:var(--warn);background:color-mix(in srgb,var(--warn) 10%,transparent)}
 /* ===== v1.27: debrief comparado ===== */
 .cmp h3{font-family:var(--display);font-size:1rem;margin:8px 0 2px}
@@ -476,7 +477,7 @@ body.exam #tutBtn{display:none}
 <main>
   <header class="top">
     <div class="brand">
-      <span class="eyebrow">SVA Trainer · simulador docente para SVA terrestre y HEMS · v1.31</span>
+      <span class="eyebrow">SVA Trainer · simulador docente para SVA terrestre y HEMS · v1.32</span>
       <h1>Ventilación, monitor y RCP</h1>
     </div>
     <div class="toolbar">
@@ -489,6 +490,7 @@ body.exam #tutBtn{display:none}
       <button class="btn" id="soundBtn" aria-pressed="true" data-tabsec="case">Sonido</button>
       <button class="btn" id="qBtn" title="Buscar una acción, un fármaco o un mando (tecla /)">Buscar</button>
       <button class="btn" id="guideBtn">Guía</button>
+      <button class="btn" id="acctBtn" hidden title="Tu cuenta de beta tester: progreso en la nube">Cuenta</button>
       <button class="btn" id="installBtn" hidden title="Instalar como app: icono propio y funciona sin conexión">Instalar app</button>
       <button class="btn" id="pauseBtn" aria-pressed="false">Pausa</button>
       <button class="btn" id="resetBtn" data-tabsec="case">Reiniciar</button>
@@ -733,7 +735,7 @@ body.exam #tutBtn{display:none}
 
   <div class="modal" id="revModal" hidden role="dialog" aria-modal="true" aria-labelledby="rvH">
     <div class="sheet lib rev">
-      <span class="eyebrow">Revisión externa · antes de la versión 2.0 · se guarda en este dispositivo</span>
+      <span class="eyebrow">Revisión externa · antes de la versión 2.0 · se guarda en este dispositivo y, con cuenta, en la nube</span>
       <h3 id="rvH" style="font-size:1.4rem">Revisión de casos</h3>
       <div class="rvbody">
         <div class="inrow"><input id="rvName" placeholder="Tu nombre" autocomplete="off" maxlength="60" aria-label="Tu nombre" style="flex:1 1 160px"><select id="rvRole" aria-label="Perfil"></select><select id="rvLotSel" aria-label="Lote asignado"></select></div>
@@ -753,7 +755,7 @@ body.exam #tutBtn{display:none}
 
   <div class="modal" id="histModal" hidden role="dialog" aria-modal="true" aria-labelledby="hiH">
     <div class="sheet">
-      <span class="eyebrow">Guardado solo en este dispositivo</span>
+      <span class="eyebrow">Guardado en este dispositivo y, con cuenta, en la nube</span>
       <h3 id="hiH" style="font-size:1.4rem">Historial de intentos</h3>
       <div class="inrow"><label class="small" for="hiName">Alumno</label><select id="hiName"></select><span class="small" id="hiSum"></span></div>
       <div id="hiBody"></div>
@@ -779,7 +781,7 @@ body.exam #tutBtn{display:none}
 
   <div class="modal" id="edModal" hidden role="dialog" aria-modal="true" aria-labelledby="edH">
     <div class="sheet wide ed">
-      <span class="eyebrow">Casos propios · se guardan en este dispositivo</span>
+      <span class="eyebrow">Casos propios · se guardan en este dispositivo y, con cuenta, en la nube</span>
       <h3 id="edH" style="font-size:1.4rem">Editor de casos</h3>
       <div class="inrow"><label class="small" for="edFrom">Partir de</label><select id="edFrom"></select><label class="btn" for="edImport" style="cursor:pointer">Importar JSON</label><input type="file" id="edImport" accept="application/json,.json" hidden></div>
       <div class="edgrid">
@@ -822,6 +824,9 @@ body.exam #tutBtn{display:none}
 </script>
 <script>
 /*CASES*/
+</script>
+<script>
+/*CUENTA*/
 </script>
 <script>
 /*UI*/

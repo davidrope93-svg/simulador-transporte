@@ -88,7 +88,7 @@ const pathOf = pk => pathProg(pk, LS.get('simvmi.hist', []), student);
 const scoreBadge = (b, pass) => b == null ? '<span class="lbs new">sin hacer</span>' : `<span class="lbs ${b >= pass ? 'ok' : b >= 5 ? 'mid' : 'low'}">${b >= pass ? '✓ ' : ''}${fmt(b, 1)}</span>`;
 function pathRender() {
   const P = PATHS[pathSel], pr = pathOf(pathSel);
-  $('#ptWho').textContent = (student ? 'Alumno: ' + student : 'Sin nombre: escribe el tuyo en «Alumno» para llevar tu progreso') + ' · guardado en este dispositivo';
+  $('#ptWho').textContent = (student ? 'Alumno: ' + student : 'Sin nombre: escribe el tuyo en «Alumno» para llevar tu progreso') + (acctLocked() ? ' · guardado en tu cuenta' : ' · guardado en este dispositivo (entra con tu cuenta para tenerlo en la nube)');
   $('#ptTabs').innerHTML = Object.entries(PATHS).map(([k, p]) => { const g = pathOf(k); return `<button class="ptc${k === pathSel ? ' on' : ''}" data-p="${k}" aria-pressed="${k === pathSel}"><b>${esc(p.t)}</b><span class="ptbar"><span style="width:${g.pct}%"></span></span><span class="small">${g.finished ? 'Superado' : g.pct + ' %'}${g.avg != null ? ' · media ' + fmt(g.avg, 1) : ''}</span></button>`; }).join('');
   const head = `<div class="ptsum"><p>${esc(P.who)}</p><p class="small">Progreso <b>${pr.pct} %</b> (${pr.done} de ${pr.tot} casos necesarios)${pr.avg != null ? ` · media de lo hecho <b>${fmt(pr.avg, 1)}</b>` : ''}${pr.examAvg != null ? ` · evaluación final <b>${fmt(pr.examAvg, 1)}</b>` : ''} · un caso cuenta con nota ≥ ${P.pass} (también sus variantes).</p>${pr.finished ? '<p class="ptok">Itinerario superado. Descarga el informe para tu portafolio.</p>' : ''}</div>`;
   $('#ptBody').innerHTML = head + pr.stages.map(s => {

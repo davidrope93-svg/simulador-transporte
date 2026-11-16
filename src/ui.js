@@ -1495,6 +1495,7 @@ function frame(now) {
 /*GUIDE*/
 /*TUTOR*/
 /*LIBRARY*/
+/*CUENTA_APP*/
 
 /* ---------- arranque ---------- */
 $('#caseSel').innerHTML = GROUPS.map(g => `<optgroup label="${g}">` + Object.entries(CASES).filter(([, c]) => c.lvl === g).map(([k, c]) => `<option value="${k}">${c.title}</option>`).join('') + '</optgroup>').join('');
@@ -1511,5 +1512,5 @@ $('#speedSeg').addEventListener('click', e => { const b = e.target.closest('butt
 $('#truthBox').addEventListener('toggle', () => { if ($('#truthBox').open) renderTruth(); });
 window.__sim = () => ({ sim, S, M, track, pend, lim, exam, LINK, tut, tutSteps, tutWhere });
 if (INSTR) startInstructor();
-else { teachInit(); guideInit(); tutInit(); libInit(); pathInit(); rvInit(); const k0 = loadSharedFromHash(); if (k0) $('#caseSel').value = k0; loadCase(k0 || 'tce'); requestAnimationFrame(frame); }
+else { teachInit(); guideInit(); tutInit(); libInit(); pathInit(); rvInit(); acctInit(); const k0 = loadSharedFromHash(); if (k0) $('#caseSel').value = k0; loadCase(k0 || 'tce'); requestAnimationFrame(frame); }
 })();

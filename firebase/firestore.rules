@@ -1,0 +1,45 @@
+rules_version = '2';
+// Cuentas de SVA Trainer y ECG en Ruta (proyecto de Firebase «apps-docentes-sva»).
+// Solo entran los correos invitados por el administrador, con el correo verificado.
+// Copia de referencia: firebase/firestore.rules en los repositorios de las dos apps.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function myEmail() { return request.auth.token.email.lower(); }
+    function verified() { return signedIn() && request.auth.token.email_verified == true; }
+    function inviteDoc() { return /databases/$(database)/documents/invites/$(myEmail()); }
+    function invited() { return verified() && exists(inviteDoc()); }
+    function isAdmin() { return verified() && (myEmail() == 'davidrope93@gmail.com' || (exists(inviteDoc()) && get(inviteDoc()).data.role == 'admin')); }
+    function member() { return invited() || isAdmin(); }
+    function owner(uid) { return signedIn() && request.auth.uid == uid; }
+
+    // Invitaciones (id = correo en minúsculas). Cada uno puede consultar la suya, aunque no haya verificado el correo;
+    // solo el administrador las lista, crea y borra.
+    match /invites/{email} {
+      allow get: if isAdmin() || (signedIn() && email == myEmail());
+      allow list: if isAdmin();
+      allow create, update: if isAdmin() && email == email.lower()
+        && request.resource.data.keys().hasOnly(['name', 'role', 'at', 'by', 'note'])
+        && request.resource.data.role in ['tester', 'admin'];
+      allow delete: if isAdmin();
+    }
+
+    // Perfil y resumen del progreso de cada usuario: lo escribe su dueño (invitado); el administrador lo lee todo.
+    match /users/{uid} {
+      allow read: if isAdmin() || (owner(uid) && member());
+      allow create, update: if owner(uid) && member()
+        && request.resource.data.email == myEmail()
+        && request.resource.data.keys().hasOnly(['email', 'name', 'created', 'updated', 'sva', 'ecg']);
+      allow delete: if isAdmin() || owner(uid); // cada uno puede borrar sus datos
+
+      // Datos completos de cada app (JSON en «data»).
+      match /apps/{app} {
+        allow read: if isAdmin() || (owner(uid) && member());
+        allow create, update: if owner(uid) && member() && app in ['sva', 'ecg']
+          && request.resource.data.keys().hasOnly(['data', 'updated', 'v'])
+          && request.resource.data.data is string && request.resource.data.data.size() < 900000;
+        allow delete: if isAdmin() || owner(uid);
+      }
+    }
+  }
+}
