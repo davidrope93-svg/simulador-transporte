@@ -1,0 +1,16 @@
+{
+  "name": "simulador-sva",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Simulador SVA. App estática sin dependencias: index.html y sw.js se generan con build.py a partir de src/.",
+  "scripts": {
+    "dev": "node server.js",
+    "build": "node server.js --build",
+    "start": "node server.js dist",
+    "preview": "node server.js dist",
+    "test": "node tests/run.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
