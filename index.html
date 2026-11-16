@@ -449,6 +449,7 @@ body.proj .coach{display:none}
 .ptst.lock .lbi{opacity:.55;cursor:not-allowed}
 .ptdb{margin:8px 0;padding:10px 12px;border:1px solid var(--accent);border-radius:10px;background:color-mix(in srgb,var(--accent) 8%,transparent)}
 .ptdb .inrow{margin-top:6px}
+.ptdb.warn{border-color:var(--warn);background:color-mix(in srgb,var(--warn) 10%,transparent)}
 /* ===== v1.27: debrief comparado ===== */
 .cmp h3{font-family:var(--display);font-size:1rem;margin:8px 0 2px}
 .cmpsc{display:flex;flex-wrap:wrap;gap:8px 18px;font-family:var(--mono)}.cmpsc b{font-family:var(--display);font-size:1.5rem}
@@ -490,7 +491,7 @@ body.exam #tutBtn{display:none}
 <main>
   <header class="top">
     <div class="brand">
-      <span class="eyebrow">SVA Trainer · simulador docente para SVA terrestre y HEMS · v1.30</span>
+      <span class="eyebrow">SVA Trainer · simulador docente para SVA terrestre y HEMS · v1.31</span>
       <h1>Ventilación, monitor y RCP</h1>
     </div>
     <div class="toolbar">
@@ -3542,13 +3543,13 @@ const CASES = {
     cfg: { mode: 'CPV', pinsp: 15, fr: 10, ti: 1.0, peep: 0, fio2: 100, pmax: 60, vt: 500, tplat: 0 },
     goal: 'Varón de 58 años, FV presenciada en la ambulancia. Tu compañero comprime; ya está intubado y conectado al ventilador.',
     hint: 'Carga mientras se comprime y descarga 150–200 J; reanuda las compresiones sin comprobar pulso. Análisis cada 2 min y relevo (o compresor mecánico). Adrenalina 1 mg y amiodarona 300 mg (o lidocaína 100 mg) tras la 3.ª descarga; adrenalina cada 3–5 min y amiodarona 150 mg (o lidocaína 50 mg) tras la 5.ª. Ventilación: CPV en el Monnal, CPR en el Medumat. Tras la RCE, SpO₂ 94–98 %, EtCO₂ 35–45, TAS > 100.',
-    checks: [['shock', 'Descarga precoz'], ['drug:adr', 'Adrenalina'], ['drug:amio|drug:lido', 'Antiarrítmico'], ['rosc', 'RCE']],
+    checks: [['shock', 'Descarga precoz'], ['drug:adr', 'Adrenalina', 'vf3'], ['drug:amio|drug:lido', 'Antiarrítmico', 'vf3'], ['rosc', 'RCE']],
     targets: {} },
   fvRefractaria: { lvl: 'Parada', title: 'FV refractaria', pheno: 'sano', sex: 'h', talla: 182, peso: 95, arrest: 'vf', comp: 'manual', shockMul: .25,
     cfg: { mode: 'CPV', pinsp: 15, fr: 10, ti: 1.0, peep: 0, fio2: 100, pmax: 60, vt: 550, tplat: 0 },
     goal: 'Varón de 49 años, dolor torácico y FV en el domicilio. Intubado. Lleva varias descargas sin éxito.',
     hint: 'Tras tres descargas fallidas, cambia los parches a anteroposterior (cambio de vector, ERC 2025). Mantén la calidad: compresor mecánico, mínimas pausas, amiodarona 300 + 150 mg (o lidocaína 100 + 50 mg) y adrenalina cada 3–5 min. Considera las causas reversibles y el traslado con compresor a un centro con hemodinámica o ECMO.',
-    checks: [['shock', 'Descargas'], ['drug:amio|drug:lido', 'Antiarrítmico'], ['act:pads', 'Cambio de vector de los parches']],
+    checks: [['shock', 'Descargas'], ['drug:amio|drug:lido', 'Antiarrítmico', 'vf3'], ['act:pads', 'Cambio de vector de los parches', 'vf3']],
     targets: {} },
   aespPtx: { lvl: 'Parada', title: 'AESP por neumotórax a tensión', pheno: 'trauma', sex: 'h', talla: 176, peso: 80, arrest: 'aesp', arrestCause: 'ptx', comp: 'manual', ptx: .9, ptxTension: true, deficit: .15,
     cfg: { mode: 'CPV', pinsp: 15, fr: 10, ti: 1.0, peep: 0, fio2: 100, pmax: 60, vt: 500, tplat: 0 },
@@ -3570,7 +3571,7 @@ const CASES = {
     cfg: Object.assign(inv({ vt: 200, fr: 20 }), { o2dev: 'reserv' }),
     goal: 'Niño de 8 años y 26 kg que se desploma jugando al fútbol tras un balonazo en el pecho. FV en el monitor; tu compañero comprime. Sin vía venosa.',
     hint: 'Descarga a 4 J/kg (≈ 100 J), RCP 15:2 y vía intraósea. Adrenalina 10 mcg/kg (0,26 mg) y amiodarona 5 mg/kg (130 mg) tras la tercera descarga; adrenalina cada 3–5 min. Intubación o supraglótico cuando no interrumpa las compresiones.',
-    checks: [['shock', 'Descarga'], ['act:io|act:iv', 'Acceso vascular'], ['drug:adr', 'Adrenalina'], ['drug:amio|drug:lido', 'Antiarrítmico']],
+    checks: [['shock', 'Descarga'], ['act:io|act:iv', 'Acceso vascular'], ['drug:adr', 'Adrenalina', 'vf3'], ['drug:amio|drug:lido', 'Antiarrítmico', 'vf3']],
     targets: {} }, O2),
   // v1.15: tanda de parada (fase 3, sesión 12)
   fvMonitorizada: Object.assign({ lvl: 'Parada', title: 'FV monitorizada: tres descargas seguidas', pheno: 'sano', sex: 'h', talla: 174, peso: 82, arrest: 'vf', comp: 'off', witnessed: true, duration: 20,
@@ -3876,11 +3877,13 @@ const PATHS = {
     { t: 'Evaluación final', exam: true, need: 3, k: ['ptxAltitud', 'tceGomera', 'hdaPalma', 'sdraPalma'] }] }
 };
 /* progreso de un alumno en un itinerario a partir del historial (intentos con su nota, modo y caso base);
-   un intento terminado antes de tiempo no cuenta: al menos el 30 % de la duración del caso (máx. 5 min de caso) */
+   un intento terminado antes de tiempo no cuenta: al menos el 30 % de la duración del caso (máx. 5 min de caso),
+   salvo que el caso quedara resuelto (v1.31: parada que termina con RCE y todas las acciones clave indicadas, «full») */
 const pathMin = k => { const c = CASES[k]; return Math.min(5, .3 * ((c && c.duration) || 20)); };
+const pathCounts = a => !!a.full || !(isFinite(a.min) && a.min < pathMin(a.base || a.key));
 function pathProgress(pk, hist, name) {
   const P = PATHS[pk]; if (!P) return null;
-  const mine = (hist || []).filter(a => (a.name || '') === (name || '') && !(isFinite(a.min) && a.min < pathMin(a.base || a.key)));
+  const mine = (hist || []).filter(a => (a.name || '') === (name || '') && pathCounts(a));
   const best = (k, ex) => { let b = null; for (const a of mine) if ((a.key === k || a.base === k) && (!ex || a.exam) && isFinite(a.score)) b = b == null ? a.score : Math.max(b, a.score); return b; };
   let open = true, done = 0, tot = 0, sum = 0, n = 0, exS = 0, exN = 0;
   const stages = P.stages.map((s, i) => {
@@ -3908,6 +3911,11 @@ root.SIM_LOTS = LOTS;
 root.SIM_PATHS = PATHS;
 root.SIM_PATHPROG = pathProgress;
 root.SIM_PATHMIN = pathMin;
+root.SIM_PATHCOUNTS = pathCounts;
+/* v1.31: acciones clave condicionadas. 'vf3' = solo si la FV/TVSP persiste tras la 3.ª descarga (ERC 2025: adrenalina y antiarrítmico
+   después de la 3.ª; cambio de vector en la FV refractaria). Con RCE antes de la 3.ª descarga no están indicadas y no puntúan.
+   st = { rosc: hubo RCE, arrest: sigue en parada al terminar, shocks: descargas totales } */
+root.SIM_CHKON = (x, st) => !(Array.isArray(x) && x[2] === 'vf3' && st.rosc && !st.arrest && st.shocks < 3);
 })(typeof window !== 'undefined' ? window : globalThis);
 
 /* Variantes de un caso (v1.0). A partir de un caso y una semilla crea otro caso, siempre el mismo para la misma semilla, que cambia
@@ -4464,10 +4472,12 @@ function make(ctx) {
     if (tk.length) parts.push([4, tk.reduce((a, b) => a + b, 0) / tk.length, 'objetivos']);
     const arrested = c.arrest || R.arrestAt != null;
     const done = tok => tok.split('|').some(t => (t.startsWith('no:') ? !used.has(t.slice(3)) : used.has(t)) || (t === 'rosc' && R.roscAt != null) || (t === 'stacked' && S.cpr.stacked) || (t === 'intub' && S._intubAt != null) || (t === 'noarrest' && !S.arrest && (!arrested || R.roscAt != null)));
+    const on = root.SIM_CHKON || (() => true), st = { rosc: R.roscAt != null, arrest: S.arrest, shocks: S.cpr.shocks }; // v1.31: sin adrenalina ni antiarrítmico si hubo RCE antes de la 3.ª descarga
+    const chk = (c.checks || []).filter(x => on(x, st)).map(x => Array.isArray(x) ? x[0] : x);
     if (chk.length) parts.push([3, chk.filter(done).length / chk.length, 'acciones']);
     if (arrested) parts.push([3, S.arrest ? (c.noRosc && S.cpr.comp !== 'off' ? 1 : 0) : 1, 'parada']); // noRosc: el éxito es trasladar con RCP de calidad
     const score = parts.length ? 10 * parts.reduce((a, p) => a + p[0] * p[1], 0) / parts.reduce((a, p) => a + p[0], 0) : null;
-    return { score, parts, tgt, chkFrac: chk.length ? chk.filter(done).length / chk.length : 1, missing: chk.filter(t => !done(t)), notes, rosc: !S.arrest && arrested, nan: R.nan.length + R.weird.filter(w => !/pH (6\.|7\.0)/.test(w)).length };
+    return { score, parts, tgt, chkFrac: chk.length ? chk.filter(done).length / chk.length : 1, missing: chk.filter(t => !done(t)), notes, rosc: !S.arrest && arrested, shocks: S.cpr.shocks, nan: R.nan.length + R.weird.filter(w => !/pH (6\.|7\.0)/.test(w)).length };
   }
   return { tick, finish, used, first, log, notes, perfNow };
 }
@@ -5797,7 +5807,12 @@ function showDebrief(reason) {
   teachDebrief(reason);
   $('#debrief').hidden = false; paused = true; setPauseBtn(); $('#dbRepeat').focus();
 }
-$('#endBtn').addEventListener('click', () => showDebrief(''));
+let endWarnAt = 0; // v1.31: si el intento aún no cuenta para el itinerario, el primer toque avisa y el segundo (en 6 s) termina
+$('#endBtn').addEventListener('click', e => {
+  const w = pathEndWarn(), b = e.currentTarget;
+  if (w && Date.now() - endWarnAt > 6000) { endWarnAt = Date.now(); toast(w); b.textContent = 'Pulsa otra vez para terminar'; setTimeout(() => { if (Date.now() - endWarnAt >= 5900) b.textContent = 'Terminar caso'; }, 6000); return; }
+  endWarnAt = 0; b.textContent = 'Terminar caso'; showDebrief('');
+});
 $('#dbClose').addEventListener('click', () => { $('#debrief').hidden = true; paused = false; setPauseBtn(); });
 $('#dbRepeat').addEventListener('click', () => { $('#debrief').hidden = true; paused = false; setPauseBtn(); loadCase(caseKey); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#debrief').hidden) $('#dbClose').click(); });
@@ -6016,13 +6031,19 @@ const markUse = tok => { if (track && track.used) { track.used.add(tok); (track.
 
 /* ---------- nota ---------- */
 function checksOf(c) { return (c.checks || []).map(x => Array.isArray(x) ? x : [x, x]); }
+/* v1.31: acciones clave que aplican en este intento (las 'vf3' no, si hubo RCE antes de la 3.ª descarga) */
+const chkState = (rosc, arrest, shocks) => ({ rosc, arrest, shocks });
+function checksNow(c, st) { st = st || chkState(track.roscAt != null, S.arrest, S.cpr.shocks); const on = [], off = []; for (const x of checksOf(c)) (window.SIM_CHKON ? SIM_CHKON(x, st) : true) ? on.push(x) : off.push(x); return { on, off }; }
+const CHK_OFF = 'no indicada: RCE antes de la 3.ª descarga';
+/* v1.31: caso resuelto antes de tiempo (cuenta para el itinerario aunque dure < 5 min): parada que termina con RCE y todas las acciones clave indicadas hechas */
+function attemptFull() { const c = CASES[caseKey]; if (!c || !c.arrest || c.noRosc || S.arrest || track.roscAt == null) return false; const ch = checksNow(c).on; return ch.length > 0 && ch.every(([t]) => checkDone(t)); }
 function checkDone(tok) { return tok.split('|').some(t => (t.startsWith('no:') ? !track.used.has(t.slice(3)) : track.used.has(t)) || (t === 'rosc' && track.roscAt != null) || (t === 'stacked' && S.cpr.stacked) || (t === 'intub' && track.intubAt != null) || (t === 'noarrest' && !S.arrest && (track.arrestAt == null || track.roscAt != null))); }
 function examScore() {
   const c = CASES[caseKey], parts = [];
   const tg = Object.values(track.t).filter(v => v.tot > 0);
   if (tg.length) parts.push({ lab: 'Tiempo en objetivo', v: tg.reduce((a, v) => a + v.inT / v.tot, 0) / tg.length, w: 4, det: `${tg.length} objetivo${tg.length > 1 ? 's' : ''}` });
-  const ch = checksOf(c);
-  if (ch.length) { const done = ch.filter(([t]) => checkDone(t)); parts.push({ lab: 'Acciones clave', v: done.length / ch.length, w: 3, det: ch.map(([t, l]) => (checkDone(t) ? '✓ ' : '✗ ') + l).join(' · ') }); }
+  const { on: ch, off } = checksNow(c);
+  if (ch.length) { const done = ch.filter(([t]) => checkDone(t)); parts.push({ lab: 'Acciones clave', v: done.length / ch.length, w: 3, det: ch.map(([t, l]) => (checkDone(t) ? '✓ ' : '✗ ') + l).concat(off.map(([, l]) => '— ' + l + ' (' + CHK_OFF + ')')).join(' · ') }); }
   if (track.arrestAt != null) {
     const cp = S.cpr, ccf = cp.cprTime + cp.noFlow > 0 ? cp.cprTime / (cp.cprTime + cp.noFlow) : 0;
     let v = clamp(ccf / .8, 0, 1) * .5 + (track.roscAt != null || (c.noRosc && S.cpr.comp !== 'off') ? .35 : 0); // v1.15: en la hipotermia, el objetivo es llegar con RCP de calidad
@@ -6090,10 +6111,11 @@ function teachDebrief(reason) {
   $('#dbBody').insertAdjacentHTML('afterbegin', head + tl + '<section id="dbCmp" class="cmp"><h2 style="margin-top:6px">Comparado con la referencia</h2><p class="small">Calculando la actuación de referencia…</p></section>');
   if (exam && c.hint) { const hs = [...$('#dbBody').querySelectorAll('h2')].find(h => h.textContent === 'Solución posible'); if (hs) { const p = hs.nextElementSibling; const d = document.createElement('details'); d.innerHTML = '<summary>Ver la solución posible</summary>'; d.appendChild(p.cloneNode(true)); hs.replaceWith(d); p.remove(); } }
   const att = { d: new Date().toISOString(), name: student || '', key: caseKey, base: c.vbase || null, title: c.title, exam, tut: !!track.tutorial, score: sc.total, parts: sc.parts.map(p => [p.lab, Math.round(p.v * 100)]), min: Math.round(S.clin * 10) / 10, reason: reason || '' };
+  if (attemptFull()) att.full = true; // v1.31: resuelto (RCE con las acciones clave): cuenta para el itinerario aunque sea corto
   const hist = LS.get('simvmi.hist', []); hist.push(att); while (hist.length > 500) hist.shift(); LS.set('simvmi.hist', hist);
   const idx = hist.length - 1;
   $('#dbName').addEventListener('change', e => { student = e.target.value.trim().slice(0, 60); LS.set('simvmi.name', student); $('#stuName').value = student; const h = LS.get('simvmi.hist', []); if (h[idx] && h[idx].d === att.d) { h[idx].name = student; LS.set('simvmi.hist', h); } });
-  pathDebrief(c); rvDebrief(); cmpStart(reason);
+  pathDebrief(c, att); rvDebrief(); cmpStart(reason);
   linkSend({ t: 'debrief', sid: SID, key: caseKey, vcode: c.vcode || null, exam, min: Math.round(S.clin * 10) / 10, title: c.title, reason: reason || '', score: sc.total, parts: sc.parts.map(p => [p.lab, Math.round(p.v * 100), p.det]), name: student });
 }
 
@@ -6117,7 +6139,7 @@ function cmpScore(c, B, run, S2) {
   const pct = keys.map(k => { const xs = run.SV.map(x => x.v[k]).filter(v => v != null && isFinite(v)).map(v => +(+v).toFixed(SIM_BOT.RND[k] || 0)); return xs.length ? xs.filter(v => v >= tg[k][0] && v <= tg[k][1]).length / xs.length : null; });
   const ok = pct.filter(x => x != null); if (ok.length) parts.push([4, ok.reduce((a, b) => a + b, 0) / ok.length]);
   const done = tok => tok.split('|').some(t => (t.startsWith('no:') ? !B.used.has(t.slice(3)) : B.used.has(t)) || (t === 'rosc' && R.roscAt != null) || (t === 'stacked' && S2.cpr.stacked) || (t === 'intub' && S2._intubAt != null) || (t === 'noarrest' && !S2.arrest && (R.arrestAt == null || R.roscAt != null)));
-  const ch = checksOf(c); if (ch.length) parts.push([3, ch.filter(([t]) => done(t)).length / ch.length]);
+  const ch = checksNow(c, chkState(R.roscAt != null, S2.arrest, S2.cpr.shocks)).on; if (ch.length) parts.push([3, ch.filter(([t]) => done(t)).length / ch.length]);
   if (R.arrestAt != null) { const cp = S2.cpr, ccf = cp.cprTime + cp.noFlow > 0 ? cp.cprTime / (cp.cprTime + cp.noFlow) : 0, f = B.first.shock;
     parts.push([3, clamp(clamp(ccf / .8, 0, 1) * .5 + (R.roscAt != null || (c.noRosc && cp.comp !== 'off') ? .35 : 0) + (c.arrest === 'vf' || f != null ? (f != null && f - R.arrestAt <= 2 ? .15 : 0) : (B.used.has('drug:adr') ? .15 : 0)), 0, 1)]); }
   const minSp = Math.min(100, ...run.series.filter(x => x[2] != null).map(x => x[1])); let sec = 1;
@@ -6159,11 +6181,12 @@ function cmpRender(box, c, B, run, S2, T) {
   const mine = examScore(), ref = cmpScore(c, B, run, S2), R = run.R;
   const when = (tok, who) => { let best = null; for (const t of tok.split('|')) { const v = who === 'ref' ? (t === 'intub' ? S2._intubAt : t === 'rosc' ? R.roscAt : B.first[t]) : (t === 'intub' ? track.intubAt : t === 'rosc' ? track.roscAt : track.usedAt && track.usedAt[t]); if (v != null && (best == null || v < best)) best = v; } return best; };
   const mm = t => t == null ? '—' : 'min ' + fmt(t, 1);
-  const ch = checksOf(c).map(([tok, lab]) => { const a = checkDone(tok), b = ref.done(tok), ta = a ? when(tok, 'me') : null, tb = b ? when(tok, 'ref') : null; return { lab, a, b, ta, tb }; });
+  const onMe = checksNow(c).on, onRef = checksNow(c, chkState(R.roscAt != null, S2.arrest, S2.cpr.shocks)).on, has = (L, tok) => L.some(x => x[0] === tok); // v1.31: «no indicada» si no aplica a ese intento
+  const ch = checksOf(c).filter(([tok]) => has(onMe, tok) || has(onRef, tok)).map(([tok, lab]) => { const a = has(onMe, tok) ? checkDone(tok) : null, b = has(onRef, tok) ? ref.done(tok) : null, ta = a ? when(tok, 'me') : null, tb = b ? when(tok, 'ref') : null; return { lab, a, b, ta, tb }; });
   const tgs = Object.entries(c.targets || {}).map(([k, r]) => { const v = track.t[k], a = v && v.tot ? v.inT / v.tot * 100 : null, b = ref.pct[k] != null ? ref.pct[k] * 100 : null; return { k, lab: `${TGT[k].lab} ${rangeTxt(r, TGT[k])} ${TGT[k].fmt ? '' : TGT[k].u}`.trim(), a, b }; });
   /* lo que más cambia: acciones que faltan, retrasos y objetivos */
   const tips = [];
-  ch.filter(x => !x.a && x.b).slice(0, 2).forEach(x => tips.push(`Te faltó «${esc(x.lab)}»: la referencia lo hizo en el ${mm(x.tb)}.`));
+  ch.filter(x => x.a === false && x.b).slice(0, 2).forEach(x => tips.push(`Te faltó «${esc(x.lab)}»: la referencia lo hizo en el ${mm(x.tb)}.`));
   ch.filter(x => x.a && x.b && x.ta != null && x.tb != null && x.ta - x.tb >= 2).sort((p, q) => (q.ta - q.tb) - (p.ta - p.tb)).slice(0, 2).forEach(x => tips.push(`«${esc(x.lab)}»: tú en el ${mm(x.ta)}, la referencia en el ${mm(x.tb)} (${fmt(x.ta - x.tb, 1)} min antes).`));
   tgs.filter(x => x.a != null && x.b != null && x.b - x.a >= 25).sort((p, q) => (q.b - q.a) - (p.b - p.a)).slice(0, 2).forEach(x => tips.push(`${esc(x.lab)} en objetivo: tú ${fmt(x.a)} %, la referencia ${fmt(x.b)} %.`));
   if (!tips.length) tips.push(mine.total >= ref.total - .5 ? 'Tu actuación está a la altura de la de referencia.' : 'Las diferencias están en los detalles: mira el minuto a minuto.');
@@ -6176,7 +6199,7 @@ function cmpRender(box, c, B, run, S2, T) {
     <div class="cmpsc"><span>Tu nota <b>${fmt(mine.total, 1)}</b></span><span>Referencia <b>${fmt(ref.total, 1)}</b></span></div>
     <ul class="cmptips">${tips.map(t => `<li>${t}</li>`).join('')}</ul>
     ${cmpSVG(track.series, run.series, T)}
-    ${ch.length ? `<h3>Acciones clave</h3><table class="dtable"><tr><th>Acción</th><th class="n">Tú</th><th class="n">Referencia</th></tr>${ch.map(x => `<tr><td>${esc(x.lab)}</td><td class="n">${x.a ? '✓ ' + (x.ta != null ? mm(x.ta) : '') : '✗'}</td><td class="n">${x.b ? '✓ ' + (x.tb != null ? mm(x.tb) : '') : '✗'}</td></tr>`).join('')}</table>` : ''}
+    ${ch.length ? `<h3>Acciones clave</h3><table class="dtable"><tr><th>Acción</th><th class="n">Tú</th><th class="n">Referencia</th></tr>${ch.map(x => `<tr><td>${esc(x.lab)}</td><td class="n">${x.a == null ? '<span class="small">no indicada</span>' : x.a ? '✓ ' + (x.ta != null ? mm(x.ta) : '') : '✗'}</td><td class="n">${x.b == null ? '<span class="small">no indicada</span>' : x.b ? '✓ ' + (x.tb != null ? mm(x.tb) : '') : '✗'}</td></tr>`).join('')}</table>` : ''}
     ${tgs.length ? `<h3>Tiempo en objetivo</h3><table class="dtable"><tr><th>Objetivo</th><th class="n">Tú</th><th class="n">Referencia</th></tr>${tgs.map(x => `<tr><td>${esc(x.lab)}</td><td class="n">${x.a == null ? '—' : fmt(x.a) + ' %'}</td><td class="n">${x.b == null ? '—' : fmt(x.b) + ' %'}</td></tr>`).join('')}</table>` : ''}
     <details class="cmpmin"${rows.length <= 12 ? ' open' : ''}><summary>Minuto a minuto</summary><table class="dtable cmpt"><tr><th class="n">Min</th><th>Tú</th><th>Referencia</th></tr>${rows.map(([m, a, b]) => `<tr><td class="n">${m}</td><td>${cell(a)}</td><td>${cell(b)}</td></tr>`).join('')}</table></details>`;
 }
@@ -6441,7 +6464,7 @@ function edFill(c, key) {
   $('#edGoal').value = c.goal || ''; $('#edHint').value = c.hint || '';
   const params = Object.entries(c).filter(([k]) => PARAMS[k] && !['sedE', 'relCe', 'sedStopped'].includes(k)).map(([k, v]) => [k, v === true ? 1 : v === false ? 0 : v]);
   if (c.altitude != null) params.push(['altitude', c.altitude]);
-  edRows = { par: params, cfg: Object.entries(c.cfg || {}).filter(([k]) => CFGK.includes(k)), ev: (c.events || []).map(e => e.alt != null ? ['alt', e.at, e.alt, e.txt || ''] : [e.k, e.at, '', e.txt || '']), tg: Object.entries(c.targets || {}).map(([k, r]) => [k, r[0], r[1]]), ch: checksOf(c).map(([t]) => t) };
+  edRows = { par: params, cfg: Object.entries(c.cfg || {}).filter(([k]) => CFGK.includes(k)), ev: (c.events || []).map(e => e.alt != null ? ['alt', e.at, e.alt, e.txt || ''] : [e.k, e.at, '', e.txt || '']), tg: Object.entries(c.targets || {}).map(([k, r]) => [k, r[0], r[1]]), ch: checksOf(c).map(([t]) => t), tag: Object.fromEntries(checksOf(c).filter(x => x[2]).map(x => [x[0], x[2]])) };
   edRender(); $('#edErr').textContent = ''; $('#edJson').value = '';
 }
 function edRender() {
@@ -6467,7 +6490,7 @@ function edCollect() {
   if (UMODES[c.cfg.mode]) c.cfg.umode = c.cfg.mode;
   const ev = edRows.ev.filter(r => r[1] !== '').map(([k, at, alt, txt]) => k === 'alt' ? { at: +numOr(at), alt: +numOr(alt), txt } : Object.assign({ at: +numOr(at), k }, txt ? { txt } : {})); if (ev.length) c.events = ev;
   c.targets = {}; for (const [k, a, b] of edRows.tg) c.targets[k] = [+numOr(a), +numOr(b)];
-  if (edRows.ch.length) { const toks = checkTokens(); c.checks = edRows.ch.map(t => [t, toks[t] || t]); }
+  if (edRows.ch.length) { const toks = checkTokens(); c.checks = edRows.ch.map(t => [t, toks[t] || t].concat(edRows.tag && edRows.tag[t] ? [edRows.tag[t]] : [])); }
   return c;
 }
 function edMsg(t, bad) { $('#edErr').textContent = t; $('#edErr').className = 'small ' + (bad ? 'err' : 'okm'); }
@@ -7162,13 +7185,25 @@ function pathLaunch(k, ex) {
   const pr = pathOf(pathSel), st = pr.stages.find(s => s.cases.some(c => c.k === k) && (s.exam === !!ex));
   toast(`Itinerario ${PATHS[pathSel].t}${st ? ' · etapa ' + (st.i + 1) + ': ' + st.t : ''}${ex ? ' · examen' : ''}`);
 }
-/* bloque del debrief: cómo va el itinerario activo y el siguiente caso */
-function pathDebrief(c) {
+/* bloque del debrief: cómo va el itinerario activo y el siguiente caso; v1.31: si el intento no cuenta, dice por qué y propone repetirlo */
+function pathDebrief(c, att) {
   const pk = LS.get('simvmi.path', null), P = PATHS[pk]; if (!P) return;
   const key = c.vbase || caseKey; if (!P.stages.some(s => s.k.includes(key))) return;
   const pr = pathOf(pk), st = pr.cur != null ? pr.stages[pr.cur] : null;
-  const html = `<div class="ptdb"><b>Itinerario ${esc(P.t)}</b> · progreso ${pr.pct} %${st ? ` · etapa ${st.i + 1} de ${pr.stages.length} (${esc(st.t)}): ${st.ok} de ${st.need}` : ' · superado'}<br><span class="small">${(() => { const b = pr.stages.flatMap(s => s.cases).filter(x => x.k === key).map(x => x.best).filter(x => x != null); const m = b.length ? Math.max(...b) : null; const mn = window.SIM_PATHMIN ? SIM_PATHMIN(key) : 0; if (S.clin < mn) return `Intento demasiado corto para el itinerario: cuenta a partir de ${fmt(mn, 1)} min de caso.`; return m != null && m >= P.pass ? 'Este caso ya cuenta como superado.' : `Para que cuente necesitas una nota ≥ ${P.pass}.`; })()}</span>${pr.next ? `<div class="inrow"><button class="btn primary" id="dbPathNext" data-k="${esc(pr.next)}" data-ex="${pr.nextExam ? 1 : 0}">Siguiente del itinerario: ${esc(CASES[pr.next].title)}</button><button class="btn" id="dbPathOpen">Ver el itinerario</button></div>` : ''}</div>`;
+  const counts = att ? window.SIM_PATHCOUNTS(att) : true, mn = window.SIM_PATHMIN ? SIM_PATHMIN(key) : 0;
+  const b = pr.stages.flatMap(s => s.cases).filter(x => x.k === key).map(x => x.best).filter(x => x != null), m = b.length ? Math.max(...b) : null;
+  const why = !counts ? `<b>Este intento no cuenta para el itinerario:</b> terminaste en el min ${fmt(S.clin, 1)}. Cuenta a partir del min ${fmt(mn, 1)}${c.arrest && !c.noRosc ? ' o, en la parada, al terminar con RCE y todas las acciones clave indicadas hechas' : ''}.`
+    : m != null && m >= P.pass ? 'Este caso ya cuenta como superado.' : `Para que cuente necesitas una nota ≥ ${P.pass}${att ? ` (esta vez, ${fmt(att.score, 1)})` : ''}.`;
+  const again = pr.next === key, nextBtn = pr.next ? `<button class="btn primary" id="dbPathNext" data-k="${esc(pr.next)}" data-ex="${pr.nextExam ? 1 : 0}">${again ? 'Repetir' : 'Siguiente del itinerario'}: ${esc(CASES[pr.next].title)}</button>` : '';
+  const html = `<div class="ptdb${counts ? '' : ' warn'}"><b>Itinerario ${esc(P.t)}</b> · progreso ${pr.pct} %${st ? ` · etapa ${st.i + 1} de ${pr.stages.length} (${esc(st.t)}): ${st.ok} de ${st.need}` : ' · superado'}<br><span class="small">${why}</span>${pr.next ? `<div class="inrow">${nextBtn}<button class="btn" id="dbPathOpen">Ver el itinerario</button></div>` : ''}</div>`;
   const t = $('#dbBody .dtable'); if (t) t.insertAdjacentHTML('afterend', html); else $('#dbBody').insertAdjacentHTML('afterbegin', html);
+}
+/* v1.31: «Terminar» antes de que el intento cuente para el itinerario activo: devuelve el aviso (null si ya cuenta o no aplica) */
+function pathEndWarn() {
+  const pk = LS.get('simvmi.path', null), P = PATHS[pk], c = CASES[caseKey]; if (INSTR || ended || !P || !c) return null;
+  const key = c.vbase || caseKey; if (!P.stages.some(s => s.k.includes(key))) return null;
+  const mn = SIM_PATHMIN(key); if (S.clin >= mn || attemptFull()) return null;
+  return `Aún no cuenta para el itinerario: ${c.arrest && !c.noRosc ? `consigue la RCE con las acciones clave indicadas o sigue hasta el min ${fmt(mn, 1)}` : `sigue hasta el min ${fmt(mn, 1)}`} (vas por el ${fmt(S.clin, 1)}).`;
 }
 function pathSummary() { const pk = LS.get('simvmi.path', null); if (!PATHS[pk]) return null; const pr = pathOf(pk); return { t: PATHS[pk].t, pct: pr.pct, st: pr.cur != null ? pr.cur + 1 : null, n: pr.stages.length, done: pr.finished }; }
 function pathReport() {

@@ -1176,13 +1176,13 @@ const CASES = {
     cfg: { mode: 'CPV', pinsp: 15, fr: 10, ti: 1.0, peep: 0, fio2: 100, pmax: 60, vt: 500, tplat: 0 },
     goal: 'Varón de 58 años, FV presenciada en la ambulancia. Tu compañero comprime; ya está intubado y conectado al ventilador.',
     hint: 'Carga mientras se comprime y descarga 150–200 J; reanuda las compresiones sin comprobar pulso. Análisis cada 2 min y relevo (o compresor mecánico). Adrenalina 1 mg y amiodarona 300 mg (o lidocaína 100 mg) tras la 3.ª descarga; adrenalina cada 3–5 min y amiodarona 150 mg (o lidocaína 50 mg) tras la 5.ª. Ventilación: CPV en el Monnal, CPR en el Medumat. Tras la RCE, SpO₂ 94–98 %, EtCO₂ 35–45, TAS > 100.',
-    checks: [['shock', 'Descarga precoz'], ['drug:adr', 'Adrenalina'], ['drug:amio|drug:lido', 'Antiarrítmico'], ['rosc', 'RCE']],
+    checks: [['shock', 'Descarga precoz'], ['drug:adr', 'Adrenalina', 'vf3'], ['drug:amio|drug:lido', 'Antiarrítmico', 'vf3'], ['rosc', 'RCE']],
     targets: {} },
   fvRefractaria: { lvl: 'Parada', title: 'FV refractaria', pheno: 'sano', sex: 'h', talla: 182, peso: 95, arrest: 'vf', comp: 'manual', shockMul: .25,
     cfg: { mode: 'CPV', pinsp: 15, fr: 10, ti: 1.0, peep: 0, fio2: 100, pmax: 60, vt: 550, tplat: 0 },
     goal: 'Varón de 49 años, dolor torácico y FV en el domicilio. Intubado. Lleva varias descargas sin éxito.',
     hint: 'Tras tres descargas fallidas, cambia los parches a anteroposterior (cambio de vector, ERC 2025). Mantén la calidad: compresor mecánico, mínimas pausas, amiodarona 300 + 150 mg (o lidocaína 100 + 50 mg) y adrenalina cada 3–5 min. Considera las causas reversibles y el traslado con compresor a un centro con hemodinámica o ECMO.',
-    checks: [['shock', 'Descargas'], ['drug:amio|drug:lido', 'Antiarrítmico'], ['act:pads', 'Cambio de vector de los parches']],
+    checks: [['shock', 'Descargas'], ['drug:amio|drug:lido', 'Antiarrítmico', 'vf3'], ['act:pads', 'Cambio de vector de los parches', 'vf3']],
     targets: {} },
   aespPtx: { lvl: 'Parada', title: 'AESP por neumotórax a tensión', pheno: 'trauma', sex: 'h', talla: 176, peso: 80, arrest: 'aesp', arrestCause: 'ptx', comp: 'manual', ptx: .9, ptxTension: true, deficit: .15,
     cfg: { mode: 'CPV', pinsp: 15, fr: 10, ti: 1.0, peep: 0, fio2: 100, pmax: 60, vt: 500, tplat: 0 },
@@ -1204,7 +1204,7 @@ const CASES = {
     cfg: Object.assign(inv({ vt: 200, fr: 20 }), { o2dev: 'reserv' }),
     goal: 'Niño de 8 años y 26 kg que se desploma jugando al fútbol tras un balonazo en el pecho. FV en el monitor; tu compañero comprime. Sin vía venosa.',
     hint: 'Descarga a 4 J/kg (≈ 100 J), RCP 15:2 y vía intraósea. Adrenalina 10 mcg/kg (0,26 mg) y amiodarona 5 mg/kg (130 mg) tras la tercera descarga; adrenalina cada 3–5 min. Intubación o supraglótico cuando no interrumpa las compresiones.',
-    checks: [['shock', 'Descarga'], ['act:io|act:iv', 'Acceso vascular'], ['drug:adr', 'Adrenalina'], ['drug:amio|drug:lido', 'Antiarrítmico']],
+    checks: [['shock', 'Descarga'], ['act:io|act:iv', 'Acceso vascular'], ['drug:adr', 'Adrenalina', 'vf3'], ['drug:amio|drug:lido', 'Antiarrítmico', 'vf3']],
     targets: {} }, O2),
   // v1.15: tanda de parada (fase 3, sesión 12)
   fvMonitorizada: Object.assign({ lvl: 'Parada', title: 'FV monitorizada: tres descargas seguidas', pheno: 'sano', sex: 'h', talla: 174, peso: 82, arrest: 'vf', comp: 'off', witnessed: true, duration: 20,
@@ -1510,11 +1510,13 @@ const PATHS = {
     { t: 'Evaluación final', exam: true, need: 3, k: ['ptxAltitud', 'tceGomera', 'hdaPalma', 'sdraPalma'] }] }
 };
 /* progreso de un alumno en un itinerario a partir del historial (intentos con su nota, modo y caso base);
-   un intento terminado antes de tiempo no cuenta: al menos el 30 % de la duración del caso (máx. 5 min de caso) */
+   un intento terminado antes de tiempo no cuenta: al menos el 30 % de la duración del caso (máx. 5 min de caso),
+   salvo que el caso quedara resuelto (v1.31: parada que termina con RCE y todas las acciones clave indicadas, «full») */
 const pathMin = k => { const c = CASES[k]; return Math.min(5, .3 * ((c && c.duration) || 20)); };
+const pathCounts = a => !!a.full || !(isFinite(a.min) && a.min < pathMin(a.base || a.key));
 function pathProgress(pk, hist, name) {
   const P = PATHS[pk]; if (!P) return null;
-  const mine = (hist || []).filter(a => (a.name || '') === (name || '') && !(isFinite(a.min) && a.min < pathMin(a.base || a.key)));
+  const mine = (hist || []).filter(a => (a.name || '') === (name || '') && pathCounts(a));
   const best = (k, ex) => { let b = null; for (const a of mine) if ((a.key === k || a.base === k) && (!ex || a.exam) && isFinite(a.score)) b = b == null ? a.score : Math.max(b, a.score); return b; };
   let open = true, done = 0, tot = 0, sum = 0, n = 0, exS = 0, exN = 0;
   const stages = P.stages.map((s, i) => {
@@ -1542,4 +1544,9 @@ root.SIM_LOTS = LOTS;
 root.SIM_PATHS = PATHS;
 root.SIM_PATHPROG = pathProgress;
 root.SIM_PATHMIN = pathMin;
+root.SIM_PATHCOUNTS = pathCounts;
+/* v1.31: acciones clave condicionadas. 'vf3' = solo si la FV/TVSP persiste tras la 3.ª descarga (ERC 2025: adrenalina y antiarrítmico
+   después de la 3.ª; cambio de vector en la FV refractaria). Con RCE antes de la 3.ª descarga no están indicadas y no puntúan.
+   st = { rosc: hubo RCE, arrest: sigue en parada al terminar, shocks: descargas totales } */
+root.SIM_CHKON = (x, st) => !(Array.isArray(x) && x[2] === 'vf3' && st.rosc && !st.arrest && st.shocks < 3);
 })(typeof window !== 'undefined' ? window : globalThis);

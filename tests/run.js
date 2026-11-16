@@ -497,6 +497,22 @@ console.log('— Itinerarios (v1.26): rutas por perfil, etapas que se desbloquea
   r = prog('residente', allPrac.concat(fin.map(k => A(k, 9))), 'Ana'); check('La evaluación final no se supera con intentos en práctica', !r.finished && r.nextExam ? 1 : 0, 1, 1);
   r = prog('residente', allPrac.concat(fin.slice(0, 3).map(k => A('u_var', 8, { base: k, exam: true }))), 'Ana'); check('… sí con variantes en modo examen ≥ 7: itinerario superado al 100 %', r.finished && r.pct === 100 && r.examAvg === 8 ? 1 : 0, 1, 1); }
 
+console.log('— Itinerario (v1.31): la parada resuelta cuenta aunque sea corta y la adrenalina no se exige con RCE antes de la 3.ª descarga');
+{ const P = global.SIM_PATHS, prog = global.SIM_PATHPROG, on = global.SIM_CHKON, s1 = P.residente.stages[0].k;
+  const A = (key, score, o) => Object.assign({ d: '2026-11-16', name: '', key, base: null, exam: false, score, min: 10 }, o || {});
+  let r = prog('residente', [A(s1[0], 9.4, { min: 2.1 })], ''); check('PCR en FV con RCE a los 2 min sin marcar como resuelta: no cuenta (sigue siendo el siguiente)', r.stages[0].ok === 0 && r.next === s1[0] ? 1 : 0, 1, 1);
+  r = prog('residente', [A(s1[0], 9.4, { min: 2.1, full: true })], ''); check('… resuelta (RCE y acciones clave): cuenta y el siguiente es el 2.º caso', r.stages[0].ok === 1 && r.next === s1[1] ? 1 : 0, 1, 1);
+  r = prog('residente', [A(s1[0], 6.2, { min: 2.1, full: true })], ''); check('… resuelta pero con nota < 7: no la supera', r.stages[0].ok, 0, 0);
+  const adr = CASES.pcrFv.checks.find(x => x[0] === 'drug:adr'), amio = CASES.pcrFv.checks.find(x => x[0] === 'drug:amio|drug:lido');
+  check('Adrenalina y antiarrítmico: no indicados con RCE tras 1–2 descargas', !on(adr, { rosc: true, arrest: false, shocks: 1 }) && !on(amio, { rosc: true, arrest: false, shocks: 2 }) ? 1 : 0, 1, 1);
+  check('… sí tras la 3.ª descarga, si sigue en parada o si la RCE se perdió', on(adr, { rosc: true, arrest: false, shocks: 3 }) && on(adr, { rosc: false, arrest: true, shocks: 1 }) && on(adr, { rosc: true, arrest: true, shocks: 1 }) ? 1 : 0, 1, 1);
+  check('Las acciones clave sin condición aplican siempre', CASES.pcrFv.checks.filter(x => !x[2]).every(x => on(x, { rosc: true, arrest: false, shocks: 1 })) ? 1 : 0, 1, 1);
+  const { play } = require('./validar'); let early = 0, bad = 0;
+  for (let sd = 1; sd <= 40; sd++) { const x = play('pcrFv', { seed: sd }); if (x.rosc && x.shocks < 3) { early++; if (x.missing.some(t => /adr|amio/.test(t))) bad++; } }
+  check('Bot de referencia con RCE antes de la 3.ª descarga: no le falta adrenalina ni antiarrítmico (de ' + early + ')', early && !bad ? 1 : 0, 1, 1);
+  const T = require('fs').readFileSync(require('path').join(__dirname, '..', 'src', 'teach.js'), 'utf8'), Lb = require('fs').readFileSync(require('path').join(__dirname, '..', 'src', 'library.js'), 'utf8'), U = require('fs').readFileSync(require('path').join(__dirname, '..', 'src', 'ui.js'), 'utf8');
+  check('Debrief y botón «Terminar»: guardan «full», explican por qué no cuenta, proponen repetir y avisan antes de terminar', /if \(attemptFull\(\)\) att\.full = true/.test(T) && /pathDebrief\(c, att\)/.test(T) && /Este intento no cuenta para el itinerario/.test(Lb) && /'Repetir' : 'Siguiente del itinerario'/.test(Lb) && /const w = pathEndWarn\(\)/.test(U) ? 1 : 0, 1, 1); }
+
 console.log('— Debrief comparado (v1.27): el bot de referencia del validador juega la misma situación en el navegador');
 { const { play } = require('./validar'), BOT = global.SIM_BOT; require('../src/drugs.js'); const DR = global.SIM_DRUGS;
   const refPlay = (k, seed) => { const c = CASES[k], L = load(k, { scale: 10, seed }); BOT.prep(L.sim); const B = BOT.make({ sim: L.sim, S: L.S, sched: L.sched, c, key: k, sol: global.SIM_SOL[c.vbase || k], DR, peso: L.peso }); const r = BOT.runner(L, B, c.targets || {}); r.advance(c.duration || 20); return { res: B.finish(r.SV, r.R, c.duration || 20), B, r }; };
