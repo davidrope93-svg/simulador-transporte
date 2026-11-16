@@ -83,6 +83,7 @@ Además de los modos del motor, la interfaz usa modos propios de cada equipo que
 | `src/teach.js` | Docencia: examen y nota, instructor, línea de tiempo, PDF, historial, editor de casos, móvil y proyector. Se inserta dentro de `ui.js` al generar la página. |
 | `src/template.html` | Maquetación y estilos. |
 | `build.py` | Une todo en `index.html`. |
+| `package.json`, `server.js` | Para Google AI Studio (vista previa y publicación en Cloud Run), sin dependencias: `npm run dev` sirve la raíz en el puerto 3000; `npm run build` copia a `dist/` solo lo que carga la app (`index.html`, `sw.js`, `manifest.webmanifest`, `icons/`); `npm start` sirve `dist/` con `$PORT`. Si la app empieza a cargar otro archivo, añadirlo a `PUBLIC` en `server.js`. No añadir dependencias de npm: sin un `package.json` válido, AI Studio no arranca. |
 | `tests/run.js` | Pruebas del motor (`node tests/run.js`): fisiología de referencia, independencia de la velocidad, parada, los 58 casos y sus variantes. GitHub las ejecuta en cada cambio. |
 
 ## Pruebas
