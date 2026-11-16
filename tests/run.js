@@ -524,7 +524,9 @@ console.log('— Instalable y sin conexión (v1.3): manifiesto, iconos y service
   const sw = fs.readFileSync(R('sw.js'), 'utf8'), assets = JSON.parse(sw.match(/const ASSETS = (\[[^\]]*\])/)[1].replace(/'/g, '"'));
   check('Archivos del service worker que no existen', assets.filter(a => a !== './' && !fs.existsSync(R(a))).length, 0, 0);
   const html = fs.readFileSync(R('index.html'), 'utf8');
-  check('La página enlaza el manifiesto y registra el service worker', /rel="manifest"/.test(html) && /serviceWorker\.register\('sw\.js'\)/.test(html) && !/__VERSION__/.test(sw) ? 1 : 0, 1, 1); }
+  check('La página enlaza el manifiesto y registra el service worker', /rel="manifest"/.test(html) && /serviceWorker\.register\('sw\.js'\)/.test(html) && !/__VERSION__/.test(sw) ? 1 : 0, 1, 1);
+  const pwa = fs.readFileSync(R('src/pwa.js'), 'utf8'); // v1.30: AI Studio pone su propio service worker en la raíz
+  check('No compite con el service worker de AI Studio ni con otro ya registrado, y solo ofrece «Actualizar» si es el suyo', /if \(hosted\) return clearOwnCaches\(\);/.test(pwa) && /ai\\\.studio\|run\\\.app/.test(pwa) && /some\(w => w && !own\(w\.scriptURL\)\)\) return clearOwnCaches\(\)/.test(pwa) && /const ask = w => \{ if \(own\(w\.scriptURL\)\)/.test(pwa) ? 1 : 0, 1, 1); }
 
 console.log('— Validador (v1.2): cada caso se resuelve con su solución de referencia y no se aprueba sin hacer nada');
 { const { validate, play } = require('./validar'); const keys = Object.keys(CASES).filter(k => k !== 'libre' && CASES[k].pheno);
