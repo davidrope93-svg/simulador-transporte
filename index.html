@@ -9,9 +9,9 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Simulador SVA">
+<meta name="apple-mobile-web-app-title" content="SVA Trainer">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<title>Simulador SVA</title>
+<title>SVA Trainer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
@@ -490,7 +490,7 @@ body.exam #tutBtn{display:none}
 <main>
   <header class="top">
     <div class="brand">
-      <span class="eyebrow">Simulador docente · SVA terrestre y HEMS · v1.28</span>
+      <span class="eyebrow">SVA Trainer · simulador docente para SVA terrestre y HEMS · v1.29</span>
       <h1>Ventilación, monitor y RCP</h1>
     </div>
     <div class="toolbar">
@@ -6269,7 +6269,7 @@ function startInstructor() {
   document.body.classList.add('instr-mode');
   const box = $('#instr'); box.hidden = false;
   const caseOpts = GROUPS.map(g => `<optgroup label="${esc(g)}">` + Object.entries(CASES).filter(([, c]) => c.lvl === g).map(([k, c]) => `<option value="${k}">${esc(c.title)}</option>`).join('') + '</optgroup>').join('');
-  box.innerHTML = `<header class="ihead"><div><span class="eyebrow">Simulador docente · vista del instructor</span><h1>Instructor</h1></div>
+  box.innerHTML = `<header class="ihead"><div><span class="eyebrow">SVA Trainer · vista del instructor</span><h1>Instructor</h1></div>
       <div class="inrow"><span class="chip" id="iConn">sin alumnos</span><button class="btn primary" id="iRoom">Abrir aula</button><span class="aulacode" id="iRoomCode" hidden></span><button class="btn sm" id="iRoomLink" hidden>Copiar enlace del aula</button></div></header>
     <p class="small" id="iHelp">En el mismo equipo (otras ventanas o pestañas del simulador) los alumnos se conectan solos. En otros dispositivos: pulsa «Abrir aula» y que cada alumno pulse «Enlazar instructor» y escriba el código (o abra el enlace del aula).</p>
     <details class="small"><summary>Conectar a un alumno que me da su código</summary><div class="inrow" style="margin-top:6px"><input id="iCode" maxlength="5" placeholder="código" autocomplete="off" style="width:7ch;text-transform:uppercase"><button class="btn" id="iJoin">Conectar</button></div></details>
@@ -7176,7 +7176,7 @@ function pathReport() {
   const rows = pr.stages.map(s => `<h2>Etapa ${s.i + 1} · ${esc(s.t)}${s.exam ? ' (examen)' : ''} — ${s.passed ? 'superada' : s.open ? 'en curso' : 'bloqueada'} · ${s.ok}/${s.need}</h2><table class="dtable">${s.cases.map(c => `<tr><td>${esc(CASES[c.k].title)}<br><span class="small">${esc(CASES[c.k].teach || '')}</span></td><td class="n">${c.best == null ? '—' : fmt(c.best, 1)}${c.best != null && c.best >= P.pass ? ' ✓' : ''}</td></tr>`).join('')}</table>`).join('');
   const css = [...document.querySelectorAll('style')].map(x => x.textContent).join('\n');
   download('itinerario-' + pathSel + '-' + (student || 'alumno').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-' + d.toISOString().slice(0, 10) + '.html',
-    `<!doctype html><html lang="es" data-theme="light"><head><meta charset="utf-8"><title>Itinerario ${esc(P.t)} · ${esc(student || 'Alumno')}</title><style>${css}</style></head><body><main><div class="sheet" style="max-width:820px;margin:20px auto"><span class="eyebrow">Simulador docente · itinerario</span><h1 style="font-size:1.8rem">${esc(P.title)}</h1><p><b>${esc(student || 'Sin nombre')}</b> · ${d.toLocaleDateString('es-ES', { dateStyle: 'long' })}</p><p>Progreso <b>${pr.pct} %</b>${pr.avg != null ? ` · media de los casos <b>${fmt(pr.avg, 1)}</b>` : ''}${pr.examAvg != null ? ` · evaluación final <b>${fmt(pr.examAvg, 1)}</b>` : ''} · ${pr.finished ? '<b>itinerario superado</b>' : 'en curso'}</p><p class="small">${esc(P.who)} Un caso cuenta como superado con nota ≥ ${P.pass}; la evaluación final se hace en modo examen con variantes nuevas.</p>${rows}</div></main><script>window.onload=()=>print()<\/script></body></html>`, 'text/html');
+    `<!doctype html><html lang="es" data-theme="light"><head><meta charset="utf-8"><title>Itinerario ${esc(P.t)} · ${esc(student || 'Alumno')}</title><style>${css}</style></head><body><main><div class="sheet" style="max-width:820px;margin:20px auto"><span class="eyebrow">SVA Trainer · itinerario</span><h1 style="font-size:1.8rem">${esc(P.title)}</h1><p><b>${esc(student || 'Sin nombre')}</b> · ${d.toLocaleDateString('es-ES', { dateStyle: 'long' })}</p><p>Progreso <b>${pr.pct} %</b>${pr.avg != null ? ` · media de los casos <b>${fmt(pr.avg, 1)}</b>` : ''}${pr.examAvg != null ? ` · evaluación final <b>${fmt(pr.examAvg, 1)}</b>` : ''} · ${pr.finished ? '<b>itinerario superado</b>' : 'en curso'}</p><p class="small">${esc(P.who)} Un caso cuenta como superado con nota ≥ ${P.pass}; la evaluación final se hace en modo examen con variantes nuevas.</p>${rows}</div></main><script>window.onload=()=>print()<\/script></body></html>`, 'text/html');
 }
 function pathInit() {
   $('#pathBtn').addEventListener('click', pathOpen);

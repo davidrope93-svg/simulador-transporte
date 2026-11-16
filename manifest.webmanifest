@@ -1,13 +1,13 @@
 {
-  "name": "Simulador SVA · ventilación, monitor y RCP",
-  "short_name": "Simulador SVA",
+  "name": "SVA Trainer",
+  "short_name": "SVA Trainer",
   "description": "Simulador docente para SVA terrestre y HEMS: ventilación mecánica, monitor-desfibrilador, fármacos y RCP. Funciona sin conexión.",
   "lang": "es",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#edf1f2",
+  "background_color": "#08294c",
   "theme_color": "#0d1d27",
   "categories": ["education", "medical"],
   "icons": [

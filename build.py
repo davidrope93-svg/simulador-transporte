@@ -13,7 +13,7 @@ head = head.replace('<meta name="claude:viewport-fit-sides" content="cover">\n',
 pwa_head = ('<link rel="manifest" href="manifest.webmanifest">\n<meta name="theme-color" content="#0d1d27">\n'
             '<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">\n<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">\n'
             '<meta name="mobile-web-app-capable" content="yes">\n<meta name="apple-mobile-web-app-capable" content="yes">\n'
-            '<meta name="apple-mobile-web-app-title" content="Simulador SVA">\n<meta name="apple-mobile-web-app-status-bar-style" content="default">\n')
+            '<meta name="apple-mobile-web-app-title" content="SVA Trainer">\n<meta name="apple-mobile-web-app-status-bar-style" content="default">\n')
 page = ('<!doctype html>\n<html lang="es">\n<head>\n<meta charset="utf-8">\n'
         '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
         + pwa_head + head + '<style>' + style + '</style>\n</head>\n<body>\n' + rest + '\n<script>\n' + src('pwa.js') + '</script>\n</body>\n</html>\n')

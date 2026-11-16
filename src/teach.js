@@ -269,7 +269,7 @@ function startInstructor() {
   document.body.classList.add('instr-mode');
   const box = $('#instr'); box.hidden = false;
   const caseOpts = GROUPS.map(g => `<optgroup label="${esc(g)}">` + Object.entries(CASES).filter(([, c]) => c.lvl === g).map(([k, c]) => `<option value="${k}">${esc(c.title)}</option>`).join('') + '</optgroup>').join('');
-  box.innerHTML = `<header class="ihead"><div><span class="eyebrow">Simulador docente · vista del instructor</span><h1>Instructor</h1></div>
+  box.innerHTML = `<header class="ihead"><div><span class="eyebrow">SVA Trainer · vista del instructor</span><h1>Instructor</h1></div>
       <div class="inrow"><span class="chip" id="iConn">sin alumnos</span><button class="btn primary" id="iRoom">Abrir aula</button><span class="aulacode" id="iRoomCode" hidden></span><button class="btn sm" id="iRoomLink" hidden>Copiar enlace del aula</button></div></header>
     <p class="small" id="iHelp">En el mismo equipo (otras ventanas o pestañas del simulador) los alumnos se conectan solos. En otros dispositivos: pulsa «Abrir aula» y que cada alumno pulse «Enlazar instructor» y escriba el código (o abra el enlace del aula).</p>
     <details class="small"><summary>Conectar a un alumno que me da su código</summary><div class="inrow" style="margin-top:6px"><input id="iCode" maxlength="5" placeholder="código" autocomplete="off" style="width:7ch;text-transform:uppercase"><button class="btn" id="iJoin">Conectar</button></div></details>

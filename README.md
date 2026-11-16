@@ -1,4 +1,4 @@
-# Simulador de transporte · ventilación, monitor y RCP
+# SVA Trainer · simulador de transporte: ventilación, monitor y RCP
 
 Simulador docente para SVA terrestre y HEMS: ventilación mecánica invasiva y no invasiva, oxigenoterapia y alto flujo, monitor-desfibrilador (desfibrilación, cardioversión sincronizada, DEA, marcapasos), fármacos y RCP.
 
@@ -72,7 +72,7 @@ Además de los modos del motor, la interfaz usa modos propios de cada equipo que
 | `src/cases.js` | Casos clínicos. |
 | `src/ui.js` | Interfaz: pantallas, mandos, alarmas, acciones, fármacos, lectura y debrief. |
 | `src/pwa.js`, `src/sw.js`, `src/manifest.webmanifest` | Instalable y sin conexión: registro del service worker, botón «Instalar app» y aviso de versión nueva; el service worker guarda la página, los iconos y las tipografías. `build.py` genera `sw.js` (con la huella de cada versión) y `manifest.webmanifest` en la raíz. Solo van en la versión publicada, no en el artefacto. |
-| `src/icon.svg`, `tools/iconos.js` | Icono de la app y el script que genera los PNG de `icons/`. |
+| `src/logo.png`, `tools/iconos.py` | Logo de SVA Trainer y el script que genera los iconos de `icons/` (`python3 tools/iconos.py`): normales con esquinas redondeadas, «maskable» para Android con el dibujo en la zona segura y el de iOS. Para cambiar el logo, sustituir `src/logo.png` (cuadrado, fondo #08294c), ejecutar el script y `build.py`. |
 | `src/drugs.js` | Fármacos y perfusiones con su cálculo de dosis (adulto y por peso), sin DOM: los comparten la interfaz y el validador. |
 | `src/solutions.js` | Solución de referencia de cada caso, en pasos (minuto, orden): la usa el validador y servirá para el informe comparado. |
 | `tests/validar.js` | Validador de casos: juega cada caso con su solución y sin hacer nada. |
