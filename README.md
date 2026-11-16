@@ -10,6 +10,8 @@ Funciona en el navegador del ordenador, la tablet o el móvil, sin instalar nada
 - Android (Chrome) y ordenador (Chrome o Edge): botón «Instalar app» de la barra superior, o en el menú del navegador «Instalar app».
 - iPhone y iPad: abrir la página en Safari, Compartir y «Añadir a pantalla de inicio».
 
+**Cuenta de beta tester (opcional, por invitación):** botón «Cuenta». Con ella, tu progreso (intentos, itinerarios, revisión y casos propios) se guarda en la nube y lo tienes en cualquier dispositivo; es la misma cuenta que en ECG en Ruta. Sin cuenta, todo funciona igual y se queda en el dispositivo. Ver «Cuentas» al final.
+
 Instalado, se abre desde su icono a pantalla completa y funciona en el helicóptero o sin cobertura. Lo único que necesita red es enlazar al instructor desde otro dispositivo. Cuando se publica una versión nueva, la app avisa «Hay una versión nueva» con un botón para actualizar; mientras no se pulsa, sigue con la que tiene.
 
 ## Equipos
@@ -84,13 +86,27 @@ Además de los modos del motor, la interfaz usa modos propios de cada equipo que
 | `src/template.html` | Maquetación y estilos. |
 | `build.py` | Une todo en `index.html`. |
 | `package.json`, `server.js` | Para Google AI Studio (vista previa y publicación en Cloud Run), sin dependencias: `npm run dev` sirve la raíz en el puerto 3000; `npm run build` copia a `dist/` solo lo que carga la app (`index.html`, `sw.js`, `manifest.webmanifest`, `icons/`); `npm start` sirve `dist/` con `$PORT`. Si la app empieza a cargar otro archivo, añadirlo a `PUBLIC` en `server.js`. No añadir dependencias de npm: sin un `package.json` válido, AI Studio no arranca. |
+| `src/cuenta.js` | Núcleo de las cuentas de beta tester, idéntico en ECG en Ruta: Firebase Authentication (correo y contraseña) y Firestore por su API REST, sin librerías; ventana de cuenta y panel del administrador. Si cambias uno, copia el otro. |
+| `src/cuenta_app.js` | Lo propio del simulador: qué se guarda (intentos, itinerario, revisión, casos propios, revisiones importadas), la fusión entre dispositivos, el detalle para el administrador y «Traer las revisiones a Coordinación». Se inserta dentro de `ui.js` después de `library.js`. |
+| `firebase/` | Reglas de Firestore (`firestore.rules`, copia de las publicadas) y prueba contra los emuladores de Firebase (`prueba_emulador.js`). |
+| `tests/cuenta_core.js` | Pruebas del núcleo de cuentas sin red (Firestore falso). Las lanza `tests/run.js`. |
 | `tests/run.js` | Pruebas del motor (`node tests/run.js`): fisiología de referencia, independencia de la velocidad, parada, los 58 casos y sus variantes. GitHub las ejecuta en cada cambio. |
 
 ## Pruebas
 
-Cada versión tiene que pasar 471 pruebas con rangos de referencia: regresión de la mecánica, tiempo de desaturación en apnea (sano preoxigenado 7–9,5 min, con aire 0,6–2 min, obeso 2,3–3,6 min) igual a ×1 que a ×20, PaCO₂ en respiración espontánea (TSV, TEP, opiáceos, EPOC con hiperoxia), SpO₂ del EPOC según FiO₂, EtCO₂ durante la RCP, tiempo de acción del relajante, tasas de RCE según se resuelva o no la causa, frecuencia mandatoria en SIMV, fracción de compresión con 30:2, vía aérea no oxigenable con bolsa y supraglótico, drenaje torácico en altitud, deterioro de la TV con pulso y sobreestimulación; y en la v0.7, hiperpotasemia con y sin calcio, hipoglucemia y su recurrencia, QRS de los tricíclicos con bicarbonato, FV en hipotermia, hemorragia con y sin hemostasia (y el coste del volumen liberal), convulsiones de la eclampsia con magnesio, crup, bronquiolitis con alto flujo, constantes de un lactante sano, nueva parada tras la RCE, parada traumática y compensación respiratoria según Winter.
+Cada versión tiene que pasar 481 pruebas con rangos de referencia: regresión de la mecánica, tiempo de desaturación en apnea (sano preoxigenado 7–9,5 min, con aire 0,6–2 min, obeso 2,3–3,6 min) igual a ×1 que a ×20, PaCO₂ en respiración espontánea (TSV, TEP, opiáceos, EPOC con hiperoxia), SpO₂ del EPOC según FiO₂, EtCO₂ durante la RCP, tiempo de acción del relajante, tasas de RCE según se resuelva o no la causa, frecuencia mandatoria en SIMV, fracción de compresión con 30:2, vía aérea no oxigenable con bolsa y supraglótico, drenaje torácico en altitud, deterioro de la TV con pulso y sobreestimulación; y en la v0.7, hiperpotasemia con y sin calcio, hipoglucemia y su recurrencia, QRS de los tricíclicos con bicarbonato, FV en hipotermia, hemorragia con y sin hemostasia (y el coste del volumen liberal), convulsiones de la eclampsia con magnesio, crup, bronquiolitis con alto flujo, constantes de un lactante sano, nueva parada tras la RCE, parada traumática y compensación respiratoria según Winter.
 
 **Validador de casos** (`node tests/validar.js`, también dentro de las pruebas): un bot juega cada caso con su solución de referencia (`src/solutions.js`) como lo haría un equipo experto (ajusta la FiO₂ y la FR a los objetivos, responde a las complicaciones, sigue el algoritmo de SVA y canaliza vía cuando hace falta) y otra vez sin hacer nada, con la misma nota que el examen. Un caso es válido si con la solución saca ≥ 7 (en la parada: ≥ 80 % de las acciones clave y RCE en ≥ 40 % de las partidas) y sin hacer nada ≤ 5. Además, la solución del original tiene que resolver ≥ 85 % de sus variantes. Con `--detalle` muestra cada objetivo; con `--variantes N`, las variantes que no se resuelven. Ningún caso nuevo entra sin pasar el validador.
+
+## Cambios en la v1.32
+
+- Cuentas de beta tester, opcionales y solo por invitación. Es la misma cuenta que en ECG en Ruta y, en GitHub Pages, la sesión sirve para las dos. Botón «Cuenta» en la barra: crear cuenta con el correo invitado, verificarlo, entrar, recuperar la contraseña, cambiar el nombre y borrar la cuenta con sus datos.
+  - Se guardan en la nube los intentos (y con ellos el historial y los itinerarios), el itinerario elegido, la valoración de revisión, los casos propios y las revisiones importadas en «Coordinación». Se sincroniza al terminar cada caso, al volver la cobertura y al salir de la app.
+  - Fusión entre dispositivos: los intentos se unen sin repetir («Borrar historial» deja una marca y no vuelven), las valoraciones se unen por caso, los casos propios se unen respetando los borrados y lo demás guarda el cambio más reciente. Las escrituras llevan condición de versión: si dos dispositivos guardan a la vez, se repite y no se pierde nada.
+  - Con la cuenta iniciada, el alumno es el nombre de la cuenta. Al enlazar un dispositivo se suman los intentos sin nombre o con el nombre que había escrito; los de otros alumnos se quedan solo en el dispositivo.
+- Administración (David, o quien tenga rol de administrador): invitar por correo (sale el mensaje listo para WhatsApp), retirar invitaciones, ver a cada tester con su resumen de las dos apps y su detalle (itinerarios, últimos intentos, revisión), descargar todo en JSON y «Traer las revisiones a Coordinación», que sustituye a ir importando los JSON uno a uno.
+- Firebase: proyecto `apps-docentes-sva`, plan gratuito, Firestore en Madrid. Reglas en `firebase/firestore.rules`: solo los correos invitados y verificados, cada uno sus datos, y el administrador lo lee todo.
+- 10 pruebas nuevas (481 en total), más 28 contra los emuladores de Firebase (`firebase/prueba_emulador.js`) y 20 de extremo a extremo en el navegador.
 
 ## Cambios en la v1.31
 
@@ -361,3 +377,13 @@ Guía rápida y especificaciones técnicas del Hamilton T1; manual de usuario de
 ## Aviso
 
 Herramienta docente. Valores y dosis orientativos (dosis de referencia para adulto, o pediátricas por peso en los casos marcados como pediátricos). No sustituye al manual del equipo, a los protocolos del servicio ni al juicio clínico.
+
+## Cuentas
+
+- Proyecto de Firebase `apps-docentes-sva` (cuenta de Google de David), plan gratuito Spark. Authentication con correo y contraseña; Firestore en `europe-southwest1` (Madrid). Es el mismo proyecto que ECG en Ruta.
+- Solo entra quien tenga invitación (`invites/{correo}`) y el correo verificado. Lo imponen las reglas de `firebase/firestore.rules`, que hay que publicar en la consola de Firebase si se cambian. Administrador por configuración: davidrope93@gmail.com; también lo es cualquier invitado con rol «administrador».
+- Datos: `users/{uid}` (nombre, correo y un resumen por app para el panel) y `users/{uid}/apps/sva` (JSON con `hist`, `values`, `stamps`, `clearedAt` y `del`). En el dispositivo: `simvmi.stamps` (hora de cada cambio) y `simvmi.acct` (qué cuenta está enlazada).
+- Para invitar: Cuenta → Administración → correo, nombre y rol → Invitar, y enviar el mensaje que aparece. El tester crea su cuenta con ese correo y pulsa el enlace de verificación.
+- Probar cambios de las cuentas sin tocar la de verdad: con Java instalado, `cd firebase && npx firebase-tools emulators:start --only auth,firestore --project demo-apps-docentes-sva` y, en otra terminal, `node firebase/prueba_emulador.js`. Para que la app use los emuladores: `localStorage.setItem('apps-sva.emu', JSON.stringify({ auth: 'http://127.0.0.1:9099', fs: 'http://127.0.0.1:8080' }))`.
+- La clave web de Firebase (`apiKey` en `src/cuenta.js`) es pública por diseño. La seguridad la dan las reglas.
+

@@ -89,7 +89,7 @@ function teachDebrief(reason) {
   const c = CASES[caseKey], sc = examScore(), dm = debriefMarks();
   const col = v => v >= .8 ? 'var(--ok)' : v >= .5 ? 'var(--warn)' : 'var(--bad)';
   const head = `<div class="dbhead"><div class="score" style="--sc:${col(sc.total / 10)}"><b>${fmt(sc.total, 1)}</b><span>sobre 10</span></div>
-    <div class="dbmeta"><label class="small" for="dbName">Alumno</label><input id="dbName" value="${esc(student)}" placeholder="Nombre" autocomplete="off">
+    <div class="dbmeta"><label class="small" for="dbName">Alumno</label><input id="dbName" value="${esc(student)}" placeholder="Nombre" autocomplete="off"${acctLocked() ? ' disabled title="Con la cuenta iniciada, el alumno es el nombre de tu cuenta"' : ''}>
     <p class="small">${exam ? 'Modo examen' : 'Modo práctica'}${track.tutorial ? ' · con tutorial' : ''} · ${new Date().toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })}</p></div></div>
     <table class="dtable">${sc.parts.map(p => `<tr><td>${p.lab}<br><span class="small">${esc(p.det)}</span></td><td style="width:34%"><div class="bar"><span style="width:${p.v * 100}%;background:${col(p.v)}"></span></div></td><td class="n">${fmt(p.v * 100)} %</td></tr>`).join('')}</table>`;
   const tl = track.series.length > 2 ? `<h2 style="margin-top:6px">Línea de tiempo</h2>${timelineSVG(track.series, dm.m, dm.lines)}` : '';

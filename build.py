@@ -4,8 +4,9 @@ src = lambda f: open('src/' + f, encoding='utf-8').read()
 t = src('template.html')
 t = t.replace('/*MODEL*/', src('model.js'))
 t = t.replace('/*DEVICES*/', src('devices.js') + '\n' + src('drugs.js'))  # los fármacos van con los equipos
+t = t.replace('/*CUENTA*/', src('cuenta.js'))  # v1.32: cuentas de beta tester (núcleo común con ECG en Ruta)
 t = t.replace('/*CASES*/', src('cases.js') + '\n' + src('variants.js') + '\n' + src('solutions.js') + '\n' + src('bot.js'))  # el generador de variantes va junto a los casos
-t = t.replace('/*UI*/', src('ui.js').replace('/*TEACH*/', src('teach.js')).replace('/*GUIDE*/', src('guide.js')).replace('/*TUTOR*/', src('tutor.js')).replace('/*LIBRARY*/', src('library.js')))  # docencia, orientación y tutorial dentro de la interfaz
+t = t.replace('/*UI*/', src('ui.js').replace('/*TEACH*/', src('teach.js')).replace('/*GUIDE*/', src('guide.js')).replace('/*TUTOR*/', src('tutor.js')).replace('/*LIBRARY*/', src('library.js')).replace('/*CUENTA_APP*/', src('cuenta_app.js')))  # docencia, orientación y tutorial dentro de la interfaz
 head, body = t.split('<style>', 1)
 style, rest = body.split('</style>', 1)
 head = head.replace('<meta name="claude:viewport-fit-sides" content="cover">\n', '')

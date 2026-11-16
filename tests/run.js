@@ -513,6 +513,35 @@ console.log('— Itinerario (v1.31): la parada resuelta cuenta aunque sea corta 
   const T = require('fs').readFileSync(require('path').join(__dirname, '..', 'src', 'teach.js'), 'utf8'), Lb = require('fs').readFileSync(require('path').join(__dirname, '..', 'src', 'library.js'), 'utf8'), U = require('fs').readFileSync(require('path').join(__dirname, '..', 'src', 'ui.js'), 'utf8');
   check('Debrief y botón «Terminar»: guardan «full», explican por qué no cuenta, proponen repetir y avisan antes de terminar', /if \(attemptFull\(\)\) att\.full = true/.test(T) && /pathDebrief\(c, att\)/.test(T) && /Este intento no cuenta para el itinerario/.test(Lb) && /'Repetir' : 'Siguiente del itinerario'/.test(Lb) && /const w = pathEndWarn\(\)/.test(U) ? 1 : 0, 1, 1); }
 
+console.log('— Cuentas (v1.32): núcleo común sin red y fusión del progreso entre dispositivos');
+{ const fs = require('fs'), path = require('path'), R = f => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
+  const r = require('child_process').spawnSync(process.execPath, [path.join(__dirname, 'cuenta_core.js')], { encoding: 'utf8' }), mc = (r.stdout || '').match(/(\d+) de (\d+) pruebas correctas/);
+  if (r.status !== 0) console.log(r.stdout, r.stderr);
+  check('Núcleo de cuentas (sesión, Firestore con condición de versión, errores): pruebas que fallan' + (mc ? ' de ' + mc[2] : ''), r.status === 0 && mc ? 0 : 1, 0, 0);
+  const CA = R('src/cuenta_app.js'), grab = n => CA.slice(CA.indexOf('function ' + n + '('), CA.indexOf('\n}\n', CA.indexOf('function ' + n + '(')) + 3);
+  const KEYS = JSON.parse(CA.match(/const ACCT_KEYS = (\[[^\]]*\]);/)[1].replace(/'/g, '"')), merge = new Function('ACCT_KEYS', 'histKey', grab('svaMerge') + '; return svaMerge;')(KEYS, a => a.d + '|' + a.key);
+  const at = (d, key, score) => ({ d: '2026-11-' + d, key, name: '', score, min: 6 }), vals = o => Object.assign({ 'simvmi.path': null, 'simvmi.review': null, 'simvmi.cases': null, 'simvmi.reviewsIn': null }, o || {});
+  const L = (hist, o) => Object.assign({ hist, values: vals(), stamps: {}, clearedAt: '', del: {} }, o || {});
+  let m = merge(null, L([at('10', 'pcrFv', 8), at('12', 'asma', 6)]));
+  m = merge(m, L([at('11', 'tce', 9), at('12', 'asma', 6)]));
+  check('Intentos de dos dispositivos: unidos, sin repetir y por fecha', m.hist.map(a => a.key).join() === 'pcrFv,tce,asma' ? 1 : 0, 1, 1);
+  check('«Borrar historial» en un dispositivo: no vuelven los intentos anteriores (sí los posteriores)', merge(m, L([], { clearedAt: '2026-11-11z' })).hist.map(a => a.key).join() === 'asma' ? 1 : 0, 1, 1);
+  m = merge({ v: 1, hist: [], values: vals({ 'simvmi.path': 'hems' }), stamps: { 'simvmi.path': '2026-11-16T10:00:00Z' } }, L([], { values: vals({ 'simvmi.path': 'residente' }), stamps: { 'simvmi.path': '2026-11-16T09:00:00Z' } }));
+  check('Itinerario elegido: gana el cambio más reciente', m.values['simvmi.path'] === 'hems' ? 1 : 0, 1, 1);
+  const rvA = { name: 'Ana', role: 'Residente', lot: 'A', items: { tce: { r: { fid: 4 }, ts: '2026-11-10' }, asma: { r: { fid: 2 }, ts: '2026-11-10' } }, general: '' };
+  const rvB = { name: '', role: '', lot: '', items: { asma: { r: { fid: 5 }, ts: '2026-11-12' }, neumo: { r: { fid: 3 }, ts: '2026-11-12' } }, general: '' };
+  m = merge({ v: 1, hist: [], values: vals({ 'simvmi.review': rvA }), stamps: { 'simvmi.review': '2026-11-10' } }, L([], { values: vals({ 'simvmi.review': rvB }), stamps: { 'simvmi.review': '2026-11-12' } }));
+  const rv = m.values['simvmi.review'];
+  check('Revisión: se unen las valoraciones por caso (la más nueva) sin perder nombre, perfil ni lote', Object.keys(rv.items).length === 3 && rv.items.asma.r.fid === 5 && rv.name === 'Ana' && rv.role === 'Residente' && rv.lot === 'A' ? 1 : 0, 1, 1);
+  m = merge({ v: 1, hist: [], values: vals({ 'simvmi.cases': { u_a: { title: 'A' }, u_b: { title: 'B' } } }), stamps: { 'simvmi.cases': '2026-11-10' }, del: {} }, L([], { values: vals({ 'simvmi.cases': { u_a: { title: 'A' }, u_c: { title: 'C' } } }), stamps: { 'simvmi.cases': '2026-11-12' }, del: { u_b: '2026-11-12' } }));
+  check('Casos propios: se unen y el borrado en un dispositivo no vuelve', Object.keys(m.values['simvmi.cases']).sort().join() === 'u_a,u_c' ? 1 : 0, 1, 1);
+  m = merge({ v: 1, hist: [], values: vals({ 'simvmi.reviewsIn': [{ reviewer: { name: 'Luis' }, lot: 'B', items: {} }] }), stamps: {} }, L([], { values: vals({ 'simvmi.reviewsIn': [{ reviewer: { name: 'Ana' }, lot: 'A', items: {} }] }) }));
+  check('Revisiones importadas por el coordinador en dos dispositivos: se unen', m.values['simvmi.reviewsIn'].length, 2, 2);
+  check('Sin nada en la nube ni aquí: sin valores inventados', Object.values(merge(null, L([])).values).every(v => v == null) ? 1 : 0, 1, 1);
+  const T = R('src/template.html'), U = R('src/ui.js'), TE = R('src/teach.js'), B = R('build.py');
+  check('Botón de cuenta, núcleo cargado antes de la interfaz, adaptador dentro y arranque fuera del modo instructor', /id="acctBtn"/.test(T) && /\/\*CUENTA\*\/[\s\S]*\/\*UI\*\//.test(T) && /\/\*CUENTA_APP\*\//.test(U) && /src\('cuenta_app\.js'\)/.test(B) && /rvInit\(\); acctInit\(\);/.test(U) && /if \(!window\.Cuenta \|\| INSTR\) return;/.test(CA) ? 1 : 0, 1, 1);
+  check('Con cuenta, el alumno es el de la cuenta (el debrief no deja cambiarlo) y las reglas están en firebase/', /acctLocked\(\) \? ' disabled/.test(TE) && fs.existsSync(path.join(__dirname, '..', 'firebase', 'firestore.rules')) && /const VERSION = 1;/.test(R('src/cuenta.js')) ? 1 : 0, 1, 1); }
+
 console.log('— Debrief comparado (v1.27): el bot de referencia del validador juega la misma situación en el navegador');
 { const { play } = require('./validar'), BOT = global.SIM_BOT; require('../src/drugs.js'); const DR = global.SIM_DRUGS;
   const refPlay = (k, seed) => { const c = CASES[k], L = load(k, { scale: 10, seed }); BOT.prep(L.sim); const B = BOT.make({ sim: L.sim, S: L.S, sched: L.sched, c, key: k, sol: global.SIM_SOL[c.vbase || k], DR, peso: L.peso }); const r = BOT.runner(L, B, c.targets || {}); r.advance(c.duration || 20); return { res: B.finish(r.SV, r.R, c.duration || 20), B, r }; };
