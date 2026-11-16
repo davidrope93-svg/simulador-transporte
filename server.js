@@ -90,7 +90,7 @@ function serve(base, port) {
       fail(res, 404);
     });
   }).listen(port, '0.0.0.0', () => {
-    console.log('Simulador SVA en http://localhost:' + port + ' (sirviendo ' + (path.relative(ROOT, base) || '.') + ')');
+    console.log('SVA Trainer en http://localhost:' + port + ' (sirviendo ' + (path.relative(ROOT, base) || '.') + ')');
   });
 }
 
