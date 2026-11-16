@@ -1285,7 +1285,12 @@ function showDebrief(reason) {
   teachDebrief(reason);
   $('#debrief').hidden = false; paused = true; setPauseBtn(); $('#dbRepeat').focus();
 }
-$('#endBtn').addEventListener('click', () => showDebrief(''));
+let endWarnAt = 0; // v1.31: si el intento aún no cuenta para el itinerario, el primer toque avisa y el segundo (en 6 s) termina
+$('#endBtn').addEventListener('click', e => {
+  const w = pathEndWarn(), b = e.currentTarget;
+  if (w && Date.now() - endWarnAt > 6000) { endWarnAt = Date.now(); toast(w); b.textContent = 'Pulsa otra vez para terminar'; setTimeout(() => { if (Date.now() - endWarnAt >= 5900) b.textContent = 'Terminar caso'; }, 6000); return; }
+  endWarnAt = 0; b.textContent = 'Terminar caso'; showDebrief('');
+});
 $('#dbClose').addEventListener('click', () => { $('#debrief').hidden = true; paused = false; setPauseBtn(); });
 $('#dbRepeat').addEventListener('click', () => { $('#debrief').hidden = true; paused = false; setPauseBtn(); loadCase(caseKey); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#debrief').hidden) $('#dbClose').click(); });

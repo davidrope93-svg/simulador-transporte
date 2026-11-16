@@ -106,13 +106,25 @@ function pathLaunch(k, ex) {
   const pr = pathOf(pathSel), st = pr.stages.find(s => s.cases.some(c => c.k === k) && (s.exam === !!ex));
   toast(`Itinerario ${PATHS[pathSel].t}${st ? ' · etapa ' + (st.i + 1) + ': ' + st.t : ''}${ex ? ' · examen' : ''}`);
 }
-/* bloque del debrief: cómo va el itinerario activo y el siguiente caso */
-function pathDebrief(c) {
+/* bloque del debrief: cómo va el itinerario activo y el siguiente caso; v1.31: si el intento no cuenta, dice por qué y propone repetirlo */
+function pathDebrief(c, att) {
   const pk = LS.get('simvmi.path', null), P = PATHS[pk]; if (!P) return;
   const key = c.vbase || caseKey; if (!P.stages.some(s => s.k.includes(key))) return;
   const pr = pathOf(pk), st = pr.cur != null ? pr.stages[pr.cur] : null;
-  const html = `<div class="ptdb"><b>Itinerario ${esc(P.t)}</b> · progreso ${pr.pct} %${st ? ` · etapa ${st.i + 1} de ${pr.stages.length} (${esc(st.t)}): ${st.ok} de ${st.need}` : ' · superado'}<br><span class="small">${(() => { const b = pr.stages.flatMap(s => s.cases).filter(x => x.k === key).map(x => x.best).filter(x => x != null); const m = b.length ? Math.max(...b) : null; const mn = window.SIM_PATHMIN ? SIM_PATHMIN(key) : 0; if (S.clin < mn) return `Intento demasiado corto para el itinerario: cuenta a partir de ${fmt(mn, 1)} min de caso.`; return m != null && m >= P.pass ? 'Este caso ya cuenta como superado.' : `Para que cuente necesitas una nota ≥ ${P.pass}.`; })()}</span>${pr.next ? `<div class="inrow"><button class="btn primary" id="dbPathNext" data-k="${esc(pr.next)}" data-ex="${pr.nextExam ? 1 : 0}">Siguiente del itinerario: ${esc(CASES[pr.next].title)}</button><button class="btn" id="dbPathOpen">Ver el itinerario</button></div>` : ''}</div>`;
+  const counts = att ? window.SIM_PATHCOUNTS(att) : true, mn = window.SIM_PATHMIN ? SIM_PATHMIN(key) : 0;
+  const b = pr.stages.flatMap(s => s.cases).filter(x => x.k === key).map(x => x.best).filter(x => x != null), m = b.length ? Math.max(...b) : null;
+  const why = !counts ? `<b>Este intento no cuenta para el itinerario:</b> terminaste en el min ${fmt(S.clin, 1)}. Cuenta a partir del min ${fmt(mn, 1)}${c.arrest && !c.noRosc ? ' o, en la parada, al terminar con RCE y todas las acciones clave indicadas hechas' : ''}.`
+    : m != null && m >= P.pass ? 'Este caso ya cuenta como superado.' : `Para que cuente necesitas una nota ≥ ${P.pass}${att ? ` (esta vez, ${fmt(att.score, 1)})` : ''}.`;
+  const again = pr.next === key, nextBtn = pr.next ? `<button class="btn primary" id="dbPathNext" data-k="${esc(pr.next)}" data-ex="${pr.nextExam ? 1 : 0}">${again ? 'Repetir' : 'Siguiente del itinerario'}: ${esc(CASES[pr.next].title)}</button>` : '';
+  const html = `<div class="ptdb${counts ? '' : ' warn'}"><b>Itinerario ${esc(P.t)}</b> · progreso ${pr.pct} %${st ? ` · etapa ${st.i + 1} de ${pr.stages.length} (${esc(st.t)}): ${st.ok} de ${st.need}` : ' · superado'}<br><span class="small">${why}</span>${pr.next ? `<div class="inrow">${nextBtn}<button class="btn" id="dbPathOpen">Ver el itinerario</button></div>` : ''}</div>`;
   const t = $('#dbBody .dtable'); if (t) t.insertAdjacentHTML('afterend', html); else $('#dbBody').insertAdjacentHTML('afterbegin', html);
+}
+/* v1.31: «Terminar» antes de que el intento cuente para el itinerario activo: devuelve el aviso (null si ya cuenta o no aplica) */
+function pathEndWarn() {
+  const pk = LS.get('simvmi.path', null), P = PATHS[pk], c = CASES[caseKey]; if (INSTR || ended || !P || !c) return null;
+  const key = c.vbase || caseKey; if (!P.stages.some(s => s.k.includes(key))) return null;
+  const mn = SIM_PATHMIN(key); if (S.clin >= mn || attemptFull()) return null;
+  return `Aún no cuenta para el itinerario: ${c.arrest && !c.noRosc ? `consigue la RCE con las acciones clave indicadas o sigue hasta el min ${fmt(mn, 1)}` : `sigue hasta el min ${fmt(mn, 1)}`} (vas por el ${fmt(S.clin, 1)}).`;
 }
 function pathSummary() { const pk = LS.get('simvmi.path', null); if (!PATHS[pk]) return null; const pr = pathOf(pk); return { t: PATHS[pk].t, pct: pr.pct, st: pr.cur != null ? pr.cur + 1 : null, n: pr.stages.length, done: pr.finished }; }
 function pathReport() {

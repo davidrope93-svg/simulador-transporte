@@ -137,10 +137,12 @@ function make(ctx) {
     if (tk.length) parts.push([4, tk.reduce((a, b) => a + b, 0) / tk.length, 'objetivos']);
     const arrested = c.arrest || R.arrestAt != null;
     const done = tok => tok.split('|').some(t => (t.startsWith('no:') ? !used.has(t.slice(3)) : used.has(t)) || (t === 'rosc' && R.roscAt != null) || (t === 'stacked' && S.cpr.stacked) || (t === 'intub' && S._intubAt != null) || (t === 'noarrest' && !S.arrest && (!arrested || R.roscAt != null)));
+    const on = root.SIM_CHKON || (() => true), st = { rosc: R.roscAt != null, arrest: S.arrest, shocks: S.cpr.shocks }; // v1.31: sin adrenalina ni antiarrítmico si hubo RCE antes de la 3.ª descarga
+    const chk = (c.checks || []).filter(x => on(x, st)).map(x => Array.isArray(x) ? x[0] : x);
     if (chk.length) parts.push([3, chk.filter(done).length / chk.length, 'acciones']);
     if (arrested) parts.push([3, S.arrest ? (c.noRosc && S.cpr.comp !== 'off' ? 1 : 0) : 1, 'parada']); // noRosc: el éxito es trasladar con RCP de calidad
     const score = parts.length ? 10 * parts.reduce((a, p) => a + p[0] * p[1], 0) / parts.reduce((a, p) => a + p[0], 0) : null;
-    return { score, parts, tgt, chkFrac: chk.length ? chk.filter(done).length / chk.length : 1, missing: chk.filter(t => !done(t)), notes, rosc: !S.arrest && arrested, nan: R.nan.length + R.weird.filter(w => !/pH (6\.|7\.0)/.test(w)).length };
+    return { score, parts, tgt, chkFrac: chk.length ? chk.filter(done).length / chk.length : 1, missing: chk.filter(t => !done(t)), notes, rosc: !S.arrest && arrested, shocks: S.cpr.shocks, nan: R.nan.length + R.weird.filter(w => !/pH (6\.|7\.0)/.test(w)).length };
   }
   return { tick, finish, used, first, log, notes, perfNow };
 }
