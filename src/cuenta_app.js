@@ -127,7 +127,7 @@ async function acctPullReviews(c, core) {
 function acctInit() {
   if (!window.Cuenta || INSTR) return;
   try {
-    acct = Cuenta.createUI(Cuenta.createCore(), SVA_ADAPTER, { outLabel: 'Cuenta', what: 'Se guardan tus intentos e itinerarios, tu valoración de revisión y tus casos propios.', onSync: s => { if (s.st === 'ok') acctDirty = false; }, adminActions: [{ label: 'Traer las revisiones a «Coordinación»', run: acctPullReviews }] });
+    acct = Cuenta.createUI(Cuenta.createCore(), SVA_ADAPTER, { outLabel: 'Cuenta', what: 'Se guardan tus intentos e itinerarios, tu valoración de revisión y tus casos propios.', onSync: s => { if (s.st === 'ok') acctDirty = false; if (homeOn) homeRender(); /* v1.33: el inicio enseña el estado de la nube */ }, adminActions: [{ label: 'Traer las revisiones a «Coordinación»', run: acctPullReviews }] });
     acct.mountButton($('#acctBtn')); $('#acctBtn').hidden = false;
     acct.start();
   } catch (e) { acct = null; /* sin cuenta: la app sigue igual */ }

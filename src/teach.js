@@ -84,23 +84,46 @@ function debriefMarks() {
   return { m, lines };
 }
 
-/* ---------- debrief: nota, línea de tiempo, alumno, PDF e historial ---------- */
+/* ---------- debrief: nota, resumen, línea de tiempo, alumno, PDF e historial ----------
+   v1.33: arriba solo lo que hace falta para aprender del intento (nota, lo que has hecho bien, lo que puedes mejorar —src/debrief.js—
+   y qué hacer ahora); la línea de tiempo, la comparación con la referencia y las tablas van plegadas en «Ver el informe completo» */
+const chkWhen = tok => { let best = null; for (const t of tok.split('|')) { const v = t === 'intub' ? track.intubAt : t === 'rosc' ? track.roscAt : track.usedAt && track.usedAt[t]; if (v != null && (best == null || v < best)) best = v; } return best; };
+function dbData(ref) {
+  const c = CASES[caseKey], W = track.worst, on = checksNow(c).on;
+  const targets = Object.entries(track.t).filter(([, v]) => v.tot > 0).map(([k, v]) => ({ k, lab: tgLab(c, k), pct: v.inT / v.tot * 100, hi: (v.hi || 0) / v.tot * 100, lo: (v.lo || 0) / v.tot * 100, fmt: !!TGT[k].fmt }));
+  const checks = on.map(([t, l]) => { const done = checkDone(t); return { lab: l, done, at: done ? chkWhen(t) : null }; });
+  let arrest = null;
+  if (track.arrestAt != null) { const cp = S.cpr; arrest = { ccf: cp.cprTime + cp.noFlow > 0 ? cp.cprTime / (cp.cprTime + cp.noFlow) : 0, rosc: track.roscAt != null, roscMin: track.roscAt != null ? track.roscAt - track.arrestAt : null, firstShock: track.firstShock, vf: c.arrest === 'vf' }; }
+  const unresolved = track.events.filter(e => e.fixed == null && e.k !== 'cough' && e.k !== 'move' && e.k !== 'aspir').map(e => EVLAB[e.k] || e.k);
+  return { min: S.clin, score: examScore().total, targets, checks, arrest, ref: ref || null,
+    safety: { arrestCaused: !c.arrest && track.arrestAt != null, minSpo2: W.n ? W.spo2 : null, standbyApnea: track.standbyApnea, unresolved },
+    events: track.events.map(e => ({ lab: EVLAB[e.k] || e.k, fixedIn: e.fixed != null ? e.fixed - e.at : null })) };
+}
+function dbTipsRender(ref) {
+  const box = $('#dbTips'); if (!box || !window.SIM_DBTIPS) return;
+  const r = SIM_DBTIPS(dbData(ref)), li = xs => xs.map(t => `<li>${esc(t)}</li>`).join('');
+  box.classList.toggle('one', !r.good.length);
+  box.innerHTML = (r.good.length ? `<section class="dbcol good"><h4>Lo que has hecho bien</h4><ul>${li(r.good)}</ul></section>` : '') +
+    `<section class="dbcol bad"><h4>${r.short ? 'Intento demasiado corto' : 'Lo que puedes mejorar'}</h4><ul>${li(r.bad)}</ul>${r.more ? `<p class="small">Y ${r.more} ${r.more === 1 ? 'cosa más' : 'cosas más'}: mira «Ver el informe completo».</p>` : ''}</section>`;
+  const v = $('#dbVerd'); if (v) { v.textContent = r.verdict.t; v.className = 'dbverd ' + r.verdict.k; }
+}
 function teachDebrief(reason) {
   const c = CASES[caseKey], sc = examScore(), dm = debriefMarks();
   const col = v => v >= .8 ? 'var(--ok)' : v >= .5 ? 'var(--warn)' : 'var(--bad)';
-  const head = `<div class="dbhead"><div class="score" style="--sc:${col(sc.total / 10)}"><b>${fmt(sc.total, 1)}</b><span>sobre 10</span></div>
-    <div class="dbmeta"><label class="small" for="dbName">Alumno</label><input id="dbName" value="${esc(student)}" placeholder="Nombre" autocomplete="off"${acctLocked() ? ' disabled title="Con la cuenta iniciada, el alumno es el nombre de tu cuenta"' : ''}>
-    <p class="small">${exam ? 'Modo examen' : 'Modo práctica'}${track.tutorial ? ' · con tutorial' : ''} · ${new Date().toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })}</p></div></div>
-    <table class="dtable">${sc.parts.map(p => `<tr><td>${p.lab}<br><span class="small">${esc(p.det)}</span></td><td style="width:34%"><div class="bar"><span style="width:${p.v * 100}%;background:${col(p.v)}"></span></div></td><td class="n">${fmt(p.v * 100)} %</td></tr>`).join('')}</table>`;
-  const tl = track.series.length > 2 ? `<h2 style="margin-top:6px">Línea de tiempo</h2>${timelineSVG(track.series, dm.m, dm.lines)}` : '';
-  $('#dbBody').insertAdjacentHTML('afterbegin', head + tl + '<section id="dbCmp" class="cmp"><h2 style="margin-top:6px">Comparado con la referencia</h2><p class="small">Calculando la actuación de referencia…</p></section>');
-  if (exam && c.hint) { const hs = [...$('#dbBody').querySelectorAll('h2')].find(h => h.textContent === 'Solución posible'); if (hs) { const p = hs.nextElementSibling; const d = document.createElement('details'); d.innerHTML = '<summary>Ver la solución posible</summary>'; d.appendChild(p.cloneNode(true)); hs.replaceWith(d); p.remove(); } }
+  const chips = sc.parts.map(p => `<span class="dbchip" title="${esc(p.det)}" style="--c:${col(p.v)}"><i style="width:${Math.round(p.v * 100)}%"></i>${p.lab} <b>${fmt(p.v * 100)} %</b></span>`).join('');
+  $('#dbHead').innerHTML = `<div class="dbhead"><div class="score" style="--sc:${col(sc.total / 10)}"><b>${fmt(sc.total, 1)}</b><span>sobre 10</span></div>
+    <div class="dbmeta"><p class="dbverd" id="dbVerd"></p><p class="small" id="dbRef"></p><div class="dbparts">${chips}</div>
+    <p class="small dbline">${exam ? 'Examen' : 'Práctica'}${track.tutorial ? ' con tutorial' : ''} · ${new Date().toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })} · ${fmt(S.clin, 1)} min simulados · <label for="dbName">Alumno</label> <input id="dbName" value="${esc(student)}" placeholder="Nombre" autocomplete="off"${acctLocked() ? ' disabled title="Con la cuenta iniciada, el alumno es el nombre de tu cuenta"' : ''}></p></div></div>`;
+  dbTipsRender(null);
+  $('#dbEvo').innerHTML = track.series.length > 2 ? `<h2 style="margin-top:10px">Tu evolución</h2>${timelineSVG(track.series, dm.m, dm.lines)}` : '';
+  $('#dbCmp').innerHTML = '<h2 style="margin-top:10px">Comparado con la referencia</h2><p class="small">Calculando la actuación de referencia…</p>';
   const att = { d: new Date().toISOString(), name: student || '', key: caseKey, base: c.vbase || null, title: c.title, exam, tut: !!track.tutorial, score: sc.total, parts: sc.parts.map(p => [p.lab, Math.round(p.v * 100)]), min: Math.round(S.clin * 10) / 10, reason: reason || '' };
   if (attemptFull()) att.full = true; // v1.31: resuelto (RCE con las acciones clave): cuenta para el itinerario aunque sea corto
   const hist = LS.get('simvmi.hist', []); hist.push(att); while (hist.length > 500) hist.shift(); LS.set('simvmi.hist', hist);
   const idx = hist.length - 1;
   $('#dbName').addEventListener('change', e => { student = e.target.value.trim().slice(0, 60); LS.set('simvmi.name', student); $('#stuName').value = student; const h = LS.get('simvmi.hist', []); if (h[idx] && h[idx].d === att.d) { h[idx].name = student; LS.set('simvmi.hist', h); } });
   pathDebrief(c, att); rvDebrief(); cmpStart(reason);
+  $('#dbRepeat').classList.toggle('primary', !$('#dbPathNext')); // con itinerario, lo principal es el siguiente caso
   linkSend({ t: 'debrief', sid: SID, key: caseKey, vcode: c.vcode || null, exam, min: Math.round(S.clin * 10) / 10, title: c.title, reason: reason || '', score: sc.total, parts: sc.parts.map(p => [p.lab, Math.round(p.v * 100), p.det]), name: student });
 }
 
@@ -144,9 +167,10 @@ function cmpSVG(a, b, T) {
 }
 function cmpStart() {
   const box = $('#dbCmp'); if (!box) return;
-  const c = CASES[caseKey], base = c.vbase || caseKey, sol = window.SIM_SOL && SIM_SOL[base], msg = t => { box.innerHTML = '<h2 style="margin-top:6px">Comparado con la referencia</h2><p class="small">' + t + '</p>'; };
+  const c = CASES[caseKey], base = c.vbase || caseKey, sol = window.SIM_SOL && SIM_SOL[base], msg = t => { box.innerHTML = '<h2 style="margin-top:10px">Comparado con la referencia</h2><p class="small">' + t + '</p>'; const r = $('#dbRef'); if (r) r.textContent = ''; };
   if (!sol || !window.SIM_BOT || !refOpts || !c.pheno) { msg('Este caso no tiene actuación de referencia (casos propios y modo libre).'); return; }
   if (S.clin < 1) { msg('Simula al menos un minuto para poder compararte con la referencia.'); return; }
+  { const r = $('#dbRef'); if (r) r.textContent = 'Equipo de referencia: calculando…'; }
   const T = Math.max(1, Math.min(S.clin, (c.duration || 20) + 5)), tok = ++cmpTok;
   let sim2, S2, B, run;
   try { const o = JSON.parse(JSON.stringify(refOpts)); o.scale = 10; sim2 = VMI.create(o); sim2.warm(12); sim2.setRatio(refRatio); SIM_BOT.prep(sim2); S2 = sim2.S;
@@ -168,24 +192,21 @@ function cmpRender(box, c, B, run, S2, T) {
   const mm = t => t == null ? '—' : 'min ' + fmt(t, 1);
   const onMe = checksNow(c).on, onRef = checksNow(c, chkState(R.roscAt != null, S2.arrest, S2.cpr.shocks)).on, has = (L, tok) => L.some(x => x[0] === tok); // v1.31: «no indicada» si no aplica a ese intento
   const ch = checksOf(c).filter(([tok]) => has(onMe, tok) || has(onRef, tok)).map(([tok, lab]) => { const a = has(onMe, tok) ? checkDone(tok) : null, b = has(onRef, tok) ? ref.done(tok) : null, ta = a ? when(tok, 'me') : null, tb = b ? when(tok, 'ref') : null; return { lab, a, b, ta, tb }; });
-  const tgs = Object.entries(c.targets || {}).map(([k, r]) => { const v = track.t[k], a = v && v.tot ? v.inT / v.tot * 100 : null, b = ref.pct[k] != null ? ref.pct[k] * 100 : null; return { k, lab: `${TGT[k].lab} ${rangeTxt(r, TGT[k])} ${TGT[k].fmt ? '' : TGT[k].u}`.trim(), a, b }; });
-  /* lo que más cambia: acciones que faltan, retrasos y objetivos */
-  const tips = [];
-  ch.filter(x => x.a === false && x.b).slice(0, 2).forEach(x => tips.push(`Te faltó «${esc(x.lab)}»: la referencia lo hizo en el ${mm(x.tb)}.`));
-  ch.filter(x => x.a && x.b && x.ta != null && x.tb != null && x.ta - x.tb >= 2).sort((p, q) => (q.ta - q.tb) - (p.ta - p.tb)).slice(0, 2).forEach(x => tips.push(`«${esc(x.lab)}»: tú en el ${mm(x.ta)}, la referencia en el ${mm(x.tb)} (${fmt(x.ta - x.tb, 1)} min antes).`));
-  tgs.filter(x => x.a != null && x.b != null && x.b - x.a >= 25).sort((p, q) => (q.b - q.a) - (p.b - p.a)).slice(0, 2).forEach(x => tips.push(`${esc(x.lab)} en objetivo: tú ${fmt(x.a)} %, la referencia ${fmt(x.b)} %.`));
-  if (!tips.length) tips.push(mine.total >= ref.total - .5 ? 'Tu actuación está a la altura de la de referencia.' : 'Las diferencias están en los detalles: mira el minuto a minuto.');
+  const tgs = Object.entries(c.targets || {}).map(([k]) => { const v = track.t[k], a = v && v.tot ? v.inT / v.tot * 100 : null, b = ref.pct[k] != null ? ref.pct[k] * 100 : null, d = a != null && a < 99.5 && !TGT[k].fmt ? ((v.hi || 0) >= (v.lo || 0) ? ' ↑' : ' ↓') : ''; return { k, lab: tgLab(c, k), a, b, d }; });
+  /* v1.33: lo que más cambia (faltas, retrasos y objetivos) va ahora al resumen de arriba */
+  const onIds = onMe.map(x => x[0]);
+  dbTipsRender({ score: ref.total, targets: Object.fromEntries(tgs.filter(x => x.b != null).map(x => [x.k, x.b])), checks: onIds.map(tok => { const d = has(onRef, tok) && ref.done(tok); return { done: !!d, at: d ? when(tok, 'ref') : null }; }) });
+  { const r = $('#dbRef'); if (r) r.innerHTML = `Equipo de referencia: <b>${fmt(ref.total, 1)}</b> en la misma situación`; }
+  { const own = $('#dbTgt'); if (own && tgs.length) own.remove(); } // la tabla comparada ya tiene tu tiempo en objetivo
   const myLog = (track.logT || []).filter(([, x]) => !/^Caso:|^Instructor conectado|^Llegada al hospital|^Velocidad/.test(x));
   const refLog = B.log.map(e => [e[0], cmpText(e)]);
   const rows = []; for (let m = 0; m <= Math.floor(T); m++) { const a = myLog.filter(([t]) => t >= m && t < m + 1), b = refLog.filter(([t]) => t >= m && t < m + 1); if (a.length || b.length) rows.push([m, a, b]); }
   const cell = xs => xs.length ? xs.map(([t, x]) => `<div><span class="small">${mmss(t)}</span> ${esc(x)}</div>`).join('') : '<span class="small">—</span>';
-  box.innerHTML = `<h2 style="margin-top:6px">Comparado con la referencia</h2>
-    <p class="small">La misma situación (mismo paciente, mismos eventos programados) jugada por el equipo de referencia durante ${fmt(T, 1)} min. Desde ahí, cada decisión cambia la evolución.</p>
-    <div class="cmpsc"><span>Tu nota <b>${fmt(mine.total, 1)}</b></span><span>Referencia <b>${fmt(ref.total, 1)}</b></span></div>
-    <ul class="cmptips">${tips.map(t => `<li>${t}</li>`).join('')}</ul>
+  box.innerHTML = `<h2 style="margin-top:10px">Comparado con la referencia</h2>
+    <p class="small">La misma situación (mismo paciente, mismos eventos programados) jugada por el equipo de referencia durante ${fmt(T, 1)} min: tu nota ${fmt(mine.total, 1)}, la suya ${fmt(ref.total, 1)}. Desde ahí, cada decisión cambia la evolución.</p>
     ${cmpSVG(track.series, run.series, T)}
     ${ch.length ? `<h3>Acciones clave</h3><table class="dtable"><tr><th>Acción</th><th class="n">Tú</th><th class="n">Referencia</th></tr>${ch.map(x => `<tr><td>${esc(x.lab)}</td><td class="n">${x.a == null ? '<span class="small">no indicada</span>' : x.a ? '✓ ' + (x.ta != null ? mm(x.ta) : '') : '✗'}</td><td class="n">${x.b == null ? '<span class="small">no indicada</span>' : x.b ? '✓ ' + (x.tb != null ? mm(x.tb) : '') : '✗'}</td></tr>`).join('')}</table>` : ''}
-    ${tgs.length ? `<h3>Tiempo en objetivo</h3><table class="dtable"><tr><th>Objetivo</th><th class="n">Tú</th><th class="n">Referencia</th></tr>${tgs.map(x => `<tr><td>${esc(x.lab)}</td><td class="n">${x.a == null ? '—' : fmt(x.a) + ' %'}</td><td class="n">${x.b == null ? '—' : fmt(x.b) + ' %'}</td></tr>`).join('')}</table>` : ''}
+    ${tgs.length ? `<h3>Tiempo en objetivo</h3><table class="dtable"><tr><th>Objetivo</th><th class="n">Tú</th><th class="n">Referencia</th></tr>${tgs.map(x => `<tr><td>${esc(x.lab)}</td><td class="n">${x.a == null ? '—' : fmt(x.a) + ' %' + x.d}</td><td class="n">${x.b == null ? '—' : fmt(x.b) + ' %'}</td></tr>`).join('')}</table><p class="small">↑ fuera de rango sobre todo por encima · ↓ sobre todo por debajo</p>` : ''}
     <details class="cmpmin"${rows.length <= 12 ? ' open' : ''}><summary>Minuto a minuto</summary><table class="dtable cmpt"><tr><th class="n">Min</th><th>Tú</th><th>Referencia</th></tr>${rows.map(([m, a, b]) => `<tr><td class="n">${m}</td><td>${cell(a)}</td><td>${cell(b)}</td></tr>`).join('')}</table></details>`;
 }
 
@@ -540,12 +561,13 @@ function teachInit() {
   let clr = 0; $('#hiClear').addEventListener('click', e => { if (Date.now() - clr > 4000) { clr = Date.now(); e.target.textContent = 'Pulsa otra vez para borrar'; setTimeout(() => { e.target.textContent = 'Borrar historial'; }, 4000); return; } LS.set('simvmi.hist', []); e.target.textContent = 'Borrar historial'; renderHist(); });
   $('#dbPdf').addEventListener('click', () => {
     if (dlNs) { // el visor no deja imprimir: se guarda el informe como página para abrir e imprimir a PDF
-      const css = [...document.querySelectorAll('style')].map(x => x.textContent).join('\n'), sh = $('#debrief .sheet').cloneNode(true); sh.querySelectorAll('.inrow,button').forEach(x => x.remove());
+      const css = [...document.querySelectorAll('style')].map(x => x.textContent).join('\n'), sh = $('#debrief .sheet').cloneNode(true); sh.querySelectorAll('details').forEach(d => { d.open = true; }); sh.querySelectorAll('.dbfoot,.inrow,button').forEach(x => x.remove());
       const nm = sh.querySelector('#dbName'); if (nm) nm.replaceWith(Object.assign(document.createElement('b'), { textContent: nm.value || 'Sin nombre' }));
       download('debrief-' + caseKey + '-' + new Date().toISOString().slice(0, 10) + '.html', '<!doctype html><html lang="es" data-theme="light"><head><meta charset="utf-8"><title>Debrief · ' + esc(CASES[caseKey].title) + '</title><style>' + css + '</style></head><body><main>' + sh.outerHTML + '</main><script>window.onload=()=>print()<\/script></body></html>', 'text/html');
       return;
     }
-    document.body.classList.add('printing'); setTimeout(() => { window.print(); document.body.classList.remove('printing'); }, 50);
+    const closed = [...$('#debrief').querySelectorAll('details:not([open])')]; closed.forEach(d => { d.open = true; }); // v1.33: el informe impreso va completo
+    document.body.classList.add('printing'); setTimeout(() => { window.print(); document.body.classList.remove('printing'); closed.forEach(d => { d.open = false; }); }, 50);
   });
   // editor
   $('#edBtn').addEventListener('click', () => edOpen(caseKey));

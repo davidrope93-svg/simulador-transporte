@@ -559,6 +559,39 @@ console.log('— Revisión externa (v1.28): lotes para los compañeros y consoli
   const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'src', 'library.js'), 'utf8');
   check('Revisión: valoración por caso, exportación, resumen, importación del coordinador y enlace #revision=', ['rvSaveBtn', 'rvExport', 'rvCopy', 'rvInFile', 'rvInCsv', '#revision=', 'rvPlay', 'tourAfter'].every(x => src.includes(x)) ? 1 : 0, 1, 1); }
 
+console.log('— Inicio y debrief resumido (v1.33): pantalla de entrada y «lo que has hecho bien / lo que puedes mejorar»');
+{ const fs = require('fs'), path = require('path'), R = f => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
+  require('../src/debrief.js'); const T = d => { const r = global.SIM_DBTIPS(d), n = xs => xs.map(x => x.replace(/\u00a0/g, ' ')); return Object.assign(r, { good: n(r.good), bad: n(r.bad) }); }; // los espacios duros, como espacios
+  const base = o => Object.assign({ min: 10, score: 6, targets: [], checks: [], arrest: null, safety: { arrestCaused: false, minSpo2: 96, standbyApnea: 0, unresolved: [] }, events: [], ref: null }, o);
+  let r = T(base({ targets: [{ k: 'spo2', lab: 'SpO₂ 94–98 %', pct: 0, hi: 100, lo: 0 }] }));
+  check('Objetivo fuera de rango: dice hacia dónde y qué hacer (SpO₂ por encima → bajar la FiO₂)', /por encima/.test(r.bad[0]) && /baja la FiO₂/i.test(r.bad[0]) ? 1 : 0, 1, 1);
+  r = T(base({ targets: [{ k: 'et', lab: 'EtCO₂ 35–40 mmHg', pct: 30, hi: 0, lo: 70 }] }));
+  check('… y por debajo (EtCO₂ bajo → hiperventilación)', /por debajo el 70 %/.test(r.bad[0]) && /hiperventil/.test(r.bad[0]) ? 1 : 0, 1, 1);
+  r = T(base({ safety: { arrestCaused: true, minSpo2: 70, standbyApnea: 0, unresolved: ['Neumotórax a tensión'] }, checks: [{ lab: 'Drenaje', done: false }, { lab: 'Analgesia', done: false }], targets: [{ k: 'tas', lab: 'TAS ≥ 90 mmHg', pct: 10, hi: 0, lo: 90 }] }));
+  check('Orden: primero la seguridad, máximo 3 y aviso de cuántas más hay', r.bad.length === 3 && /parada/.test(r.bad[0]) && /SpO₂ mínima 70 %/.test(r.bad[1]) && /Neumotórax/.test(r.bad[2]) && r.more === 3 ? 1 : 0, 1, 1);
+  r = T(base({ checks: [{ lab: 'Intubación', done: false }], targets: [{ k: 'tas', lab: 'TAS', pct: 10, hi: 0, lo: 90 }] }));
+  check('Las acciones clave que faltan van antes que los objetivos', /Te faltó «Intubación»/.test(r.bad[0]) && /TAS/.test(r.bad[1]) ? 1 : 0, 1, 1);
+  r = T(base({ checks: [{ lab: 'Intubación', done: false }], ref: { score: 8, targets: {}, checks: [{ done: true, at: 3.2 }] } }));
+  check('Con la referencia: cuándo hizo ella la acción que faltó', /la referencia lo hizo en el min 3,2/.test(r.bad[0]) ? 1 : 0, 1, 1);
+  r = T(base({ checks: [{ lab: 'Intubación', done: true, at: 8 }], ref: { score: 8, targets: {}, checks: [{ done: true, at: 3 }] } }));
+  check('… y los retrasos de 2 min o más', r.bad.some(x => /llegó tarde: tú en el min 8,0, la referencia en el min 3,0/.test(x)) ? 1 : 0, 1, 1);
+  r = T(base({ arrest: { ccf: .62, rosc: false, roscMin: null, firstShock: 3.5, vf: true } }));
+  check('Parada: fracción de compresión baja y primera descarga tardía en FV', r.bad.some(x => /62 %/.test(x)) && r.bad.some(x => /3:30/.test(x)) ? 1 : 0, 1, 1);
+  r = T(base({ score: 8, arrest: { ccf: .86, rosc: true, roscMin: 4.2, firstShock: 1, vf: true } }));
+  check('… y en positivo si se hizo bien (RCP de calidad, descarga precoz, RCE)', r.good.length === 3 && r.good.every(x => /calidad|descarga|RCE/.test(x)) ? 1 : 0, 1, 1);
+  r = T(base({ score: 9.4, checks: [{ lab: 'Analgesia', done: true, at: 1 }], targets: [{ k: 'spo2', lab: 'SpO₂ 94–98 %', pct: 95, hi: 5, lo: 0 }] }));
+  check('Todo bien: sin inventar fallos y animando a ponerse a prueba', r.verdict.t === 'Excelente' && r.good.length >= 2 && r.bad.length === 1 && /Ponte a prueba/.test(r.bad[0]) ? 1 : 0, 1, 1);
+  r = T(base({ score: 5.5, targets: [{ k: 'tas', lab: 'TAS', pct: 85, hi: 0, lo: 15 }] }));
+  check('Nota baja sin un fallo concreto: no dice que todo está bien', r.bad.length === 1 && !/Nada importante/.test(r.bad[0]) && /5,5/.test(r.bad[0]) ? 1 : 0, 1, 1);
+  r = T(base({ min: .4 })); check('Intento de menos de 1 min: no se valora', r.short && !r.good.length ? 1 : 0, 1, 1);
+  const U = R('src/ui.js'), TE = R('src/teach.js'), H = R('src/home.js'), TM = R('src/template.html'), B = R('build.py'), G = R('src/guide.js'), Lb = R('src/library.js');
+  const i0 = H.indexOf('function homeWanted('), hw = (instr, hash) => new Function('INSTR', 'location', H.slice(i0, H.indexOf('\n', i0)) + '; return homeWanted;')(instr, { hash });
+  check('El inicio sale al abrir la app, pero no con un enlace a un caso, a la revisión o al aula, ni en la vista del instructor', hw(false, '')() && hw(false, '#')() && !hw(false, '#caso=eyJ0')() && !hw(false, '#revision=A')() && !hw(false, '#aula=ABCDE')() && !hw(true, '')() ? 1 : 0, 1, 1);
+  check('Arranque en el inicio con un caso en pausa debajo; cargar cualquier caso lo cierra; la visita de la pantalla espera al primer caso', /homeInit\(\); const k0 = loadSharedFromHash\(\);[^\n]*if \(!k0 && homeWanted\(\)\) homeShow\(false\)/.test(U) && /teachOnLoad\(\); homeOnLoad\(\);/.test(U) && /!homeWanted\(\)\) setTimeout\(tourStart/.test(G) && /function homeHide[\s\S]*?tourStart\(\)/.test(H) && /src\('home\.js'\)/.test(B) && /id="home"/.test(TM) && /id="homeBtn"/.test(TM) ? 1 : 0, 1, 1);
+  check('Inicio: cuenta sin bloquear, seguir (caso en curso, itinerario, último caso o elegir itinerario), biblioteca, azar, ventilador libre y modo', ['data-h="acct"', 'data-h="resume"', 'data-h="pathNext"', 'data-h="pathStart"', 'data-h="lib"', "tile('rand'", "tile('free'", 'data-h="mode"', "case 'variant'"].every(x => H.includes(x)) ? 1 : 0, 1, 1);
+  check('Debrief: resumen arriba, detalle y solución plegados, siguiente paso y PDF completo', /id="dbTips"/.test(U) && /<details class="dbx" id="dbMore">/.test(U) && /dbTipsRender\(\{ score: ref\.total/.test(TE) && /details:not\(\[open\]\)/.test(TE) && /id="dbHome"/.test(TM) && /id="dbVar"/.test(TM) && (Lb.match(/\$\('#dbNext'\) \|\| \$\('#dbBody'\)/g) || []).length === 2 && /src\('debrief\.js'\)/.test(B) ? 1 : 0, 1, 1);
+  check('Tiempo en objetivo: se registra si se va por encima o por debajo del rango', /track\.t\[key\]\.hi \+= dtc; else track\.t\[key\]\.lo \+= dtc;/.test(U) ? 1 : 0, 1, 1); }
+
 console.log('— Instalable y sin conexión (v1.3): manifiesto, iconos y service worker');
 { const fs = require('fs'), path = require('path'), R = f => path.join(__dirname, '..', f);
   const man = JSON.parse(fs.readFileSync(R('manifest.webmanifest'), 'utf8'));

@@ -159,7 +159,7 @@ function loadCase(k) {
   devPat = iface !== 'o2' ? { sex: c.sex || S.P.sex, talla: c.talla || S.P.talla } : dev === 'monnal' ? { sex: 'm', talla: 165 } : { sex: 'h', talla: 170 };
   track = { t: {}, worst: { spo2: 100, tas: 300, ppk: 0 }, events: [], acts: 0, drugs: [], intubAt: null, peri: null, induct: null, relax: null, attempts: 0, cric: false, seizures: 0, gluAt: null, gluVal: null, tempAt: null, accessAt: S.access ? 0 : null, fluidMl: 0, bloodU: 0,
     arrestAt: S.arrest ? 0 : null, firstShock: null, lastShock: null, shocks: 0, adr: [], amio: 0, lido: 0, roscAt: null, nalox: null, convAt: null, hadArr: false, standbyApnea: 0 };
-  for (const key in (c.targets || {})) track.t[key] = { inT: 0, tot: 0 };
+  for (const key in (c.targets || {})) track.t[key] = { inT: 0, tot: 0, hi: 0, lo: 0 }; // v1.33: hi/lo, tiempo por encima y por debajo (el debrief dice hacia dónde se fue)
   sched = (c.events || []).map(e => Object.assign({ fired: false }, e));
   S.onSlow = onSlow; S.onIntubated = onIntubated; S.onIntubFail = onIntubFail; S.onAccess = onAccess; S.onSeizure = () => { track.seizures++; logIt('Convulsión tónico-clónica generalizada'); }; ended = false; prevArrest = S.arrest;
   buf = { p: new Float32Array(N), f: new Float32Array(N), v: new Float32Array(N), c: new Float32Array(N), m: new Float32Array(N), ev: new Int8Array(N), ie: new Int8Array(N) };
@@ -175,7 +175,7 @@ function loadCase(k) {
   logIt('Caso: ' + c.title + ' · ' + DEVS[dev].short + ' · ' + MONS[$('#monSel').value].short);
   renderCase(); renderVent(); updateUI();
   if (!S.arrest) measurePni(true);
-  teachOnLoad();
+  teachOnLoad(); homeOnLoad();
 }
 function setAltUI(v, silent) { $('#alt').value = v; $('#altV').textContent = (+v).toLocaleString('es-ES') + ' m'; if (sim && !silent) sim.setAltitude(+v); }
 
@@ -223,7 +223,7 @@ function onSlow(dtc) {
   for (const key in track.t) {
     const tg = TGT[key], rng = c.targets[key], v0 = tg.get(), v = v0 == null || tg.fmt ? v0 : +(+v0).toFixed(tg.d); // el valor que se ve en pantalla
     if (v == null || !isFinite(v)) continue;
-    track.t[key].tot += dtc; if (v >= rng[0] && v <= rng[1]) track.t[key].inT += dtc;
+    track.t[key].tot += dtc; if (v >= rng[0] && v <= rng[1]) track.t[key].inT += dtc; else if (v > rng[1]) track.t[key].hi += dtc; else track.t[key].lo += dtc;
   }
   const W = track.worst; if (!S.arrest) { W.n = (W.n || 0) + 1; W.spo2 = Math.min(W.spo2, S.spo2 * 100); W.tas = Math.min(W.tas, S.tas); }
   if (M.ppk != null && (S.iface === 'tube' || S.iface === 'mask') && !S.arrest && !ventOffNow()) W.ppk = Math.max(W.ppk, M.ppk);
@@ -1238,9 +1238,11 @@ function updateButtons() {
 /* ---------- debrief ---------- */
 const mmss = m => { const s = Math.round(m * 60); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
 function showDebrief(reason) {
-  const c = CASES[caseKey], W = track.worst, H = t => `<h2 style="margin-top:6px">${t}</h2>`;
+  const c = CASES[caseKey], W = track.worst, H = t => `<h2 style="margin-top:10px">${t}</h2>`;
+  // v1.33: el debrief arriba es un resumen (nota, lo que has hecho bien, lo que puedes mejorar y qué hacer ahora); todo lo demás va en «Ver el informe completo»
   const rows = Object.entries(track.t).map(([k, v]) => { const pct = v.tot > 0 ? v.inT / v.tot * 100 : 0, col = pct >= 80 ? 'var(--ok)' : pct >= 50 ? 'var(--warn)' : 'var(--bad)';
-    return `<tr><td>${TGT[k].lab} ${rangeTxt(c.targets[k], TGT[k])} ${TGT[k].fmt ? '' : TGT[k].u}</td><td style="width:40%"><div class="bar"><span style="width:${pct}%;background:${col}"></span></div></td><td class="n">${fmt(pct)} %</td></tr>`; }).join('');
+    const up = (v.hi || 0) >= (v.lo || 0), dv = v.tot > 0 && !TGT[k].fmt && pct < 99.5 ? (up ? v.hi : v.lo) / v.tot * 100 : 0, dir = dv >= 1 ? `<br><span class="small">${up ? '↑ por encima' : '↓ por debajo'} el ${fmt(dv)} % del tiempo</span>` : '';
+    return `<tr><td>${tgLab(c, k)}${dir}</td><td style="width:34%"><div class="bar"><span style="width:${pct}%;background:${col}"></span></div></td><td class="n">${fmt(pct)} %</td></tr>`; }).join('');
   const evs = track.events.map(e => `<tr><td>${EVLAB[e.k]}</td><td>min ${fmt(e.at, 1)}</td><td class="n">${e.fixed != null ? 'resuelto en ' + fmt(e.fixed - e.at, 1) + ' min' : 'sin resolver'}</td></tr>`).join('');
   let cpr = '';
   if (track.arrestAt != null) {
@@ -1277,14 +1279,19 @@ function showDebrief(reason) {
   if (track.seizures || c7.ecl) extra.push(['Convulsiones', track.seizures]);
   const metaT = extra.length ? H('Circulación y medio interno') + `<table class="dtable">${extra.map(([a, b]) => `<tr><td>${a}</td><td class="n">${b}</td></tr>`).join('')}</table>` : '';
   const drugs = track.drugs.length ? H('Fármacos y marcadores') + `<table class="dtable">${track.drugs.map(([t, x]) => `<tr><td>min ${fmt(t, 1)}</td><td>${x}</td></tr>`).join('')}</table>` : '';
-  $('#dbH').textContent = c.title + (reason ? ' · ' + reason : '');
-  $('#dbBody').innerHTML = `<p class="small">Tiempo clínico simulado: ${fmt(S.clin, 1)} min · ${DEVS[S.dev.vent].short} · ajustes y acciones: ${track.acts}</p>` +
-    (rows ? H('Tiempo en objetivo') + `<table class="dtable">${rows}</table>` : '') + cpr + arr + isr + metaT + (evs ? H('Eventos') + `<table class="dtable">${evs}</table>` : '') +
-    H('Peores valores') + `<table class="dtable"><tr><td>SpO₂ mínima (fuera de la parada)</td><td class="n">${W.n ? fmt(W.spo2) + ' %' : '—'}</td></tr><tr><td>TAS mínima (fuera de la parada)</td><td class="n">${W.n ? fmt(W.tas) + ' mmHg' : '—'}</td></tr><tr><td>Presión pico máxima</td><td class="n">${W.ppk ? fmt(W.ppk) + ' ' + devOf().u : '—'}</td></tr><tr><td>pH al final</td><td class="n">${fmt(S.ph, 2)}</td></tr></table>` +
-    drugs + (c.hint ? H('Solución posible') + `<p>${c.hint}</p>` : '');
+  $('#dbWhy').textContent = 'Debrief' + (reason ? ' · ' + reason : '');
+  $('#dbH').textContent = c.title;
+  const more = `<p class="small">Tiempo clínico simulado: ${fmt(S.clin, 1)} min · ${DEVS[S.dev.vent].short} · ajustes y acciones: ${track.acts}</p><div id="dbEvo"></div><section id="dbCmp" class="cmp"></section>` +
+    (rows ? `<div id="dbTgt">${H('Tiempo en objetivo')}<table class="dtable">${rows}</table></div>` : '') + cpr + arr + isr + metaT + (evs ? H('Eventos') + `<table class="dtable">${evs}</table>` : '') +
+    H('Peores valores') + `<table class="dtable"><tr><td>SpO₂ mínima (fuera de la parada)</td><td class="n">${W.n ? fmt(W.spo2) + ' %' : '—'}</td></tr><tr><td>TAS mínima (fuera de la parada)</td><td class="n">${W.n ? fmt(W.tas) + ' mmHg' : '—'}</td></tr><tr><td>Presión pico máxima</td><td class="n">${W.ppk ? fmt(W.ppk) + ' ' + devOf().u : '—'}</td></tr><tr><td>pH al final</td><td class="n">${fmt(S.ph, 2)}</td></tr></table>` + drugs;
+  $('#dbBody').innerHTML = '<div id="dbHead"></div><div id="dbTips" class="dbtips"></div><div id="dbNext"></div>' +
+    (c.hint ? `<details class="dbx" id="dbSol"><summary>Ver una solución posible</summary><p>${c.hint}</p></details>` : '') +
+    `<details class="dbx" id="dbMore"><summary>Ver el informe completo</summary><div class="dbmore">${more}</div></details>`;
+  $('#dbVar').hidden = !c.pheno || !window.SIM_VARIANT;
   teachDebrief(reason);
-  $('#debrief').hidden = false; paused = true; setPauseBtn(); $('#dbRepeat').focus();
+  $('#debrief').hidden = false; paused = true; setPauseBtn(); $('#debrief .sheet').scrollTop = 0; $('#dbRepeat').focus({ preventScroll: true });
 }
+const tgLab = (c, k) => `${TGT[k].lab} ${rangeTxt(c.targets[k], TGT[k])} ${TGT[k].fmt ? '' : TGT[k].u}`.replace(/\s+/g, ' ').trim();
 let endWarnAt = 0; // v1.31: si el intento aún no cuenta para el itinerario, el primer toque avisa y el segundo (en 6 s) termina
 $('#endBtn').addEventListener('click', e => {
   const w = pathEndWarn(), b = e.currentTarget;
@@ -1293,6 +1300,8 @@ $('#endBtn').addEventListener('click', e => {
 });
 $('#dbClose').addEventListener('click', () => { $('#debrief').hidden = true; paused = false; setPauseBtn(); });
 $('#dbRepeat').addEventListener('click', () => { $('#debrief').hidden = true; paused = false; setPauseBtn(); loadCase(caseKey); });
+$('#dbVar').addEventListener('click', () => { $('#debrief').hidden = true; paused = false; setPauseBtn(); newVariant(); });
+$('#dbHome').addEventListener('click', () => { $('#debrief').hidden = true; homeShow(); }); // v1.33
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#debrief').hidden) $('#dbClose').click(); });
 
 /* ---------- dibujo del ventilador: curvas y bucles ---------- */
@@ -1488,7 +1497,7 @@ function frame(now) {
     uacc += dt; if (uacc >= .5) { uacc = 0; updateUI(); tabAlerts(); }
     sendState(false);
   }
-  draw(); drawZoll(); requestAnimationFrame(frame);
+  if (!homeOn) { draw(); drawZoll(); } requestAnimationFrame(frame); // con el inicio delante no se dibuja nada
 }
 
 /*TEACH*/
@@ -1496,6 +1505,7 @@ function frame(now) {
 /*TUTOR*/
 /*LIBRARY*/
 /*CUENTA_APP*/
+/*HOME*/
 
 /* ---------- arranque ---------- */
 $('#caseSel').innerHTML = GROUPS.map(g => `<optgroup label="${g}">` + Object.entries(CASES).filter(([, c]) => c.lvl === g).map(([k, c]) => `<option value="${k}">${c.title}</option>`).join('') + '</optgroup>').join('');
@@ -1512,5 +1522,5 @@ $('#speedSeg').addEventListener('click', e => { const b = e.target.closest('butt
 $('#truthBox').addEventListener('toggle', () => { if ($('#truthBox').open) renderTruth(); });
 window.__sim = () => ({ sim, S, M, track, pend, lim, exam, LINK, tut, tutSteps, tutWhere });
 if (INSTR) startInstructor();
-else { teachInit(); guideInit(); tutInit(); libInit(); pathInit(); rvInit(); acctInit(); const k0 = loadSharedFromHash(); if (k0) $('#caseSel').value = k0; loadCase(k0 || 'tce'); requestAnimationFrame(frame); }
+else { teachInit(); guideInit(); tutInit(); libInit(); pathInit(); rvInit(); acctInit(); homeInit(); const k0 = loadSharedFromHash(); if (k0) $('#caseSel').value = k0; loadCase(k0 || 'tce'); if (!k0 && homeWanted()) homeShow(false); requestAnimationFrame(frame); } // v1.33: se abre en el inicio, con un caso cargado y en pausa debajo
 })();

@@ -346,6 +346,89 @@ body.instr-mode main,body.instr-mode .tabbar{display:none!important}
 .stu.off{opacity:.55}
 .stu.arr{border-color:var(--bad)}
 .aulacode{font-family:var(--mono);font-size:1.6rem;letter-spacing:.18em;padding:2px 10px;border-radius:10px;background:var(--surface2);border:1px solid var(--line)}
+/* v1.33: pantalla de inicio */
+.brandrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.homebtn{padding:5px 10px;font-weight:600}
+body.home-on{overflow:hidden}
+body.home-on .pwanote{top:auto;bottom:max(16px,env(safe-area-inset-bottom,0px))}
+.home{position:fixed;inset:0;z-index:45;background:var(--bg);overflow:auto;-webkit-overflow-scrolling:touch;padding:max(18px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(28px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.hm{max-width:940px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+.hm-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.hm-brand{display:flex;align-items:center;gap:12px;min-width:0}
+.hm-brand img{width:52px;height:52px;border-radius:13px;flex:none;box-shadow:0 4px 14px rgba(8,41,76,.25)}
+.hm-brand h1{font-size:clamp(2rem,5vw,2.7rem)}
+.hm-acct{display:flex;align-items:center;gap:10px;text-align:left;padding:6px 14px 6px 6px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--ink);font:inherit;cursor:pointer;min-height:48px;position:relative}
+.hm-acct:hover{border-color:var(--accent)}
+.hm-acct b,.hm-acct .small{display:block;line-height:1.25}
+.hm-av{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:var(--accent-ink);font-family:var(--display);font-weight:700;font-size:1.1rem;flex:none}
+.hm-acct.warn .hm-av{background:var(--warn)}
+.hm-dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}.hm-dot.ok{background:var(--ok)}.hm-dot.warn{background:var(--warn)}.hm-dot.err{background:var(--bad)}
+.hm-hi{font-size:1.06rem;color:var(--muted);margin-top:-6px}
+.hm-hero{position:relative;overflow:hidden;border-radius:18px;padding:22px 24px;background:linear-gradient(135deg,#08294c 0%,#0b2236 55%,#0d1d27 100%);color:#eef4f8;display:flex;flex-direction:column;gap:8px;box-shadow:0 12px 32px rgba(8,41,76,.22)}
+.hm-hero>*{position:relative}
+.hm-hero .eyebrow{color:#8fc0e0}
+.hm-hero h2{font-size:clamp(1.45rem,3.6vw,2rem);text-transform:none;letter-spacing:.005em;font-weight:700;max-width:32ch}
+.hm-hero p{max-width:64ch;color:#c9dbe6}
+.hm-hero .small{color:#9fb6c6}
+.hm-hero .btn{background:transparent;color:#fff;border-color:rgba(255,255,255,.42)}
+.hm-hero .btn:hover{border-color:#fff}
+.hm-hero .btn.primary{background:#fff;color:#08294c;border-color:#fff;font-weight:600}
+.hm-hero .inrow{margin-top:6px}
+.hm-hero .lnk{color:#fff}
+.hm-ecg{position:absolute!important;right:-8px;top:10px;width:min(420px,62%);opacity:.22;pointer-events:none}
+.hm-ecg path{fill:none;stroke:#5cd3c2;stroke-width:2;stroke-linejoin:round}
+.hm-prog{display:flex;align-items:center;gap:10px;max-width:520px}.hm-prog .ptbar{flex:1;height:8px;background:rgba(255,255,255,.18)}.hm-prog .ptbar span{background:#4cc184}.hm-prog b{font-family:var(--mono)}
+.hm-paths{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:6px}
+.hm-path{display:flex;flex-direction:column;gap:6px;text-align:left;padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,.24);background:rgba(255,255,255,.06);color:#fff;font:inherit;cursor:pointer}
+.hm-path:hover,.hm-path:focus-visible{background:rgba(255,255,255,.13);border-color:rgba(255,255,255,.6)}
+.hm-path b{font-family:var(--display);font-size:1.3rem}
+.hm-path span{color:#c9dbe6;font-size:.86rem;line-height:1.4}
+.hm-path .small{color:#9fb6c6}
+.hm-path .hm-go{margin-top:auto;padding-top:4px;color:#fff;font-weight:600}
+.hm-sec{display:flex;flex-direction:column;gap:8px}
+.hm-sech{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.hm-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:2px}
+.hm-tile{display:flex;flex-direction:column;gap:5px;text-align:left;padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);font:inherit;cursor:pointer;min-height:128px}
+.hm-tile:hover,.hm-tile:focus-visible{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.hm-tile svg{width:28px;height:28px;color:var(--accent);fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;margin-bottom:2px}
+.hm-tile b{font-family:var(--display);font-size:1.18rem}
+.hm-tile span{font-size:.86rem;color:var(--muted);line-height:1.35}
+.hm-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.hm-stats>*{background:var(--surface);padding:12px 14px;display:flex;flex-direction:column;gap:3px;text-align:left;border:0;font:inherit;color:var(--ink)}
+.hm-stats b{font-family:var(--display);font-size:1.65rem;line-height:1}
+.hm-stats b.hm-where{font-size:1.12rem;line-height:1.3}
+.hm-stats span{font-size:.8rem;color:var(--muted)}
+.hm-stats button{cursor:pointer}.hm-stats button:hover{background:var(--surface2)}.hm-stats button span{color:var(--accent)}
+.hm-more h2{margin-bottom:8px}
+.hm-foot{border-top:1px solid var(--line);padding-top:10px}
+.lnk{border:0;background:none;padding:0;font:inherit;color:var(--accent);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+@media (max-width:760px){.hm-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.hm-paths{grid-template-columns:minmax(0,1fr)}.hm-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.hm-hero{padding:18px 16px}.hm-tile{min-height:0}.hm-acct .small{display:none}.hm-brand .eyebrow{display:none}.hm-brand h1{font-size:1.9rem}.hm-brand img{width:44px;height:44px}}
+/* v1.33: debrief resumido */
+.dbsheet{max-width:740px}
+.dbmeta{display:flex;flex-direction:column;gap:5px;flex:1 1 300px;min-width:0}
+.dbverd{font-family:var(--display);font-size:1.55rem;font-weight:700;line-height:1.1}
+.dbverd.ok{color:var(--ok)}.dbverd.mid{color:var(--warn)}.dbverd.low{color:var(--bad)}
+.dbparts{display:flex;flex-wrap:wrap;gap:6px}
+.dbchip{position:relative;overflow:hidden;font-size:.8rem;padding:3px 10px 5px;border-radius:999px;border:1px solid var(--line);background:var(--surface2);white-space:nowrap}
+.dbchip i{position:absolute;left:0;bottom:0;height:3px;background:var(--c)}
+.dbchip b{font-family:var(--mono);font-weight:600;color:var(--c)}
+.dbline input{width:11em;padding:2px 7px;border:1px solid var(--line);border-radius:6px;background:var(--surface2)}
+.dbtips{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.35fr);gap:10px}
+.dbtips.one{grid-template-columns:minmax(0,1fr)}
+.dbcol{border-radius:12px;padding:10px 14px;border:1px solid var(--line);background:var(--surface2)}
+.dbcol h4{margin:0 0 4px;font-family:var(--display);font-size:1.08rem}
+.dbcol ul{margin:0;padding-left:1.15em}.dbcol li{margin:5px 0}
+.dbcol.good{border-color:color-mix(in srgb,var(--ok) 45%,var(--line))}.dbcol.good h4{color:var(--ok)}
+.dbcol.bad{border-color:color-mix(in srgb,var(--warn) 55%,var(--line))}.dbcol.bad h4{color:var(--warn)}
+.dbx{border:1px solid var(--line);border-radius:10px;padding:8px 12px}
+.dbx>summary{cursor:pointer;font-weight:600;min-height:28px}
+.dbx[open]>summary{margin-bottom:6px}
+#dbNext .ptdb{margin:0}
+#dbNext:empty{display:none}
+.dbfoot{position:sticky;bottom:-18px;margin:0 -20px -18px;padding:12px 20px 14px;background:var(--surface);border-top:1px solid var(--line);display:flex;flex-direction:column;gap:4px;z-index:2}
+.dbsec{gap:18px}.dbsec .lnk{font-size:.88rem;color:var(--muted)}
+@media (pointer:coarse){.dbsec .lnk{min-height:36px}}
+@media (max-width:640px){.dbtips{grid-template-columns:minmax(0,1fr)}.dbfoot .inrow:first-child{flex-wrap:nowrap}.dbfoot .btn{flex:1 1 0;padding-inline:4px;white-space:nowrap;font-size:.92rem}.dbfoot .dblong{display:none}.dbhead{gap:12px;flex-wrap:nowrap;align-items:flex-start}.dbhead .score{width:76px;height:76px}.dbhead .score b{font-size:1.6rem}.dbmeta{flex:1 1 0}.dbverd{font-size:1.3rem}}
 /* móvil: pestañas */
 .tabbar{display:none}
 @media (max-width:760px){
@@ -383,7 +466,7 @@ body.proj .top2{position:fixed;right:12px;bottom:12px;z-index:30;padding:4px;bor
   body.printing main>*:not(#debrief),body.printing #tabbar,body.printing #toast{display:none!important}
   body.printing #debrief{position:static;background:none;padding:0;display:block}
   body.printing .sheet{max-width:none;max-height:none;overflow:visible;border:0;box-shadow:none;padding:0}
-  body.printing #debrief .inrow{display:none}
+  body.printing #debrief .inrow,body.printing #debrief .dbfoot,body.printing #home{display:none!important}
   body.printing details{display:block}body.printing details>*{display:block}
 }
 
@@ -492,8 +575,8 @@ body.exam #tutBtn{display:none}
 <main>
   <header class="top">
     <div class="brand">
-      <span class="eyebrow">SVA Trainer · simulador docente para SVA terrestre y HEMS · v1.32</span>
-      <h1>Ventilación, monitor y RCP</h1>
+      <span class="eyebrow">SVA Trainer · simulador docente para SVA terrestre y HEMS · v1.33</span>
+      <div class="brandrow"><button class="btn homebtn" id="homeBtn" hidden title="Pantalla de inicio: el caso queda en pausa">‹ Inicio</button><h1>Ventilación, monitor y RCP</h1></div>
     </div>
     <div class="toolbar">
       <div class="field"><label for="caseSel">Caso</label><div class="caserow"><select id="caseSel"></select><button class="btn" id="libBtn" title="Todos los casos con buscador, filtros y caso aleatorio">Biblioteca</button><button class="btn" id="pathBtn" title="Rutas de casos para residente, enfermería y HEMS, con progresión y nota">Itinerarios</button></div></div>
@@ -713,11 +796,14 @@ body.exam #tutBtn{display:none}
   <footer>Simulador docente con un modelo unicompartimental (distensibilidad, resistencias, presión crítica de cierre, esfuerzo del paciente, fuga de mascarilla con compensación imperfecta, intercambio de gases con shunt y V/Q, farmacocinética simplificada, RCP y arritmias). Las pantallas siguen la lógica de manejo de tres ventiladores y dos monitores-desfibriladores de transporte (modos, nombres de mandos, unidades, rangos, teclas, puesta en marcha y alarmas) con diseño propio: no reproducen el aspecto ni el software de ningún fabricante, y los valores marcados como «supuesto» no están confirmados en la documentación pública. Dosis de referencia para adulto, calculadas con el peso del caso. Valores orientativos: no sustituyen al manual del equipo ni a los protocolos del servicio. Código y casos editables en <a href="https://github.com/davidrope93-svg/simulador-transporte">github.com/davidrope93-svg/simulador-transporte</a>.</footer>
 
   <div class="modal" id="debrief" hidden role="dialog" aria-modal="true" aria-labelledby="dbH">
-    <div class="sheet">
-      <span class="eyebrow">Debrief</span>
+    <div class="sheet dbsheet">
+      <span class="eyebrow" id="dbWhy">Debrief</span>
       <h3 id="dbH" style="font-size:1.4rem"></h3>
       <div id="dbBody"></div>
-      <div class="inrow"><button class="btn primary" id="dbRepeat">Repetir caso</button><button class="btn" id="dbClose">Seguir simulando</button><button class="btn" id="dbPdf">Exportar PDF</button></div>
+      <div class="dbfoot">
+        <div class="inrow"><button class="btn primary" id="dbRepeat">Repetir<span class="dblong"> caso</span></button><button class="btn" id="dbVar" title="El mismo caso con otro paciente, otra gravedad y una complicación añadida">Otro paciente</button><button class="btn" id="dbHome">Inicio</button></div>
+        <div class="inrow dbsec"><button class="lnk" id="dbClose">Seguir simulando</button><button class="lnk" id="dbPdf">Exportar PDF</button></div>
+      </div>
     </div>
   </div>
 
@@ -830,6 +916,8 @@ body.exam #tutBtn{display:none}
   <div class="tour" id="tour" hidden><div class="tour-hl" id="tourHl"></div><div class="tour-card" id="tourCard" role="dialog" aria-modal="true" aria-labelledby="tourT"><b id="tourT"></b><p id="tourX"></p><div class="inrow"><button class="btn" id="tourPrev">Anterior</button><button class="btn primary" id="tourNext">Siguiente</button><button class="btn" id="tourEnd">Salir</button></div></div></div>
 </main>
 <div class="instr" id="instr" hidden></div>
+<section class="home" id="home" hidden role="dialog" aria-modal="true" aria-labelledby="hmH"><div class="hm" id="hmBody"></div></section>
+
 <nav class="tabbar" id="tabbar" aria-label="Secciones"><button data-tab="vent">Ventilador</button><button data-tab="mon">Monitor</button><button data-tab="act">Acciones</button><button data-tab="case">Caso</button></nav>
 <script>
 /* ===== Motor fisiológico de ventilación y soporte prehospitalario: VMI, VMNI, oxigenoterapia, fármacos y parada (sin interfaz) ===== */
@@ -2363,6 +2451,85 @@ const pedEntry = (id, peso, ped) => ped ? (peso <= 5 && PED_NEO[id]) || PED[id] 
 function doseOf(it, peso, ped) { const pd = pedEntry(it.id, peso, ped); if (pd) { const x = roundDose(clamp(pd.k * peso, pd.min || 0, pd.max)); return pd.u === 'mg' && it.u === 'g' ? x / 1000 : x; } return it.tnk ? tnkDose(peso) : it.mgkg != null ? roundDose(Math.min(it.max || Infinity, it.mgkg * peso)) : it.dose; }
 function amountOf(it, peso, ped) { const ds = doseOf(it, peso, ped), pd = pedEntry(it.id, peso, ped); return (pd ? (it.amt != null ? it.amt * ds / it.dose : ds) * 75 / peso : it.amt != null ? it.amt : ds * fWOf(peso, ped)) * (it.bio || 1); }
 root.SIM_DRUGS = { DRUGSET, DRUGITEMS, PERFS, PED, pedEntry, roundDose, tnkDose, fWOf, doseOf, amountOf };
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* Resumen del debrief (v1.33): de los datos del intento a «lo que has hecho bien» y «lo que puedes mejorar», sin DOM.
+   Lo usa la interfaz (teach.js) y lo prueban las pruebas del motor. Máximo 3 cosas en cada lista, por orden de importancia:
+   seguridad, acciones clave que faltaron, calidad de la RCP, objetivos fuera de rango (diciendo si por encima o por debajo)
+   y, cuando el equipo de referencia termina, retrasos frente a él. */
+(function (root) {
+'use strict';
+const f = (x, d) => (Math.round(x * Math.pow(10, d || 0)) / Math.pow(10, d || 0)).toFixed(d || 0).replace('.', ',');
+const mmss = m => { const s = Math.round(m * 60); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+const minTxt = t => 'min ' + f(t, 1);
+/* qué hacer cuando un objetivo queda por encima (hi) o por debajo (lo) del rango */
+const HINT = {
+  spo2: { lo: 'sube la FiO₂ o la PEEP y revisa vía aérea y ventilación', hi: 'baja la FiO₂: la hiperoxia también perjudica' },
+  et: { lo: 'estás hiperventilando: baja la FR o el Vt', hi: 'estás hipoventilando: sube la FR o el Vt (vigila la auto-PEEP)' },
+  pco2: { lo: 'estás hiperventilando: baja la FR o el Vt', hi: 'estás hipoventilando: sube la FR o el Vt (vigila la auto-PEEP)' },
+  tas: { lo: 'volumen, vasopresor o trata la causa' },
+  pam: { lo: 'volumen, vasopresor o trata la causa' },
+  vtkg: { hi: 'baja el Vt: se calcula con el peso ideal (talla y sexo)', lo: 'sube el Vt' },
+  pplat: { hi: 'baja el Vt' },
+  dp: { hi: 'baja el Vt o revisa la PEEP' },
+  peepi: { hi: 'alarga la espiración: baja la FR o acorta el Ti' },
+  fio2: { hi: 'baja la FiO₂ en cuanto la SpO₂ lo permita' },
+  temp: { lo: 'calor activo', hi: 'enfriamiento activo' },
+  glu: { lo: 'glucosa' },
+  cuff: { lo: 'ajusta el balón con el manómetro', hi: 'ajusta el balón con el manómetro' },
+  leak: { hi: 'recoloca o ajusta la mascarilla' }
+};
+const VERDICT = s => s >= 9 ? { t: 'Excelente', k: 'ok' } : s >= 7 ? { t: 'Bien', k: 'ok' } : s >= 5 ? { t: 'Mejorable', k: 'mid' } : { t: 'Hay que repasarlo', k: 'low' };
+
+/* d: { min, score, targets: [{ k, lab, pct, hi, lo, fmt }], checks: [{ lab, done, at }], arrest: null | { ccf, rosc, roscMin, firstShock, vf },
+        safety: { arrestCaused, minSpo2, standbyApnea, unresolved: [] }, events: [{ lab, fixedIn }],
+        ref: null | { score, targets: { k: pct }, checks: [{ done, at }] (mismo orden que checks) } } */
+function dbTips(d) {
+  const good = [], bad = [], ref = d.ref || null, verdict = VERDICT(d.score);
+  if (!(d.min >= 1)) return { verdict, short: true, good: [], bad: ['Has simulado menos de 1 minuto: no hay bastante para valorarlo. Repite el caso y llega al final.'], more: 0 };
+  const sf = d.safety || {}, B = (p, t) => bad.push({ p, t }), G = (p, t) => good.push({ p, t });
+  /* 0 · seguridad */
+  if (sf.arrestCaused) B(0, 'El paciente entró en parada durante el caso: revisa en el informe completo qué pasó justo antes.');
+  if (sf.minSpo2 != null && sf.minSpo2 < 85) B(0, `SpO₂ mínima ${f(sf.minSpo2)} %: desaturación ${sf.minSpo2 < 75 ? 'grave' : 'importante'}. Oxigena antes y durante cada maniobra.`);
+  if (sf.standbyApnea > .5) B(0, `Intubado sin ventilar ${f(sf.standbyApnea * 60)} s: tras intubar, revisa los ajustes y pulsa «Iniciar ventilación».`);
+  if (sf.unresolved && sf.unresolved.length) B(0, 'Sin resolver: ' + sf.unresolved.map(x => '«' + x + '»').join(', ') + '.');
+  /* 1 · acciones clave */
+  const ch = d.checks || [], rc = ref && ref.checks || [];
+  ch.forEach((c, i) => { if (!c.done) B(1, `Te faltó «${c.lab}»` + (rc[i] && rc[i].done && rc[i].at != null ? `: la referencia lo hizo en el ${minTxt(rc[i].at)}.` : '.')); });
+  const done = ch.filter(c => c.done);
+  if (ch.length && done.length === ch.length) G(1, ch.length === 1 ? `Hiciste la acción clave: «${ch[0].lab}».` : `Hiciste las ${ch.length} acciones clave.`);
+  else done.slice(0, 2).forEach(c => G(1, `«${c.lab}»${c.at != null ? ' en el ' + minTxt(c.at) : ''}.`));
+  /* 2 · parada */
+  const A = d.arrest;
+  if (A) {
+    if (A.ccf >= .8) G(2, `RCP de calidad: fracción de compresión ${f(A.ccf * 100)} %.`); else B(2, `Fracción de compresión ${f(A.ccf * 100)} %: reduce las pausas (objetivo > 80 %).`);
+    if (A.vf) { if (A.firstShock == null) B(2, 'Sin descargas en un ritmo desfibrilable: desfibrila cuanto antes.'); else if (A.firstShock <= 2) G(2, `Primera descarga a los ${mmss(A.firstShock)} min de la parada.`); else B(2, `Primera descarga a los ${mmss(A.firstShock)} min: en FV/TVSP, descarga en menos de 2 min.`); }
+    if (A.rosc) G(2, `RCE a los ${f(A.roscMin, 1)} min de parada.`);
+  }
+  /* 3 · objetivos */
+  const tg = (d.targets || []).filter(t => t.pct != null);
+  tg.filter(t => t.pct < 80).sort((a, b) => a.pct - b.pct).forEach(t => {
+    const dir = t.fmt ? null : t.hi > t.lo ? 'hi' : t.lo > 0 ? 'lo' : null, h = dir && HINT[t.k] && HINT[t.k][dir];
+    const r = ref && ref.targets && ref.targets[t.k] != null && ref.targets[t.k] - t.pct >= 20 ? `; la referencia, en objetivo el ${f(ref.targets[t.k])} %` : '';
+    const side = dir === 'hi' ? 'por encima' : 'por debajo', share = dir === 'hi' ? t.hi : t.lo;
+    const what = dir && t.pct < 5 ? `${side} del objetivo ${share >= 95 ? 'todo el tiempo' : `el ${f(share)} % del tiempo`}` : `en objetivo solo el ${f(t.pct)} % del tiempo${dir ? ` (${side} el ${f(share)} %)` : ''}`;
+    B(3, `${t.lab}: ${what}${r}.` + (h ? ' → ' + h.charAt(0).toUpperCase() + h.slice(1) + '.' : ''));
+  });
+  const ok = tg.filter(t => t.pct >= 80).sort((a, b) => b.pct - a.pct);
+  if (ok.length && ok.length === tg.length && tg.length > 1) G(3, `Todos los objetivos en rango casi todo el tiempo (${tg.map(t => t.lab.split(' ')[0]).join(', ')}).`);
+  else ok.slice(0, 2).forEach(t => G(3, `${t.lab}: en objetivo el ${f(t.pct)} % del tiempo.`));
+  /* 4 · retrasos frente a la referencia */
+  ch.forEach((c, i) => { const r = rc[i]; if (c.done && r && r.done && c.at != null && r.at != null && c.at - r.at >= 2) B(4, `«${c.lab}» llegó tarde: tú en el ${minTxt(c.at)}, la referencia en el ${minTxt(r.at)}.`); });
+  /* lo que salió bien sin más */
+  const fixed = (d.events || []).filter(e => e.fixedIn != null).sort((a, b) => a.fixedIn - b.fixedIn);
+  if (fixed.length) G(4, `Resolviste «${fixed[0].lab}» en ${f(fixed[0].fixedIn, 1)} min.`);
+  if (!bad.some(b => b.p === 0)) G(5, 'Sin desaturaciones, paradas provocadas ni eventos sin resolver.');
+  const sort = xs => xs.sort((a, b) => a.p - b.p).map(x => x.t.replace(/(\d) (%|s\b|min\b)/g, '$1\u00a0$2').replace(/\bmin (\d)/g, 'min\u00a0$1')); // sin cortar «70 %» ni «min 3,2» al final de línea
+  const bs = sort(bad), gs = sort(good);
+  if (!bs.length) bs.push(d.score >= 7 ? 'Nada importante que corregir. Ponte a prueba: repite con otro paciente o en modo examen.' : `Sin un fallo concreto, pero la nota se queda en ${f(d.score, 1)}: en «Ver el informe completo» verás dónde se pierden los puntos.`);
+  return { verdict, short: false, good: gs.slice(0, 3), bad: bs.slice(0, 3), more: Math.max(0, bs.length - 3) };
+}
+root.SIM_DBTIPS = dbTips;
 })(typeof window !== 'undefined' ? window : globalThis);
 
 </script>
@@ -5097,7 +5264,7 @@ function loadCase(k) {
   devPat = iface !== 'o2' ? { sex: c.sex || S.P.sex, talla: c.talla || S.P.talla } : dev === 'monnal' ? { sex: 'm', talla: 165 } : { sex: 'h', talla: 170 };
   track = { t: {}, worst: { spo2: 100, tas: 300, ppk: 0 }, events: [], acts: 0, drugs: [], intubAt: null, peri: null, induct: null, relax: null, attempts: 0, cric: false, seizures: 0, gluAt: null, gluVal: null, tempAt: null, accessAt: S.access ? 0 : null, fluidMl: 0, bloodU: 0,
     arrestAt: S.arrest ? 0 : null, firstShock: null, lastShock: null, shocks: 0, adr: [], amio: 0, lido: 0, roscAt: null, nalox: null, convAt: null, hadArr: false, standbyApnea: 0 };
-  for (const key in (c.targets || {})) track.t[key] = { inT: 0, tot: 0 };
+  for (const key in (c.targets || {})) track.t[key] = { inT: 0, tot: 0, hi: 0, lo: 0 }; // v1.33: hi/lo, tiempo por encima y por debajo (el debrief dice hacia dónde se fue)
   sched = (c.events || []).map(e => Object.assign({ fired: false }, e));
   S.onSlow = onSlow; S.onIntubated = onIntubated; S.onIntubFail = onIntubFail; S.onAccess = onAccess; S.onSeizure = () => { track.seizures++; logIt('Convulsión tónico-clónica generalizada'); }; ended = false; prevArrest = S.arrest;
   buf = { p: new Float32Array(N), f: new Float32Array(N), v: new Float32Array(N), c: new Float32Array(N), m: new Float32Array(N), ev: new Int8Array(N), ie: new Int8Array(N) };
@@ -5113,7 +5280,7 @@ function loadCase(k) {
   logIt('Caso: ' + c.title + ' · ' + DEVS[dev].short + ' · ' + MONS[$('#monSel').value].short);
   renderCase(); renderVent(); updateUI();
   if (!S.arrest) measurePni(true);
-  teachOnLoad();
+  teachOnLoad(); homeOnLoad();
 }
 function setAltUI(v, silent) { $('#alt').value = v; $('#altV').textContent = (+v).toLocaleString('es-ES') + ' m'; if (sim && !silent) sim.setAltitude(+v); }
 
@@ -5161,7 +5328,7 @@ function onSlow(dtc) {
   for (const key in track.t) {
     const tg = TGT[key], rng = c.targets[key], v0 = tg.get(), v = v0 == null || tg.fmt ? v0 : +(+v0).toFixed(tg.d); // el valor que se ve en pantalla
     if (v == null || !isFinite(v)) continue;
-    track.t[key].tot += dtc; if (v >= rng[0] && v <= rng[1]) track.t[key].inT += dtc;
+    track.t[key].tot += dtc; if (v >= rng[0] && v <= rng[1]) track.t[key].inT += dtc; else if (v > rng[1]) track.t[key].hi += dtc; else track.t[key].lo += dtc;
   }
   const W = track.worst; if (!S.arrest) { W.n = (W.n || 0) + 1; W.spo2 = Math.min(W.spo2, S.spo2 * 100); W.tas = Math.min(W.tas, S.tas); }
   if (M.ppk != null && (S.iface === 'tube' || S.iface === 'mask') && !S.arrest && !ventOffNow()) W.ppk = Math.max(W.ppk, M.ppk);
@@ -6176,9 +6343,11 @@ function updateButtons() {
 /* ---------- debrief ---------- */
 const mmss = m => { const s = Math.round(m * 60); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
 function showDebrief(reason) {
-  const c = CASES[caseKey], W = track.worst, H = t => `<h2 style="margin-top:6px">${t}</h2>`;
+  const c = CASES[caseKey], W = track.worst, H = t => `<h2 style="margin-top:10px">${t}</h2>`;
+  // v1.33: el debrief arriba es un resumen (nota, lo que has hecho bien, lo que puedes mejorar y qué hacer ahora); todo lo demás va en «Ver el informe completo»
   const rows = Object.entries(track.t).map(([k, v]) => { const pct = v.tot > 0 ? v.inT / v.tot * 100 : 0, col = pct >= 80 ? 'var(--ok)' : pct >= 50 ? 'var(--warn)' : 'var(--bad)';
-    return `<tr><td>${TGT[k].lab} ${rangeTxt(c.targets[k], TGT[k])} ${TGT[k].fmt ? '' : TGT[k].u}</td><td style="width:40%"><div class="bar"><span style="width:${pct}%;background:${col}"></span></div></td><td class="n">${fmt(pct)} %</td></tr>`; }).join('');
+    const up = (v.hi || 0) >= (v.lo || 0), dv = v.tot > 0 && !TGT[k].fmt && pct < 99.5 ? (up ? v.hi : v.lo) / v.tot * 100 : 0, dir = dv >= 1 ? `<br><span class="small">${up ? '↑ por encima' : '↓ por debajo'} el ${fmt(dv)} % del tiempo</span>` : '';
+    return `<tr><td>${tgLab(c, k)}${dir}</td><td style="width:34%"><div class="bar"><span style="width:${pct}%;background:${col}"></span></div></td><td class="n">${fmt(pct)} %</td></tr>`; }).join('');
   const evs = track.events.map(e => `<tr><td>${EVLAB[e.k]}</td><td>min ${fmt(e.at, 1)}</td><td class="n">${e.fixed != null ? 'resuelto en ' + fmt(e.fixed - e.at, 1) + ' min' : 'sin resolver'}</td></tr>`).join('');
   let cpr = '';
   if (track.arrestAt != null) {
@@ -6215,14 +6384,19 @@ function showDebrief(reason) {
   if (track.seizures || c7.ecl) extra.push(['Convulsiones', track.seizures]);
   const metaT = extra.length ? H('Circulación y medio interno') + `<table class="dtable">${extra.map(([a, b]) => `<tr><td>${a}</td><td class="n">${b}</td></tr>`).join('')}</table>` : '';
   const drugs = track.drugs.length ? H('Fármacos y marcadores') + `<table class="dtable">${track.drugs.map(([t, x]) => `<tr><td>min ${fmt(t, 1)}</td><td>${x}</td></tr>`).join('')}</table>` : '';
-  $('#dbH').textContent = c.title + (reason ? ' · ' + reason : '');
-  $('#dbBody').innerHTML = `<p class="small">Tiempo clínico simulado: ${fmt(S.clin, 1)} min · ${DEVS[S.dev.vent].short} · ajustes y acciones: ${track.acts}</p>` +
-    (rows ? H('Tiempo en objetivo') + `<table class="dtable">${rows}</table>` : '') + cpr + arr + isr + metaT + (evs ? H('Eventos') + `<table class="dtable">${evs}</table>` : '') +
-    H('Peores valores') + `<table class="dtable"><tr><td>SpO₂ mínima (fuera de la parada)</td><td class="n">${W.n ? fmt(W.spo2) + ' %' : '—'}</td></tr><tr><td>TAS mínima (fuera de la parada)</td><td class="n">${W.n ? fmt(W.tas) + ' mmHg' : '—'}</td></tr><tr><td>Presión pico máxima</td><td class="n">${W.ppk ? fmt(W.ppk) + ' ' + devOf().u : '—'}</td></tr><tr><td>pH al final</td><td class="n">${fmt(S.ph, 2)}</td></tr></table>` +
-    drugs + (c.hint ? H('Solución posible') + `<p>${c.hint}</p>` : '');
+  $('#dbWhy').textContent = 'Debrief' + (reason ? ' · ' + reason : '');
+  $('#dbH').textContent = c.title;
+  const more = `<p class="small">Tiempo clínico simulado: ${fmt(S.clin, 1)} min · ${DEVS[S.dev.vent].short} · ajustes y acciones: ${track.acts}</p><div id="dbEvo"></div><section id="dbCmp" class="cmp"></section>` +
+    (rows ? `<div id="dbTgt">${H('Tiempo en objetivo')}<table class="dtable">${rows}</table></div>` : '') + cpr + arr + isr + metaT + (evs ? H('Eventos') + `<table class="dtable">${evs}</table>` : '') +
+    H('Peores valores') + `<table class="dtable"><tr><td>SpO₂ mínima (fuera de la parada)</td><td class="n">${W.n ? fmt(W.spo2) + ' %' : '—'}</td></tr><tr><td>TAS mínima (fuera de la parada)</td><td class="n">${W.n ? fmt(W.tas) + ' mmHg' : '—'}</td></tr><tr><td>Presión pico máxima</td><td class="n">${W.ppk ? fmt(W.ppk) + ' ' + devOf().u : '—'}</td></tr><tr><td>pH al final</td><td class="n">${fmt(S.ph, 2)}</td></tr></table>` + drugs;
+  $('#dbBody').innerHTML = '<div id="dbHead"></div><div id="dbTips" class="dbtips"></div><div id="dbNext"></div>' +
+    (c.hint ? `<details class="dbx" id="dbSol"><summary>Ver una solución posible</summary><p>${c.hint}</p></details>` : '') +
+    `<details class="dbx" id="dbMore"><summary>Ver el informe completo</summary><div class="dbmore">${more}</div></details>`;
+  $('#dbVar').hidden = !c.pheno || !window.SIM_VARIANT;
   teachDebrief(reason);
-  $('#debrief').hidden = false; paused = true; setPauseBtn(); $('#dbRepeat').focus();
+  $('#debrief').hidden = false; paused = true; setPauseBtn(); $('#debrief .sheet').scrollTop = 0; $('#dbRepeat').focus({ preventScroll: true });
 }
+const tgLab = (c, k) => `${TGT[k].lab} ${rangeTxt(c.targets[k], TGT[k])} ${TGT[k].fmt ? '' : TGT[k].u}`.replace(/\s+/g, ' ').trim();
 let endWarnAt = 0; // v1.31: si el intento aún no cuenta para el itinerario, el primer toque avisa y el segundo (en 6 s) termina
 $('#endBtn').addEventListener('click', e => {
   const w = pathEndWarn(), b = e.currentTarget;
@@ -6231,6 +6405,8 @@ $('#endBtn').addEventListener('click', e => {
 });
 $('#dbClose').addEventListener('click', () => { $('#debrief').hidden = true; paused = false; setPauseBtn(); });
 $('#dbRepeat').addEventListener('click', () => { $('#debrief').hidden = true; paused = false; setPauseBtn(); loadCase(caseKey); });
+$('#dbVar').addEventListener('click', () => { $('#debrief').hidden = true; paused = false; setPauseBtn(); newVariant(); });
+$('#dbHome').addEventListener('click', () => { $('#debrief').hidden = true; homeShow(); }); // v1.33
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#debrief').hidden) $('#dbClose').click(); });
 
 /* ---------- dibujo del ventilador: curvas y bucles ---------- */
@@ -6426,7 +6602,7 @@ function frame(now) {
     uacc += dt; if (uacc >= .5) { uacc = 0; updateUI(); tabAlerts(); }
     sendState(false);
   }
-  draw(); drawZoll(); requestAnimationFrame(frame);
+  if (!homeOn) { draw(); drawZoll(); } requestAnimationFrame(frame); // con el inicio delante no se dibuja nada
 }
 
 /* ===== Docencia (v0.7): modo examen con nota, vista del instructor (otra ventana u otro dispositivo), debrief con línea de tiempo,
@@ -6515,23 +6691,46 @@ function debriefMarks() {
   return { m, lines };
 }
 
-/* ---------- debrief: nota, línea de tiempo, alumno, PDF e historial ---------- */
+/* ---------- debrief: nota, resumen, línea de tiempo, alumno, PDF e historial ----------
+   v1.33: arriba solo lo que hace falta para aprender del intento (nota, lo que has hecho bien, lo que puedes mejorar —src/debrief.js—
+   y qué hacer ahora); la línea de tiempo, la comparación con la referencia y las tablas van plegadas en «Ver el informe completo» */
+const chkWhen = tok => { let best = null; for (const t of tok.split('|')) { const v = t === 'intub' ? track.intubAt : t === 'rosc' ? track.roscAt : track.usedAt && track.usedAt[t]; if (v != null && (best == null || v < best)) best = v; } return best; };
+function dbData(ref) {
+  const c = CASES[caseKey], W = track.worst, on = checksNow(c).on;
+  const targets = Object.entries(track.t).filter(([, v]) => v.tot > 0).map(([k, v]) => ({ k, lab: tgLab(c, k), pct: v.inT / v.tot * 100, hi: (v.hi || 0) / v.tot * 100, lo: (v.lo || 0) / v.tot * 100, fmt: !!TGT[k].fmt }));
+  const checks = on.map(([t, l]) => { const done = checkDone(t); return { lab: l, done, at: done ? chkWhen(t) : null }; });
+  let arrest = null;
+  if (track.arrestAt != null) { const cp = S.cpr; arrest = { ccf: cp.cprTime + cp.noFlow > 0 ? cp.cprTime / (cp.cprTime + cp.noFlow) : 0, rosc: track.roscAt != null, roscMin: track.roscAt != null ? track.roscAt - track.arrestAt : null, firstShock: track.firstShock, vf: c.arrest === 'vf' }; }
+  const unresolved = track.events.filter(e => e.fixed == null && e.k !== 'cough' && e.k !== 'move' && e.k !== 'aspir').map(e => EVLAB[e.k] || e.k);
+  return { min: S.clin, score: examScore().total, targets, checks, arrest, ref: ref || null,
+    safety: { arrestCaused: !c.arrest && track.arrestAt != null, minSpo2: W.n ? W.spo2 : null, standbyApnea: track.standbyApnea, unresolved },
+    events: track.events.map(e => ({ lab: EVLAB[e.k] || e.k, fixedIn: e.fixed != null ? e.fixed - e.at : null })) };
+}
+function dbTipsRender(ref) {
+  const box = $('#dbTips'); if (!box || !window.SIM_DBTIPS) return;
+  const r = SIM_DBTIPS(dbData(ref)), li = xs => xs.map(t => `<li>${esc(t)}</li>`).join('');
+  box.classList.toggle('one', !r.good.length);
+  box.innerHTML = (r.good.length ? `<section class="dbcol good"><h4>Lo que has hecho bien</h4><ul>${li(r.good)}</ul></section>` : '') +
+    `<section class="dbcol bad"><h4>${r.short ? 'Intento demasiado corto' : 'Lo que puedes mejorar'}</h4><ul>${li(r.bad)}</ul>${r.more ? `<p class="small">Y ${r.more} ${r.more === 1 ? 'cosa más' : 'cosas más'}: mira «Ver el informe completo».</p>` : ''}</section>`;
+  const v = $('#dbVerd'); if (v) { v.textContent = r.verdict.t; v.className = 'dbverd ' + r.verdict.k; }
+}
 function teachDebrief(reason) {
   const c = CASES[caseKey], sc = examScore(), dm = debriefMarks();
   const col = v => v >= .8 ? 'var(--ok)' : v >= .5 ? 'var(--warn)' : 'var(--bad)';
-  const head = `<div class="dbhead"><div class="score" style="--sc:${col(sc.total / 10)}"><b>${fmt(sc.total, 1)}</b><span>sobre 10</span></div>
-    <div class="dbmeta"><label class="small" for="dbName">Alumno</label><input id="dbName" value="${esc(student)}" placeholder="Nombre" autocomplete="off"${acctLocked() ? ' disabled title="Con la cuenta iniciada, el alumno es el nombre de tu cuenta"' : ''}>
-    <p class="small">${exam ? 'Modo examen' : 'Modo práctica'}${track.tutorial ? ' · con tutorial' : ''} · ${new Date().toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })}</p></div></div>
-    <table class="dtable">${sc.parts.map(p => `<tr><td>${p.lab}<br><span class="small">${esc(p.det)}</span></td><td style="width:34%"><div class="bar"><span style="width:${p.v * 100}%;background:${col(p.v)}"></span></div></td><td class="n">${fmt(p.v * 100)} %</td></tr>`).join('')}</table>`;
-  const tl = track.series.length > 2 ? `<h2 style="margin-top:6px">Línea de tiempo</h2>${timelineSVG(track.series, dm.m, dm.lines)}` : '';
-  $('#dbBody').insertAdjacentHTML('afterbegin', head + tl + '<section id="dbCmp" class="cmp"><h2 style="margin-top:6px">Comparado con la referencia</h2><p class="small">Calculando la actuación de referencia…</p></section>');
-  if (exam && c.hint) { const hs = [...$('#dbBody').querySelectorAll('h2')].find(h => h.textContent === 'Solución posible'); if (hs) { const p = hs.nextElementSibling; const d = document.createElement('details'); d.innerHTML = '<summary>Ver la solución posible</summary>'; d.appendChild(p.cloneNode(true)); hs.replaceWith(d); p.remove(); } }
+  const chips = sc.parts.map(p => `<span class="dbchip" title="${esc(p.det)}" style="--c:${col(p.v)}"><i style="width:${Math.round(p.v * 100)}%"></i>${p.lab} <b>${fmt(p.v * 100)} %</b></span>`).join('');
+  $('#dbHead').innerHTML = `<div class="dbhead"><div class="score" style="--sc:${col(sc.total / 10)}"><b>${fmt(sc.total, 1)}</b><span>sobre 10</span></div>
+    <div class="dbmeta"><p class="dbverd" id="dbVerd"></p><p class="small" id="dbRef"></p><div class="dbparts">${chips}</div>
+    <p class="small dbline">${exam ? 'Examen' : 'Práctica'}${track.tutorial ? ' con tutorial' : ''} · ${new Date().toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })} · ${fmt(S.clin, 1)} min simulados · <label for="dbName">Alumno</label> <input id="dbName" value="${esc(student)}" placeholder="Nombre" autocomplete="off"${acctLocked() ? ' disabled title="Con la cuenta iniciada, el alumno es el nombre de tu cuenta"' : ''}></p></div></div>`;
+  dbTipsRender(null);
+  $('#dbEvo').innerHTML = track.series.length > 2 ? `<h2 style="margin-top:10px">Tu evolución</h2>${timelineSVG(track.series, dm.m, dm.lines)}` : '';
+  $('#dbCmp').innerHTML = '<h2 style="margin-top:10px">Comparado con la referencia</h2><p class="small">Calculando la actuación de referencia…</p>';
   const att = { d: new Date().toISOString(), name: student || '', key: caseKey, base: c.vbase || null, title: c.title, exam, tut: !!track.tutorial, score: sc.total, parts: sc.parts.map(p => [p.lab, Math.round(p.v * 100)]), min: Math.round(S.clin * 10) / 10, reason: reason || '' };
   if (attemptFull()) att.full = true; // v1.31: resuelto (RCE con las acciones clave): cuenta para el itinerario aunque sea corto
   const hist = LS.get('simvmi.hist', []); hist.push(att); while (hist.length > 500) hist.shift(); LS.set('simvmi.hist', hist);
   const idx = hist.length - 1;
   $('#dbName').addEventListener('change', e => { student = e.target.value.trim().slice(0, 60); LS.set('simvmi.name', student); $('#stuName').value = student; const h = LS.get('simvmi.hist', []); if (h[idx] && h[idx].d === att.d) { h[idx].name = student; LS.set('simvmi.hist', h); } });
   pathDebrief(c, att); rvDebrief(); cmpStart(reason);
+  $('#dbRepeat').classList.toggle('primary', !$('#dbPathNext')); // con itinerario, lo principal es el siguiente caso
   linkSend({ t: 'debrief', sid: SID, key: caseKey, vcode: c.vcode || null, exam, min: Math.round(S.clin * 10) / 10, title: c.title, reason: reason || '', score: sc.total, parts: sc.parts.map(p => [p.lab, Math.round(p.v * 100), p.det]), name: student });
 }
 
@@ -6575,9 +6774,10 @@ function cmpSVG(a, b, T) {
 }
 function cmpStart() {
   const box = $('#dbCmp'); if (!box) return;
-  const c = CASES[caseKey], base = c.vbase || caseKey, sol = window.SIM_SOL && SIM_SOL[base], msg = t => { box.innerHTML = '<h2 style="margin-top:6px">Comparado con la referencia</h2><p class="small">' + t + '</p>'; };
+  const c = CASES[caseKey], base = c.vbase || caseKey, sol = window.SIM_SOL && SIM_SOL[base], msg = t => { box.innerHTML = '<h2 style="margin-top:10px">Comparado con la referencia</h2><p class="small">' + t + '</p>'; const r = $('#dbRef'); if (r) r.textContent = ''; };
   if (!sol || !window.SIM_BOT || !refOpts || !c.pheno) { msg('Este caso no tiene actuación de referencia (casos propios y modo libre).'); return; }
   if (S.clin < 1) { msg('Simula al menos un minuto para poder compararte con la referencia.'); return; }
+  { const r = $('#dbRef'); if (r) r.textContent = 'Equipo de referencia: calculando…'; }
   const T = Math.max(1, Math.min(S.clin, (c.duration || 20) + 5)), tok = ++cmpTok;
   let sim2, S2, B, run;
   try { const o = JSON.parse(JSON.stringify(refOpts)); o.scale = 10; sim2 = VMI.create(o); sim2.warm(12); sim2.setRatio(refRatio); SIM_BOT.prep(sim2); S2 = sim2.S;
@@ -6599,24 +6799,21 @@ function cmpRender(box, c, B, run, S2, T) {
   const mm = t => t == null ? '—' : 'min ' + fmt(t, 1);
   const onMe = checksNow(c).on, onRef = checksNow(c, chkState(R.roscAt != null, S2.arrest, S2.cpr.shocks)).on, has = (L, tok) => L.some(x => x[0] === tok); // v1.31: «no indicada» si no aplica a ese intento
   const ch = checksOf(c).filter(([tok]) => has(onMe, tok) || has(onRef, tok)).map(([tok, lab]) => { const a = has(onMe, tok) ? checkDone(tok) : null, b = has(onRef, tok) ? ref.done(tok) : null, ta = a ? when(tok, 'me') : null, tb = b ? when(tok, 'ref') : null; return { lab, a, b, ta, tb }; });
-  const tgs = Object.entries(c.targets || {}).map(([k, r]) => { const v = track.t[k], a = v && v.tot ? v.inT / v.tot * 100 : null, b = ref.pct[k] != null ? ref.pct[k] * 100 : null; return { k, lab: `${TGT[k].lab} ${rangeTxt(r, TGT[k])} ${TGT[k].fmt ? '' : TGT[k].u}`.trim(), a, b }; });
-  /* lo que más cambia: acciones que faltan, retrasos y objetivos */
-  const tips = [];
-  ch.filter(x => x.a === false && x.b).slice(0, 2).forEach(x => tips.push(`Te faltó «${esc(x.lab)}»: la referencia lo hizo en el ${mm(x.tb)}.`));
-  ch.filter(x => x.a && x.b && x.ta != null && x.tb != null && x.ta - x.tb >= 2).sort((p, q) => (q.ta - q.tb) - (p.ta - p.tb)).slice(0, 2).forEach(x => tips.push(`«${esc(x.lab)}»: tú en el ${mm(x.ta)}, la referencia en el ${mm(x.tb)} (${fmt(x.ta - x.tb, 1)} min antes).`));
-  tgs.filter(x => x.a != null && x.b != null && x.b - x.a >= 25).sort((p, q) => (q.b - q.a) - (p.b - p.a)).slice(0, 2).forEach(x => tips.push(`${esc(x.lab)} en objetivo: tú ${fmt(x.a)} %, la referencia ${fmt(x.b)} %.`));
-  if (!tips.length) tips.push(mine.total >= ref.total - .5 ? 'Tu actuación está a la altura de la de referencia.' : 'Las diferencias están en los detalles: mira el minuto a minuto.');
+  const tgs = Object.entries(c.targets || {}).map(([k]) => { const v = track.t[k], a = v && v.tot ? v.inT / v.tot * 100 : null, b = ref.pct[k] != null ? ref.pct[k] * 100 : null, d = a != null && a < 99.5 && !TGT[k].fmt ? ((v.hi || 0) >= (v.lo || 0) ? ' ↑' : ' ↓') : ''; return { k, lab: tgLab(c, k), a, b, d }; });
+  /* v1.33: lo que más cambia (faltas, retrasos y objetivos) va ahora al resumen de arriba */
+  const onIds = onMe.map(x => x[0]);
+  dbTipsRender({ score: ref.total, targets: Object.fromEntries(tgs.filter(x => x.b != null).map(x => [x.k, x.b])), checks: onIds.map(tok => { const d = has(onRef, tok) && ref.done(tok); return { done: !!d, at: d ? when(tok, 'ref') : null }; }) });
+  { const r = $('#dbRef'); if (r) r.innerHTML = `Equipo de referencia: <b>${fmt(ref.total, 1)}</b> en la misma situación`; }
+  { const own = $('#dbTgt'); if (own && tgs.length) own.remove(); } // la tabla comparada ya tiene tu tiempo en objetivo
   const myLog = (track.logT || []).filter(([, x]) => !/^Caso:|^Instructor conectado|^Llegada al hospital|^Velocidad/.test(x));
   const refLog = B.log.map(e => [e[0], cmpText(e)]);
   const rows = []; for (let m = 0; m <= Math.floor(T); m++) { const a = myLog.filter(([t]) => t >= m && t < m + 1), b = refLog.filter(([t]) => t >= m && t < m + 1); if (a.length || b.length) rows.push([m, a, b]); }
   const cell = xs => xs.length ? xs.map(([t, x]) => `<div><span class="small">${mmss(t)}</span> ${esc(x)}</div>`).join('') : '<span class="small">—</span>';
-  box.innerHTML = `<h2 style="margin-top:6px">Comparado con la referencia</h2>
-    <p class="small">La misma situación (mismo paciente, mismos eventos programados) jugada por el equipo de referencia durante ${fmt(T, 1)} min. Desde ahí, cada decisión cambia la evolución.</p>
-    <div class="cmpsc"><span>Tu nota <b>${fmt(mine.total, 1)}</b></span><span>Referencia <b>${fmt(ref.total, 1)}</b></span></div>
-    <ul class="cmptips">${tips.map(t => `<li>${t}</li>`).join('')}</ul>
+  box.innerHTML = `<h2 style="margin-top:10px">Comparado con la referencia</h2>
+    <p class="small">La misma situación (mismo paciente, mismos eventos programados) jugada por el equipo de referencia durante ${fmt(T, 1)} min: tu nota ${fmt(mine.total, 1)}, la suya ${fmt(ref.total, 1)}. Desde ahí, cada decisión cambia la evolución.</p>
     ${cmpSVG(track.series, run.series, T)}
     ${ch.length ? `<h3>Acciones clave</h3><table class="dtable"><tr><th>Acción</th><th class="n">Tú</th><th class="n">Referencia</th></tr>${ch.map(x => `<tr><td>${esc(x.lab)}</td><td class="n">${x.a == null ? '<span class="small">no indicada</span>' : x.a ? '✓ ' + (x.ta != null ? mm(x.ta) : '') : '✗'}</td><td class="n">${x.b == null ? '<span class="small">no indicada</span>' : x.b ? '✓ ' + (x.tb != null ? mm(x.tb) : '') : '✗'}</td></tr>`).join('')}</table>` : ''}
-    ${tgs.length ? `<h3>Tiempo en objetivo</h3><table class="dtable"><tr><th>Objetivo</th><th class="n">Tú</th><th class="n">Referencia</th></tr>${tgs.map(x => `<tr><td>${esc(x.lab)}</td><td class="n">${x.a == null ? '—' : fmt(x.a) + ' %'}</td><td class="n">${x.b == null ? '—' : fmt(x.b) + ' %'}</td></tr>`).join('')}</table>` : ''}
+    ${tgs.length ? `<h3>Tiempo en objetivo</h3><table class="dtable"><tr><th>Objetivo</th><th class="n">Tú</th><th class="n">Referencia</th></tr>${tgs.map(x => `<tr><td>${esc(x.lab)}</td><td class="n">${x.a == null ? '—' : fmt(x.a) + ' %' + x.d}</td><td class="n">${x.b == null ? '—' : fmt(x.b) + ' %'}</td></tr>`).join('')}</table><p class="small">↑ fuera de rango sobre todo por encima · ↓ sobre todo por debajo</p>` : ''}
     <details class="cmpmin"${rows.length <= 12 ? ' open' : ''}><summary>Minuto a minuto</summary><table class="dtable cmpt"><tr><th class="n">Min</th><th>Tú</th><th>Referencia</th></tr>${rows.map(([m, a, b]) => `<tr><td class="n">${m}</td><td>${cell(a)}</td><td>${cell(b)}</td></tr>`).join('')}</table></details>`;
 }
 
@@ -6971,12 +7168,13 @@ function teachInit() {
   let clr = 0; $('#hiClear').addEventListener('click', e => { if (Date.now() - clr > 4000) { clr = Date.now(); e.target.textContent = 'Pulsa otra vez para borrar'; setTimeout(() => { e.target.textContent = 'Borrar historial'; }, 4000); return; } LS.set('simvmi.hist', []); e.target.textContent = 'Borrar historial'; renderHist(); });
   $('#dbPdf').addEventListener('click', () => {
     if (dlNs) { // el visor no deja imprimir: se guarda el informe como página para abrir e imprimir a PDF
-      const css = [...document.querySelectorAll('style')].map(x => x.textContent).join('\n'), sh = $('#debrief .sheet').cloneNode(true); sh.querySelectorAll('.inrow,button').forEach(x => x.remove());
+      const css = [...document.querySelectorAll('style')].map(x => x.textContent).join('\n'), sh = $('#debrief .sheet').cloneNode(true); sh.querySelectorAll('details').forEach(d => { d.open = true; }); sh.querySelectorAll('.dbfoot,.inrow,button').forEach(x => x.remove());
       const nm = sh.querySelector('#dbName'); if (nm) nm.replaceWith(Object.assign(document.createElement('b'), { textContent: nm.value || 'Sin nombre' }));
       download('debrief-' + caseKey + '-' + new Date().toISOString().slice(0, 10) + '.html', '<!doctype html><html lang="es" data-theme="light"><head><meta charset="utf-8"><title>Debrief · ' + esc(CASES[caseKey].title) + '</title><style>' + css + '</style></head><body><main>' + sh.outerHTML + '</main><script>window.onload=()=>print()<\/script></body></html>', 'text/html');
       return;
     }
-    document.body.classList.add('printing'); setTimeout(() => { window.print(); document.body.classList.remove('printing'); }, 50);
+    const closed = [...$('#debrief').querySelectorAll('details:not([open])')]; closed.forEach(d => { d.open = true; }); // v1.33: el informe impreso va completo
+    document.body.classList.add('printing'); setTimeout(() => { window.print(); document.body.classList.remove('printing'); closed.forEach(d => { d.open = false; }); }, 50);
   });
   // editor
   $('#edBtn').addEventListener('click', () => edOpen(caseKey));
@@ -7185,7 +7383,7 @@ function guideInit() {
     if (e.target.closest('#coachToggle')) { coachMin = !coachMin; LS.set('simvmi.coachMin', coachMin); coachKey = ''; coachUpdate(); }
     else if (e.target.closest('#coachAll')) spot([$('.readc')], true);
   });
-  if (!LS.get('simvmi.tour', 0) && !/^#revision=/i.test(location.hash)) setTimeout(tourStart, 900); // con el enlace de revisión, la visita espera al primer caso
+  if (!LS.get('simvmi.tour', 0) && !/^#revision=/i.test(location.hash) && !homeWanted()) setTimeout(tourStart, 900); // con el enlace de revisión, la visita espera al primer caso; v1.33: con el inicio, también (homeHide)
 }
 
 /* ===== Tutorial por caso (v0.9): se elige cuando uno se pierde. Dice qué hacer, señala dónde y avanza solo cuando el paso está hecho.
@@ -7612,7 +7810,7 @@ function pathDebrief(c, att) {
     : m != null && m >= P.pass ? 'Este caso ya cuenta como superado.' : `Para que cuente necesitas una nota ≥ ${P.pass}${att ? ` (esta vez, ${fmt(att.score, 1)})` : ''}.`;
   const again = pr.next === key, nextBtn = pr.next ? `<button class="btn primary" id="dbPathNext" data-k="${esc(pr.next)}" data-ex="${pr.nextExam ? 1 : 0}">${again ? 'Repetir' : 'Siguiente del itinerario'}: ${esc(CASES[pr.next].title)}</button>` : '';
   const html = `<div class="ptdb${counts ? '' : ' warn'}"><b>Itinerario ${esc(P.t)}</b> · progreso ${pr.pct} %${st ? ` · etapa ${st.i + 1} de ${pr.stages.length} (${esc(st.t)}): ${st.ok} de ${st.need}` : ' · superado'}<br><span class="small">${why}</span>${pr.next ? `<div class="inrow">${nextBtn}<button class="btn" id="dbPathOpen">Ver el itinerario</button></div>` : ''}</div>`;
-  const t = $('#dbBody .dtable'); if (t) t.insertAdjacentHTML('afterend', html); else $('#dbBody').insertAdjacentHTML('afterbegin', html);
+  ($('#dbNext') || $('#dbBody')).insertAdjacentHTML('beforeend', html); // v1.33: bajo el resumen, junto a lo que hacer ahora
 }
 /* v1.31: «Terminar» antes de que el intento cuente para el itinerario activo: devuelve el aviso (null si ya cuenta o no aplica) */
 function pathEndWarn() {
@@ -7723,9 +7921,9 @@ function rvInit() {
   const m = location.hash.match(/^#revision=([A-Za-z])$/); if (m && LOTS[m[1].toUpperCase()]) { rv.lot = m[1].toUpperCase(); rvSave(); setTimeout(() => { rvOpen(); }, 600); }
 }
 /* en el debrief del revisor: valorar el caso recién jugado */
-function rvDebrief() { if (!rv.lot && !rv.name) return; const k = rvKey(), done = !!rv.items[k]; const t = $('#dbBody .dtable');
+function rvDebrief() { if (!rv.lot && !rv.name) return; const k = rvKey(), done = !!rv.items[k];
   const html = `<div class="ptdb"><b>Revisión</b> · ${done ? 'ya has valorado este caso; puedes cambiar la valoración' : 'valora este caso para la versión 2.0'}<div class="inrow"><button class="btn primary" id="dbRv">${done ? 'Ver mi valoración' : 'Valorar este caso'}</button></div></div>`;
-  if (t) t.insertAdjacentHTML('afterend', html); else $('#dbBody').insertAdjacentHTML('afterbegin', html);
+  ($('#dbNext') || $('#dbBody')).insertAdjacentHTML('beforeend', html);
   $('#dbRv').addEventListener('click', () => { $('#debrief').hidden = true; paused = false; setPauseBtn(); rvOpen(); }); }
 
 /* ===== Cuenta (v1.32): el progreso en la nube con la cuenta de beta tester (núcleo común en src/cuenta.js) =====
@@ -7857,10 +8055,136 @@ async function acctPullReviews(c, core) {
 function acctInit() {
   if (!window.Cuenta || INSTR) return;
   try {
-    acct = Cuenta.createUI(Cuenta.createCore(), SVA_ADAPTER, { outLabel: 'Cuenta', what: 'Se guardan tus intentos e itinerarios, tu valoración de revisión y tus casos propios.', onSync: s => { if (s.st === 'ok') acctDirty = false; }, adminActions: [{ label: 'Traer las revisiones a «Coordinación»', run: acctPullReviews }] });
+    acct = Cuenta.createUI(Cuenta.createCore(), SVA_ADAPTER, { outLabel: 'Cuenta', what: 'Se guardan tus intentos e itinerarios, tu valoración de revisión y tus casos propios.', onSync: s => { if (s.st === 'ok') acctDirty = false; if (homeOn) homeRender(); /* v1.33: el inicio enseña el estado de la nube */ }, adminActions: [{ label: 'Traer las revisiones a «Coordinación»', run: acctPullReviews }] });
     acct.mountButton($('#acctBtn')); $('#acctBtn').hidden = false;
     acct.start();
   } catch (e) { acct = null; /* sin cuenta: la app sigue igual */ }
+}
+
+/* ===== Inicio (v1.33): pantalla de entrada en vez de abrir directamente un caso =====
+   Arriba, la cuenta: opcional y por invitación, así que saluda y dice dónde se guarda el progreso, pero no cierra el paso a quien no la tiene.
+   Lo principal es «seguir»: el caso en curso, el itinerario activo, el último caso o, la primera vez, elegir un itinerario por perfil
+   (y al abrir ese primer caso sale la visita de la pantalla). Después, cómo practicar (biblioteca, itinerarios, caso al azar,
+   ventilador libre), el modo (práctica o examen), el resumen del progreso y lo demás.
+   No sale con los enlaces que ya llevan a algo (#caso=, #revision=, #aula=) ni en la vista del instructor.
+   Debajo siempre hay un caso cargado y en pausa, así el resto de la interfaz funciona igual. Cargar cualquier caso cierra el inicio.
+   Se inserta dentro de la interfaz, después de cuenta_app.js. ===== */
+let homeOn = false, homeCtx = null, homeKeep = false; // homeCtx: el caso que estaba en marcha al abrir el inicio; homeKeep: recargar sin cerrar el inicio
+function homeWanted(h) { h = h == null ? location.hash : h; return !INSTR && !/^#(caso|revision|aula|instructor)/i.test(h); }
+const HOME_IC = {
+  lib: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h4v16H4zM10 4h4v16h-4zM16.3 4.6l3.4.9-3.9 14.9-3.4-.9z"/></svg>',
+  paths: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="18" r="2"/><circle cx="18" cy="6" r="2"/><path d="M8 18h7a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h7"/></svg>',
+  rand: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r=".9"/><circle cx="15" cy="9" r=".9"/><circle cx="12" cy="12" r=".9"/><circle cx="9" cy="15" r=".9"/><circle cx="15" cy="15" r=".9"/></svg>',
+  free: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 14h4l2-7 3 12 2.5-8 1.5 3h7"/></svg>'
+};
+const HOME_ECG = '<svg class="hm-ecg" viewBox="0 0 420 70" aria-hidden="true"><path d="M0 46H96l7-5 7 5h22l5 7 9-48 9 56 6-15h36l8-9 12 9H260l7-5 7 5h22l5 7 9-48 9 56 6-15h36l8-9 12 9h29"/></svg>';
+function homeInit() {
+  if (INSTR) return;
+  const hb = $('#homeBtn'); hb.hidden = false; hb.addEventListener('click', () => homeShow(true));
+  $('#home').addEventListener('click', homeClick);
+  // al cerrar una ventana abierta desde el inicio (biblioteca, itinerarios, historial…) o al cambiar la cuenta, se actualiza
+  const mo = new MutationObserver(rs => { if (homeOn && rs.some(r => r.target.hidden || r.target.id === 'installBtn')) homeRender(); });
+  $$('.modal').forEach(m => mo.observe(m, { attributes: true, attributeFilter: ['hidden'] }));
+  mo.observe($('#installBtn'), { attributes: true, attributeFilter: ['hidden'] });
+  if (acct && acct.core) acct.core.on(() => { if (homeOn) homeRender(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && homeOn && homeCtx && !document.querySelector('.modal:not([hidden]), .cta-back')) homeHide(true); });
+}
+function homeShow(fromCase) {
+  if (INSTR || !$('#home')) return;
+  if (tourI >= 0) tourEnd();
+  if (!homeOn) homeCtx = fromCase && S && !ended && S.clin > .01 ? { key: caseKey, title: CASES[caseKey].title, min: S.clin, paused } : null;
+  paused = true; setPauseBtn();
+  homeOn = true; document.body.classList.add('home-on'); $('#home').hidden = false;
+  homeRender(); $('#home').scrollTop = 0;
+  const f = $('#home .hm-hero .btn.primary, #home .hm-path'); if (f && !matchMedia('(pointer: coarse)').matches) f.focus({ preventScroll: true });
+  sendState(true);
+}
+function homeHide(resume) {
+  if (!homeOn) return;
+  homeOn = false; $('#home').hidden = true; document.body.classList.remove('home-on');
+  paused = resume && homeCtx ? homeCtx.paused : false; setPauseBtn(); homeCtx = null;
+  window.scrollTo(0, 0);
+  // la primera vez, la visita de la pantalla sale al abrir el primer caso (no sobre el inicio)
+  if (!LS.get('simvmi.tour', 0)) setTimeout(() => { if (!homeOn && tourI < 0 && $('#debrief').hidden) tourStart(); }, 500);
+}
+function homeOnLoad() { if (homeOn && !homeKeep) homeHide(false); } // lo llama loadCase: cualquier caso que se cargue (biblioteca, itinerario, instructor…) cierra el inicio
+function homeRandom() {
+  const st = libStats(), ks = libKeys().filter(k => !k.startsWith('u_')), fresh = ks.filter(k => !st[k]), pool = fresh.length ? fresh : ks;
+  const k = pool[Math.floor(Math.random() * pool.length)]; if (!k) return;
+  $('#caseSel').value = k; loadCase(k); toast(`Caso al azar: ${CASES[k].title}`);
+}
+function homeClick(e) {
+  const b = e.target.closest('[data-h]'); if (!b) return;
+  const k = b.dataset.k;
+  switch (b.dataset.h) {
+    case 'resume': homeHide(true); break;
+    case 'acct': if (acct) acct.open(); break;
+    case 'pathNext': { const pk = LS.get('simvmi.path', null); if (!PATHS[pk]) break; pathSel = pk; const pr = pathOf(pk); if (pr.next) pathLaunch(pr.next, pr.nextExam); else pathOpen(); break; }
+    case 'pathStart': { if (!PATHS[b.dataset.p]) break; pathSel = b.dataset.p; LS.set('simvmi.path', pathSel); const pr = pathOf(pathSel); if (pr.next) pathLaunch(pr.next, pr.nextExam); else pathOpen(); break; }
+    case 'paths': { const pk = LS.get('simvmi.path', null); if (PATHS[pk]) pathSel = pk; pathOpen(); break; }
+    case 'lib': libOpen(); break;
+    case 'redo': lib = Object.assign(lib, { q: '', g: '', s: '', d: '', p: '', e: 'redo' }); libSave(); libOpen(); break;
+    case 'rand': homeRandom(); break;
+    case 'free': $('#caseSel').value = 'libre'; loadCase('libre'); break;
+    case 'load': if (CASES[k]) { $('#caseSel').value = k; loadCase(k); } break;
+    case 'variant': if (CASES[k]) loadVariant(k, Math.floor(Math.random() * 1679616)); break;
+    case 'mode': { const on = b.dataset.x === '1'; if (on !== exam) { setExam(on, true); homeCtx = null; homeKeep = true; try { loadCase(caseKey); } finally { homeKeep = false; } } homeRender(); break; } // como en la barra: cambiar de modo reinicia el caso
+    case 'editor': edOpen(null); break;
+    case 'tour': homeHide(!!homeCtx); tourStart(); break;
+    case 'click': { const t = $('#' + b.dataset.id); if (t) t.click(); break; }
+  }
+}
+function homeRender() {
+  const box = $('#hmBody'); if (!box) return;
+  const hist = LS.get('simvmi.hist', []), st = libStats(), ks = libKeys().filter(x => !x.startsWith('u_'));
+  const done = ks.filter(x => st[x]).length, redo = ks.filter(x => st[x] && st[x].best < 6).length, fresh = ks.length - done;
+  const sc = hist.slice(-30).map(a => a.score).filter(x => isFinite(x)), avg = sc.length ? sc.reduce((a, b) => a + b, 0) / sc.length : null;
+  const pk = LS.get('simvmi.path', null), P = PATHS[pk], ver = (($('.brand .eyebrow') || {}).textContent || '').match(/v\d+(\.\d+)*/);
+  const cs = acct && acct.core ? acct.core.state() : null, ses = acctSession(), nm = (ses ? acctName() : student) || '', first = nm.split(/\s+/)[0];
+  /* cuenta */
+  let acc = '';
+  if (cs === 'out') acc = `<button class="hm-acct" data-h="acct" title="Opcional, por invitación: tu progreso en la nube y en todos tus dispositivos"><span class="hm-av" aria-hidden="true">→</span><span><b>Entrar</b><span class="small">Opcional · progreso en la nube</span></span></button>`;
+  else if (cs === 'member') { const y = acct.sync || {}, t = y.st === 'run' ? 'Sincronizando…' : y.st === 'off' ? 'Sin conexión: se guarda al volver' : y.st === 'err' ? 'No se pudo sincronizar' : 'Progreso guardado en tu cuenta';
+    acc = `<button class="hm-acct on" data-h="acct" title="Tu cuenta"><span class="hm-av" aria-hidden="true">${esc((first || '?').charAt(0).toUpperCase())}</span><span><b>${esc(first || 'Mi cuenta')}</b><span class="small">${t}</span></span><span class="hm-dot ${y.st === 'ok' ? 'ok' : y.st === 'err' ? 'err' : y.st === 'off' ? 'warn' : ''}" aria-hidden="true"></span></button>`; }
+  else if (cs) acc = `<button class="hm-acct warn" data-h="acct"><span class="hm-av" aria-hidden="true">!</span><span><b>Mi cuenta</b><span class="small">Necesita atención</span></span></button>`;
+  /* lo principal: seguir */
+  let hero;
+  const last = hist.length ? hist[hist.length - 1] : null, lastK = last && (CASES[last.base] ? last.base : CASES[last.key] && last.key !== 'u_var' && last.key !== 'u_try' ? last.key : null);
+  if (homeCtx) {
+    hero = `<section class="hm-hero">${HOME_ECG}<span class="eyebrow">Caso en curso · en pausa</span><h2>${esc(homeCtx.title)}</h2><p>Lo dejaste en el ${mmss(homeCtx.min)} de tiempo clínico.</p>
+      <div class="inrow"><button class="btn primary" data-h="resume">Volver al caso</button></div><p class="small">Si eliges otro caso, este se descarta.</p></section>`;
+  } else if (P) {
+    const pr = pathOf(pk), sg = pr.cur != null ? pr.stages[pr.cur] : null, nx = pr.next && CASES[pr.next];
+    hero = `<section class="hm-hero">${HOME_ECG}<span class="eyebrow">Tu itinerario · ${esc(P.t)}</span>
+      <div class="hm-prog"><span class="ptbar"><span style="width:${pr.pct}%"></span></span><b>${pr.pct} %</b></div>
+      <p class="small">${sg ? `Etapa ${sg.i + 1} de ${pr.stages.length} · ${esc(sg.t)} · ${sg.ok} de ${sg.need} superados` : 'Itinerario superado'}${pr.avg != null ? ` · media ${fmt(pr.avg, 1)}` : ''}</p>
+      ${nx ? `<h2>${pr.nextExam ? 'Evaluación final: ' : ''}${esc(nx.title)}</h2>${nx.teach ? `<p>${esc(nx.teach)}</p>` : ''}` : '<h2>Itinerario superado</h2><p>Puedes repasar cualquier caso, hacer la evaluación final otra vez o empezar otro itinerario.</p>'}
+      <div class="inrow">${nx ? `<button class="btn primary" data-h="pathNext">${pr.nextExam ? 'Empezar la evaluación' : pr.done ? 'Continuar' : 'Empezar'}</button><button class="btn" data-h="paths">Ver el itinerario</button>` : '<button class="btn primary" data-h="paths">Ver el itinerario</button>'}</div></section>`;
+  } else if (lastK) {
+    const s = st[lastK];
+    hero = `<section class="hm-hero">${HOME_ECG}<span class="eyebrow">Tu último caso · ${esc(window.Cuenta ? Cuenta.ago(last.d) : new Date(last.d).toLocaleDateString('es-ES'))}</span><h2>${esc(CASES[lastK].title)}</h2>
+      <p>Nota ${fmt(last.score, 1)}${s && s.n > 1 ? ` · tu mejor nota ${fmt(s.best, 1)} en ${s.n} intentos` : ''}.${CASES[lastK].teach ? ' ' + esc(CASES[lastK].teach) : ''}</p>
+      <div class="inrow"><button class="btn primary" data-h="load" data-k="${esc(lastK)}">Repetir</button><button class="btn" data-h="variant" data-k="${esc(lastK)}">Con otro paciente</button></div>
+      <p class="small">¿Quieres una ruta de casos de menos a más? <button class="lnk" data-h="paths">Elige un itinerario</button>.</p></section>`;
+  } else {
+    hero = `<section class="hm-hero hm-first">${HOME_ECG}<span class="eyebrow">Para empezar</span><h2>Elige tu itinerario</h2>
+      <p>Una ruta de casos de menos a más, por etapas que se van abriendo. Al abrir el primero te enseñamos la pantalla en un minuto.</p>
+      <div class="hm-paths">${Object.entries(PATHS).map(([pk2, p]) => { const n = new Set(p.stages.flatMap(x => x.k)).size; return `<button class="hm-path" data-h="pathStart" data-p="${esc(pk2)}"><b>${esc(p.t)}</b><span>${esc(p.who)}</span><span class="small">${n} casos · ${p.stages.length} etapas</span><span class="hm-go">Empezar →</span></button>`; }).join('')}</div>
+      <p class="small">¿Prefieres ir a tu aire? <button class="lnk" data-h="lib">Elige un caso de la biblioteca</button>.</p></section>`;
+  }
+  const tile = (h, t, d) => `<button class="hm-tile" data-h="${h}">${HOME_IC[h]}<b>${t}</b><span>${d}</span></button>`;
+  const more = [['tour', 'Visita guiada de la pantalla'], ['editor', 'Mis casos y editor'], ['histBtn', 'Historial'], ['instrOpen', 'Vista del instructor'], ['instrLink', 'Enlazar con el instructor'], ['revBtn', 'Revisión de casos']]
+    .concat($('#installBtn').hidden ? [] : [['installBtn', 'Instalar app']])
+    .map(([id, t]) => id === 'tour' || id === 'editor' ? `<button class="btn" data-h="${id}">${t}</button>` : `<button class="btn" data-h="click" data-id="${id}">${t}</button>`).join('');
+  box.innerHTML = `<header class="hm-top"><div class="hm-brand"><img src="icons/icon-192.png" alt="" width="52" height="52" onerror="this.remove()"><div><span class="eyebrow">Simulador docente · SVA terrestre y HEMS${ver ? ' · ' + ver[0] : ''}</span><h1 id="hmH">SVA Trainer</h1></div></div>${acc}</header>
+    <p class="hm-hi">${first ? `Hola, ${esc(first)}. ` : ''}${hist.length ? '¿Qué practicamos hoy?' : 'Ventilación mecánica, monitor-desfibrilador, fármacos y RCP con casos de SVA terrestre y HEMS.'}</p>
+    ${hero}
+    <section class="hm-sec"><div class="hm-sech"><h2>Elige cómo practicar</h2><div class="seg" role="group" aria-label="Modo"><button data-h="mode" data-x="0" aria-pressed="${!exam}">Práctica</button><button data-h="mode" data-x="1" aria-pressed="${exam}">Examen</button></div></div>
+      <p class="small">${exam ? 'Examen: sin la Lectura, el «Siguiente paso», la solución ni el tutorial. Nota al terminar.' : 'Práctica: con la Lectura, el «Siguiente paso» y el tutorial por si te pierdes.'}</p>
+      <div class="hm-tiles">${tile('lib', 'Biblioteca', `Los ${ks.length} casos, con buscador y filtros`)}${tile('paths', 'Itinerarios', P ? `Vas por el ${pathOf(pk).pct} % de ${esc(P.t)}` : 'Residente, enfermería y HEMS, por etapas')}${tile('rand', 'Caso al azar', fresh ? `Uno de los ${fresh} que no has hecho` : 'Cualquiera de la biblioteca')}${tile('free', 'Ventilador libre', 'Sin caso: modos, mandos y alarmas')}</div></section>
+    ${hist.length ? `<section class="hm-stats" aria-label="Tu progreso"><div><b>${done}</b><span>de ${ks.length} casos hechos</span></div><div><b>${avg != null ? fmt(avg, 1) : '—'}</b><span>nota media${sc.length > 1 ? ` (últimos ${sc.length})` : ''}</span></div>${redo ? `<button data-h="redo"><b>${redo}</b><span>para repetir (nota &lt; 6) ›</span></button>` : '<div><b>0</b><span>para repetir</span></div>'}<div><b class="hm-where">${ses ? 'En tu cuenta' : 'En este dispositivo'}</b><span>${ses ? 'en todos tus dispositivos' : cs === 'out' ? 'entra para tenerlo en la nube' : 'dónde se guarda'}</span></div></section>` : ''}
+    <section class="hm-more"><h2>Más</h2><div class="inrow">${more}</div></section>
+    <p class="small hm-foot">Herramienta docente: valores y dosis orientativos. No sustituye al manual del equipo, a los protocolos del servicio ni al juicio clínico.</p>`;
 }
 
 
@@ -7879,7 +8203,7 @@ $('#speedSeg').addEventListener('click', e => { const b = e.target.closest('butt
 $('#truthBox').addEventListener('toggle', () => { if ($('#truthBox').open) renderTruth(); });
 window.__sim = () => ({ sim, S, M, track, pend, lim, exam, LINK, tut, tutSteps, tutWhere });
 if (INSTR) startInstructor();
-else { teachInit(); guideInit(); tutInit(); libInit(); pathInit(); rvInit(); acctInit(); const k0 = loadSharedFromHash(); if (k0) $('#caseSel').value = k0; loadCase(k0 || 'tce'); requestAnimationFrame(frame); }
+else { teachInit(); guideInit(); tutInit(); libInit(); pathInit(); rvInit(); acctInit(); homeInit(); const k0 = loadSharedFromHash(); if (k0) $('#caseSel').value = k0; loadCase(k0 || 'tce'); if (!k0 && homeWanted()) homeShow(false); requestAnimationFrame(frame); } // v1.33: se abre en el inicio, con un caso cargado y en pausa debajo
 })();
 
 </script>
