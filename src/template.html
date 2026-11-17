@@ -334,6 +334,89 @@ body.instr-mode main,body.instr-mode .tabbar{display:none!important}
 .stu.off{opacity:.55}
 .stu.arr{border-color:var(--bad)}
 .aulacode{font-family:var(--mono);font-size:1.6rem;letter-spacing:.18em;padding:2px 10px;border-radius:10px;background:var(--surface2);border:1px solid var(--line)}
+/* v1.33: pantalla de inicio */
+.brandrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.homebtn{padding:5px 10px;font-weight:600}
+body.home-on{overflow:hidden}
+body.home-on .pwanote{top:auto;bottom:max(16px,env(safe-area-inset-bottom,0px))}
+.home{position:fixed;inset:0;z-index:45;background:var(--bg);overflow:auto;-webkit-overflow-scrolling:touch;padding:max(18px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(28px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.hm{max-width:940px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+.hm-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.hm-brand{display:flex;align-items:center;gap:12px;min-width:0}
+.hm-brand img{width:52px;height:52px;border-radius:13px;flex:none;box-shadow:0 4px 14px rgba(8,41,76,.25)}
+.hm-brand h1{font-size:clamp(2rem,5vw,2.7rem)}
+.hm-acct{display:flex;align-items:center;gap:10px;text-align:left;padding:6px 14px 6px 6px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--ink);font:inherit;cursor:pointer;min-height:48px;position:relative}
+.hm-acct:hover{border-color:var(--accent)}
+.hm-acct b,.hm-acct .small{display:block;line-height:1.25}
+.hm-av{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:var(--accent-ink);font-family:var(--display);font-weight:700;font-size:1.1rem;flex:none}
+.hm-acct.warn .hm-av{background:var(--warn)}
+.hm-dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}.hm-dot.ok{background:var(--ok)}.hm-dot.warn{background:var(--warn)}.hm-dot.err{background:var(--bad)}
+.hm-hi{font-size:1.06rem;color:var(--muted);margin-top:-6px}
+.hm-hero{position:relative;overflow:hidden;border-radius:18px;padding:22px 24px;background:linear-gradient(135deg,#08294c 0%,#0b2236 55%,#0d1d27 100%);color:#eef4f8;display:flex;flex-direction:column;gap:8px;box-shadow:0 12px 32px rgba(8,41,76,.22)}
+.hm-hero>*{position:relative}
+.hm-hero .eyebrow{color:#8fc0e0}
+.hm-hero h2{font-size:clamp(1.45rem,3.6vw,2rem);text-transform:none;letter-spacing:.005em;font-weight:700;max-width:32ch}
+.hm-hero p{max-width:64ch;color:#c9dbe6}
+.hm-hero .small{color:#9fb6c6}
+.hm-hero .btn{background:transparent;color:#fff;border-color:rgba(255,255,255,.42)}
+.hm-hero .btn:hover{border-color:#fff}
+.hm-hero .btn.primary{background:#fff;color:#08294c;border-color:#fff;font-weight:600}
+.hm-hero .inrow{margin-top:6px}
+.hm-hero .lnk{color:#fff}
+.hm-ecg{position:absolute!important;right:-8px;top:10px;width:min(420px,62%);opacity:.22;pointer-events:none}
+.hm-ecg path{fill:none;stroke:#5cd3c2;stroke-width:2;stroke-linejoin:round}
+.hm-prog{display:flex;align-items:center;gap:10px;max-width:520px}.hm-prog .ptbar{flex:1;height:8px;background:rgba(255,255,255,.18)}.hm-prog .ptbar span{background:#4cc184}.hm-prog b{font-family:var(--mono)}
+.hm-paths{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:6px}
+.hm-path{display:flex;flex-direction:column;gap:6px;text-align:left;padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,.24);background:rgba(255,255,255,.06);color:#fff;font:inherit;cursor:pointer}
+.hm-path:hover,.hm-path:focus-visible{background:rgba(255,255,255,.13);border-color:rgba(255,255,255,.6)}
+.hm-path b{font-family:var(--display);font-size:1.3rem}
+.hm-path span{color:#c9dbe6;font-size:.86rem;line-height:1.4}
+.hm-path .small{color:#9fb6c6}
+.hm-path .hm-go{margin-top:auto;padding-top:4px;color:#fff;font-weight:600}
+.hm-sec{display:flex;flex-direction:column;gap:8px}
+.hm-sech{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.hm-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:2px}
+.hm-tile{display:flex;flex-direction:column;gap:5px;text-align:left;padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);font:inherit;cursor:pointer;min-height:128px}
+.hm-tile:hover,.hm-tile:focus-visible{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.hm-tile svg{width:28px;height:28px;color:var(--accent);fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;margin-bottom:2px}
+.hm-tile b{font-family:var(--display);font-size:1.18rem}
+.hm-tile span{font-size:.86rem;color:var(--muted);line-height:1.35}
+.hm-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.hm-stats>*{background:var(--surface);padding:12px 14px;display:flex;flex-direction:column;gap:3px;text-align:left;border:0;font:inherit;color:var(--ink)}
+.hm-stats b{font-family:var(--display);font-size:1.65rem;line-height:1}
+.hm-stats b.hm-where{font-size:1.12rem;line-height:1.3}
+.hm-stats span{font-size:.8rem;color:var(--muted)}
+.hm-stats button{cursor:pointer}.hm-stats button:hover{background:var(--surface2)}.hm-stats button span{color:var(--accent)}
+.hm-more h2{margin-bottom:8px}
+.hm-foot{border-top:1px solid var(--line);padding-top:10px}
+.lnk{border:0;background:none;padding:0;font:inherit;color:var(--accent);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+@media (max-width:760px){.hm-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.hm-paths{grid-template-columns:minmax(0,1fr)}.hm-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.hm-hero{padding:18px 16px}.hm-tile{min-height:0}.hm-acct .small{display:none}.hm-brand .eyebrow{display:none}.hm-brand h1{font-size:1.9rem}.hm-brand img{width:44px;height:44px}}
+/* v1.33: debrief resumido */
+.dbsheet{max-width:740px}
+.dbmeta{display:flex;flex-direction:column;gap:5px;flex:1 1 300px;min-width:0}
+.dbverd{font-family:var(--display);font-size:1.55rem;font-weight:700;line-height:1.1}
+.dbverd.ok{color:var(--ok)}.dbverd.mid{color:var(--warn)}.dbverd.low{color:var(--bad)}
+.dbparts{display:flex;flex-wrap:wrap;gap:6px}
+.dbchip{position:relative;overflow:hidden;font-size:.8rem;padding:3px 10px 5px;border-radius:999px;border:1px solid var(--line);background:var(--surface2);white-space:nowrap}
+.dbchip i{position:absolute;left:0;bottom:0;height:3px;background:var(--c)}
+.dbchip b{font-family:var(--mono);font-weight:600;color:var(--c)}
+.dbline input{width:11em;padding:2px 7px;border:1px solid var(--line);border-radius:6px;background:var(--surface2)}
+.dbtips{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.35fr);gap:10px}
+.dbtips.one{grid-template-columns:minmax(0,1fr)}
+.dbcol{border-radius:12px;padding:10px 14px;border:1px solid var(--line);background:var(--surface2)}
+.dbcol h4{margin:0 0 4px;font-family:var(--display);font-size:1.08rem}
+.dbcol ul{margin:0;padding-left:1.15em}.dbcol li{margin:5px 0}
+.dbcol.good{border-color:color-mix(in srgb,var(--ok) 45%,var(--line))}.dbcol.good h4{color:var(--ok)}
+.dbcol.bad{border-color:color-mix(in srgb,var(--warn) 55%,var(--line))}.dbcol.bad h4{color:var(--warn)}
+.dbx{border:1px solid var(--line);border-radius:10px;padding:8px 12px}
+.dbx>summary{cursor:pointer;font-weight:600;min-height:28px}
+.dbx[open]>summary{margin-bottom:6px}
+#dbNext .ptdb{margin:0}
+#dbNext:empty{display:none}
+.dbfoot{position:sticky;bottom:-18px;margin:0 -20px -18px;padding:12px 20px 14px;background:var(--surface);border-top:1px solid var(--line);display:flex;flex-direction:column;gap:4px;z-index:2}
+.dbsec{gap:18px}.dbsec .lnk{font-size:.88rem;color:var(--muted)}
+@media (pointer:coarse){.dbsec .lnk{min-height:36px}}
+@media (max-width:640px){.dbtips{grid-template-columns:minmax(0,1fr)}.dbfoot .inrow:first-child{flex-wrap:nowrap}.dbfoot .btn{flex:1 1 0;padding-inline:4px;white-space:nowrap;font-size:.92rem}.dbfoot .dblong{display:none}.dbhead{gap:12px;flex-wrap:nowrap;align-items:flex-start}.dbhead .score{width:76px;height:76px}.dbhead .score b{font-size:1.6rem}.dbmeta{flex:1 1 0}.dbverd{font-size:1.3rem}}
 /* móvil: pestañas */
 .tabbar{display:none}
 @media (max-width:760px){
@@ -371,7 +454,7 @@ body.proj .top2{position:fixed;right:12px;bottom:12px;z-index:30;padding:4px;bor
   body.printing main>*:not(#debrief),body.printing #tabbar,body.printing #toast{display:none!important}
   body.printing #debrief{position:static;background:none;padding:0;display:block}
   body.printing .sheet{max-width:none;max-height:none;overflow:visible;border:0;box-shadow:none;padding:0}
-  body.printing #debrief .inrow{display:none}
+  body.printing #debrief .inrow,body.printing #debrief .dbfoot,body.printing #home{display:none!important}
   body.printing details{display:block}body.printing details>*{display:block}
 }
 
@@ -477,8 +560,8 @@ body.exam #tutBtn{display:none}
 <main>
   <header class="top">
     <div class="brand">
-      <span class="eyebrow">SVA Trainer · simulador docente para SVA terrestre y HEMS · v1.32</span>
-      <h1>Ventilación, monitor y RCP</h1>
+      <span class="eyebrow">SVA Trainer · simulador docente para SVA terrestre y HEMS · v1.33</span>
+      <div class="brandrow"><button class="btn homebtn" id="homeBtn" hidden title="Pantalla de inicio: el caso queda en pausa">‹ Inicio</button><h1>Ventilación, monitor y RCP</h1></div>
     </div>
     <div class="toolbar">
       <div class="field"><label for="caseSel">Caso</label><div class="caserow"><select id="caseSel"></select><button class="btn" id="libBtn" title="Todos los casos con buscador, filtros y caso aleatorio">Biblioteca</button><button class="btn" id="pathBtn" title="Rutas de casos para residente, enfermería y HEMS, con progresión y nota">Itinerarios</button></div></div>
@@ -698,11 +781,14 @@ body.exam #tutBtn{display:none}
   <footer>Simulador docente con un modelo unicompartimental (distensibilidad, resistencias, presión crítica de cierre, esfuerzo del paciente, fuga de mascarilla con compensación imperfecta, intercambio de gases con shunt y V/Q, farmacocinética simplificada, RCP y arritmias). Las pantallas siguen la lógica de manejo de tres ventiladores y dos monitores-desfibriladores de transporte (modos, nombres de mandos, unidades, rangos, teclas, puesta en marcha y alarmas) con diseño propio: no reproducen el aspecto ni el software de ningún fabricante, y los valores marcados como «supuesto» no están confirmados en la documentación pública. Dosis de referencia para adulto, calculadas con el peso del caso. Valores orientativos: no sustituyen al manual del equipo ni a los protocolos del servicio. Código y casos editables en <a href="https://github.com/davidrope93-svg/simulador-transporte">github.com/davidrope93-svg/simulador-transporte</a>.</footer>
 
   <div class="modal" id="debrief" hidden role="dialog" aria-modal="true" aria-labelledby="dbH">
-    <div class="sheet">
-      <span class="eyebrow">Debrief</span>
+    <div class="sheet dbsheet">
+      <span class="eyebrow" id="dbWhy">Debrief</span>
       <h3 id="dbH" style="font-size:1.4rem"></h3>
       <div id="dbBody"></div>
-      <div class="inrow"><button class="btn primary" id="dbRepeat">Repetir caso</button><button class="btn" id="dbClose">Seguir simulando</button><button class="btn" id="dbPdf">Exportar PDF</button></div>
+      <div class="dbfoot">
+        <div class="inrow"><button class="btn primary" id="dbRepeat">Repetir<span class="dblong"> caso</span></button><button class="btn" id="dbVar" title="El mismo caso con otro paciente, otra gravedad y una complicación añadida">Otro paciente</button><button class="btn" id="dbHome">Inicio</button></div>
+        <div class="inrow dbsec"><button class="lnk" id="dbClose">Seguir simulando</button><button class="lnk" id="dbPdf">Exportar PDF</button></div>
+      </div>
     </div>
   </div>
 
@@ -815,6 +901,8 @@ body.exam #tutBtn{display:none}
   <div class="tour" id="tour" hidden><div class="tour-hl" id="tourHl"></div><div class="tour-card" id="tourCard" role="dialog" aria-modal="true" aria-labelledby="tourT"><b id="tourT"></b><p id="tourX"></p><div class="inrow"><button class="btn" id="tourPrev">Anterior</button><button class="btn primary" id="tourNext">Siguiente</button><button class="btn" id="tourEnd">Salir</button></div></div></div>
 </main>
 <div class="instr" id="instr" hidden></div>
+<section class="home" id="home" hidden role="dialog" aria-modal="true" aria-labelledby="hmH"><div class="hm" id="hmBody"></div></section>
+
 <nav class="tabbar" id="tabbar" aria-label="Secciones"><button data-tab="vent">Ventilador</button><button data-tab="mon">Monitor</button><button data-tab="act">Acciones</button><button data-tab="case">Caso</button></nav>
 <script>
 /*MODEL*/

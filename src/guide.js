@@ -175,5 +175,5 @@ function guideInit() {
     if (e.target.closest('#coachToggle')) { coachMin = !coachMin; LS.set('simvmi.coachMin', coachMin); coachKey = ''; coachUpdate(); }
     else if (e.target.closest('#coachAll')) spot([$('.readc')], true);
   });
-  if (!LS.get('simvmi.tour', 0) && !/^#revision=/i.test(location.hash)) setTimeout(tourStart, 900); // con el enlace de revisión, la visita espera al primer caso
+  if (!LS.get('simvmi.tour', 0) && !/^#revision=/i.test(location.hash) && !homeWanted()) setTimeout(tourStart, 900); // con el enlace de revisión, la visita espera al primer caso; v1.33: con el inicio, también (homeHide)
 }

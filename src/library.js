@@ -117,7 +117,7 @@ function pathDebrief(c, att) {
     : m != null && m >= P.pass ? 'Este caso ya cuenta como superado.' : `Para que cuente necesitas una nota ≥ ${P.pass}${att ? ` (esta vez, ${fmt(att.score, 1)})` : ''}.`;
   const again = pr.next === key, nextBtn = pr.next ? `<button class="btn primary" id="dbPathNext" data-k="${esc(pr.next)}" data-ex="${pr.nextExam ? 1 : 0}">${again ? 'Repetir' : 'Siguiente del itinerario'}: ${esc(CASES[pr.next].title)}</button>` : '';
   const html = `<div class="ptdb${counts ? '' : ' warn'}"><b>Itinerario ${esc(P.t)}</b> · progreso ${pr.pct} %${st ? ` · etapa ${st.i + 1} de ${pr.stages.length} (${esc(st.t)}): ${st.ok} de ${st.need}` : ' · superado'}<br><span class="small">${why}</span>${pr.next ? `<div class="inrow">${nextBtn}<button class="btn" id="dbPathOpen">Ver el itinerario</button></div>` : ''}</div>`;
-  const t = $('#dbBody .dtable'); if (t) t.insertAdjacentHTML('afterend', html); else $('#dbBody').insertAdjacentHTML('afterbegin', html);
+  ($('#dbNext') || $('#dbBody')).insertAdjacentHTML('beforeend', html); // v1.33: bajo el resumen, junto a lo que hacer ahora
 }
 /* v1.31: «Terminar» antes de que el intento cuente para el itinerario activo: devuelve el aviso (null si ya cuenta o no aplica) */
 function pathEndWarn() {
@@ -228,7 +228,7 @@ function rvInit() {
   const m = location.hash.match(/^#revision=([A-Za-z])$/); if (m && LOTS[m[1].toUpperCase()]) { rv.lot = m[1].toUpperCase(); rvSave(); setTimeout(() => { rvOpen(); }, 600); }
 }
 /* en el debrief del revisor: valorar el caso recién jugado */
-function rvDebrief() { if (!rv.lot && !rv.name) return; const k = rvKey(), done = !!rv.items[k]; const t = $('#dbBody .dtable');
+function rvDebrief() { if (!rv.lot && !rv.name) return; const k = rvKey(), done = !!rv.items[k];
   const html = `<div class="ptdb"><b>Revisión</b> · ${done ? 'ya has valorado este caso; puedes cambiar la valoración' : 'valora este caso para la versión 2.0'}<div class="inrow"><button class="btn primary" id="dbRv">${done ? 'Ver mi valoración' : 'Valorar este caso'}</button></div></div>`;
-  if (t) t.insertAdjacentHTML('afterend', html); else $('#dbBody').insertAdjacentHTML('afterbegin', html);
+  ($('#dbNext') || $('#dbBody')).insertAdjacentHTML('beforeend', html);
   $('#dbRv').addEventListener('click', () => { $('#debrief').hidden = true; paused = false; setPauseBtn(); rvOpen(); }); }
