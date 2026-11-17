@@ -9,8 +9,8 @@
 (function (root) {
 'use strict';
 const CFG = { apiKey: 'AIzaSyAMskjVwnXmal6RdXSMhaZgiNr8eWLO7a4', projectId: 'apps-docentes-sva', admins: ['davidrope93@gmail.com'],
-  apps: { sva: { name: 'SVA Trainer', url: 'https://davidrope93-svg.github.io/simulador-transporte/' }, ecg: { name: 'ECG en Ruta', url: 'https://davidrope93-svg.github.io/ecg-desnudo/' } } };
-const SKEY = 'apps-sva.cuenta'; // la sesión: en GitHub Pages las dos apps comparten origen, así que una sesión sirve para las dos
+  apps: { sva: { name: 'SVA Trainer', url: 'https://svatrainer.es/' }, ecg: { name: 'ECG en Ruta', url: 'https://ecgenruta.es/' } } };
+const SKEY = 'apps-sva.cuenta'; // la sesión: es por dirección (con svatrainer.es y ecgenruta.es, se entra una vez en cada app; la cuenta y el progreso son los mismos)
 const VERSION = 1;
 
 /* ---------- utilidades ---------- */

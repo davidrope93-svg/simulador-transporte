@@ -2,7 +2,7 @@
 
 Simulador docente para SVA terrestre y HEMS: ventilación mecánica invasiva y no invasiva, oxigenoterapia y alto flujo, monitor-desfibrilador (desfibrilación, cardioversión sincronizada, DEA, marcapasos), fármacos y RCP.
 
-**Abrir el simulador:** https://davidrope93-svg.github.io/simulador-transporte/
+**Abrir el simulador:** https://svatrainer.es/ (la dirección antigua de GitHub Pages redirige aquí)
 
 Funciona en el navegador del ordenador, la tablet o el móvil, sin instalar nada. Se abre en la **pantalla de inicio** (v1.33): la cuenta, seguir donde lo dejaste (caso en curso, itinerario o último caso; la primera vez, elegir itinerario), la biblioteca, un caso al azar, el ventilador libre y el modo práctica o examen.
 
@@ -86,6 +86,7 @@ Además de los modos del motor, la interfaz usa modos propios de cada equipo que
 | `src/teach.js` | Docencia: examen y nota, instructor, línea de tiempo, PDF, historial, editor de casos, móvil y proyector. Se inserta dentro de `ui.js` al generar la página. |
 | `src/template.html` | Maquetación y estilos. |
 | `build.py` | Une todo en `index.html`. |
+| `CNAME` | Dominio propio de GitHub Pages (svatrainer.es). No borrarlo: sin él, Pages vuelve a la dirección de github.io y el dominio queda expuesto. |
 | `package.json`, `server.js` | Para Google AI Studio (vista previa y publicación en Cloud Run), sin dependencias: `npm run dev` sirve la raíz en el puerto 3000; `npm run build` copia a `dist/` solo lo que carga la app (`index.html`, `sw.js`, `manifest.webmanifest`, `icons/`); `npm start` sirve `dist/` con `$PORT`. Si la app empieza a cargar otro archivo, añadirlo a `PUBLIC` en `server.js`. No añadir dependencias de npm: sin un `package.json` válido, AI Studio no arranca. |
 | `src/cuenta.js` | Núcleo de las cuentas de beta tester, idéntico en ECG en Ruta: Firebase Authentication (correo y contraseña) y Firestore por su API REST, sin librerías; ventana de cuenta y panel del administrador. Si cambias uno, copia el otro. |
 | `src/home.js` | Pantalla de inicio (v1.33). Se inserta dentro de `ui.js` después de `cuenta_app.js`. |
@@ -97,9 +98,14 @@ Además de los modos del motor, la interfaz usa modos propios de cada equipo que
 
 ## Pruebas
 
-Cada versión tiene que pasar 498 pruebas con rangos de referencia: regresión de la mecánica, tiempo de desaturación en apnea (sano preoxigenado 7–9,5 min, con aire 0,6–2 min, obeso 2,3–3,6 min) igual a ×1 que a ×20, PaCO₂ en respiración espontánea (TSV, TEP, opiáceos, EPOC con hiperoxia), SpO₂ del EPOC según FiO₂, EtCO₂ durante la RCP, tiempo de acción del relajante, tasas de RCE según se resuelva o no la causa, frecuencia mandatoria en SIMV, fracción de compresión con 30:2, vía aérea no oxigenable con bolsa y supraglótico, drenaje torácico en altitud, deterioro de la TV con pulso y sobreestimulación; y en la v0.7, hiperpotasemia con y sin calcio, hipoglucemia y su recurrencia, QRS de los tricíclicos con bicarbonato, FV en hipotermia, hemorragia con y sin hemostasia (y el coste del volumen liberal), convulsiones de la eclampsia con magnesio, crup, bronquiolitis con alto flujo, constantes de un lactante sano, nueva parada tras la RCE, parada traumática y compensación respiratoria según Winter.
+Cada versión tiene que pasar 499 pruebas con rangos de referencia: regresión de la mecánica, tiempo de desaturación en apnea (sano preoxigenado 7–9,5 min, con aire 0,6–2 min, obeso 2,3–3,6 min) igual a ×1 que a ×20, PaCO₂ en respiración espontánea (TSV, TEP, opiáceos, EPOC con hiperoxia), SpO₂ del EPOC según FiO₂, EtCO₂ durante la RCP, tiempo de acción del relajante, tasas de RCE según se resuelva o no la causa, frecuencia mandatoria en SIMV, fracción de compresión con 30:2, vía aérea no oxigenable con bolsa y supraglótico, drenaje torácico en altitud, deterioro de la TV con pulso y sobreestimulación; y en la v0.7, hiperpotasemia con y sin calcio, hipoglucemia y su recurrencia, QRS de los tricíclicos con bicarbonato, FV en hipotermia, hemorragia con y sin hemostasia (y el coste del volumen liberal), convulsiones de la eclampsia con magnesio, crup, bronquiolitis con alto flujo, constantes de un lactante sano, nueva parada tras la RCE, parada traumática y compensación respiratoria según Winter.
 
 **Validador de casos** (`node tests/validar.js`, también dentro de las pruebas): un bot juega cada caso con su solución de referencia (`src/solutions.js`) como lo haría un equipo experto (ajusta la FiO₂ y la FR a los objetivos, responde a las complicaciones, sigue el algoritmo de SVA y canaliza vía cuando hace falta) y otra vez sin hacer nada, con la misma nota que el examen. Un caso es válido si con la solución saca ≥ 7 (en la parada: ≥ 80 % de las acciones clave y RCE en ≥ 40 % de las partidas) y sin hacer nada ≤ 5. Además, la solución del original tiene que resolver ≥ 85 % de sus variantes. Con `--detalle` muestra cada objetivo; con `--variantes N`, las variantes que no se resuelven. Ningún caso nuevo entra sin pasar el validador.
+
+## Cambios en la v1.35
+
+- Dominio propio: https://svatrainer.es/ (archivo `CNAME`; la dirección de GitHub Pages redirige). La cuenta (`src/cuenta.js`, idéntico en ECG en Ruta) enlaza a svatrainer.es y ecgenruta.es; la sesión es por dirección, así que se entra una vez en cada app. En Firebase, los dos dominios en «dominios autorizados».
+- 1 prueba nueva (499 en total).
 
 ## Cambios en la v1.34
 
