@@ -229,6 +229,7 @@ function rvInit() {
 }
 /* en el debrief del revisor: valorar el caso recién jugado */
 function rvDebrief() { if (!rv.lot && !rv.name) return; const k = rvKey(), done = !!rv.items[k];
-  const html = `<div class="ptdb"><b>Revisión</b> · ${done ? 'ya has valorado este caso; puedes cambiar la valoración' : 'valora este caso para la versión 2.0'}<div class="inrow"><button class="btn primary" id="dbRv">${done ? 'Ver mi valoración' : 'Valorar este caso'}</button></div></div>`;
-  ($('#dbNext') || $('#dbBody')).insertAdjacentHTML('beforeend', html);
+  const html = `<div class="ptdb dbrv"><b>Revisión</b> · ${done ? 'ya has valorado este caso; puedes cambiar la valoración' : 'valora este caso para la versión 2.0'}<div class="inrow"><button class="btn primary" id="dbRv">${done ? 'Ver mi valoración' : 'Valorar este caso'}</button></div></div>`;
+  // v1.34: en revisión, valorar es lo principal: va justo debajo de la nota (en el móvil se ve sin bajar) y «Repetir» deja de ser el botón destacado (teachDebrief)
+  const head = $('#dbHead'); if (head) head.insertAdjacentHTML('afterend', html); else ($('#dbNext') || $('#dbBody')).insertAdjacentHTML('beforeend', html);
   $('#dbRv').addEventListener('click', () => { $('#debrief').hidden = true; paused = false; setPauseBtn(); rvOpen(); }); }

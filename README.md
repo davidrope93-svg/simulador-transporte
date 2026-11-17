@@ -97,9 +97,14 @@ Además de los modos del motor, la interfaz usa modos propios de cada equipo que
 
 ## Pruebas
 
-Cada versión tiene que pasar 497 pruebas con rangos de referencia: regresión de la mecánica, tiempo de desaturación en apnea (sano preoxigenado 7–9,5 min, con aire 0,6–2 min, obeso 2,3–3,6 min) igual a ×1 que a ×20, PaCO₂ en respiración espontánea (TSV, TEP, opiáceos, EPOC con hiperoxia), SpO₂ del EPOC según FiO₂, EtCO₂ durante la RCP, tiempo de acción del relajante, tasas de RCE según se resuelva o no la causa, frecuencia mandatoria en SIMV, fracción de compresión con 30:2, vía aérea no oxigenable con bolsa y supraglótico, drenaje torácico en altitud, deterioro de la TV con pulso y sobreestimulación; y en la v0.7, hiperpotasemia con y sin calcio, hipoglucemia y su recurrencia, QRS de los tricíclicos con bicarbonato, FV en hipotermia, hemorragia con y sin hemostasia (y el coste del volumen liberal), convulsiones de la eclampsia con magnesio, crup, bronquiolitis con alto flujo, constantes de un lactante sano, nueva parada tras la RCE, parada traumática y compensación respiratoria según Winter.
+Cada versión tiene que pasar 498 pruebas con rangos de referencia: regresión de la mecánica, tiempo de desaturación en apnea (sano preoxigenado 7–9,5 min, con aire 0,6–2 min, obeso 2,3–3,6 min) igual a ×1 que a ×20, PaCO₂ en respiración espontánea (TSV, TEP, opiáceos, EPOC con hiperoxia), SpO₂ del EPOC según FiO₂, EtCO₂ durante la RCP, tiempo de acción del relajante, tasas de RCE según se resuelva o no la causa, frecuencia mandatoria en SIMV, fracción de compresión con 30:2, vía aérea no oxigenable con bolsa y supraglótico, drenaje torácico en altitud, deterioro de la TV con pulso y sobreestimulación; y en la v0.7, hiperpotasemia con y sin calcio, hipoglucemia y su recurrencia, QRS de los tricíclicos con bicarbonato, FV en hipotermia, hemorragia con y sin hemostasia (y el coste del volumen liberal), convulsiones de la eclampsia con magnesio, crup, bronquiolitis con alto flujo, constantes de un lactante sano, nueva parada tras la RCE, parada traumática y compensación respiratoria según Winter.
 
 **Validador de casos** (`node tests/validar.js`, también dentro de las pruebas): un bot juega cada caso con su solución de referencia (`src/solutions.js`) como lo haría un equipo experto (ajusta la FiO₂ y la FR a los objetivos, responde a las complicaciones, sigue el algoritmo de SVA y canaliza vía cuando hace falta) y otra vez sin hacer nada, con la misma nota que el examen. Un caso es válido si con la solución saca ≥ 7 (en la parada: ≥ 80 % de las acciones clave y RCE en ≥ 40 % de las partidas) y sin hacer nada ≤ 5. Además, la solución del original tiene que resolver ≥ 85 % de sus variantes. Con `--detalle` muestra cada objetivo; con `--variantes N`, las variantes que no se resuelven. Ningún caso nuevo entra sin pasar el validador.
+
+## Cambios en la v1.34
+
+- Modo revisión: en el debrief, «Valorar este caso» va justo debajo de la nota (en el móvil se ve sin bajar) y es el botón principal; «Repetir» deja de estar destacado.
+- 1 prueba nueva (498 en total).
 
 ## Cambios en la v1.33
 
