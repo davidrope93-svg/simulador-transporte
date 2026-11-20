@@ -553,9 +553,11 @@ console.log('— Debrief comparado (v1.27): el bot de referencia del validador j
 
 console.log('— Revisión externa (v1.28): lotes para los compañeros y consolidado de valoraciones');
 { const L = global.SIM_LOTS, ks = Object.values(L).flatMap(l => l.k);
-  check('Cuatro lotes de revisión de 12 casos cada uno', Object.keys(L).length === 4 && Object.values(L).every(l => l.k.length === 12) ? 1 : 0, 1, 1);
-  check('Casos de los lotes: existen, tienen solución y no se repiten', ks.filter(k => !CASES[k] || !global.SIM_SOL[k]).length + (ks.length - new Set(ks).size), 0, 0);
+  check('Cinco lotes de revisión (A–E), uno por revisor, de 12 casos cada uno', Object.keys(L).join('') === 'ABCDE' && Object.values(L).every(l => l.k.length === 12) ? 1 : 0, 1, 1);
+  check('Casos de los lotes: existen, son originales (no variantes), tienen solución y no se repiten', ks.filter(k => !CASES[k] || CASES[k].vbase || !global.SIM_SOL[k]).length + (ks.length - new Set(ks).size), 0, 0);
   check('Los lotes cubren al menos 12 de los grupos de casos', new Set(ks.map(k => CASES[k].lvl)).size, 12, 30);
+  const ng = l => new Set(l.k.map(k => CASES[k].lvl)).size;
+  check('Lotes variados (v1.36): cada lote toca al menos 8 grupos de casos', Object.values(L).filter(l => ng(l) >= 8).length, 5, 5);
   const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'src', 'library.js'), 'utf8');
   check('Revisión: valoración por caso, exportación, resumen, importación del coordinador y enlace #revision=', ['rvSaveBtn', 'rvExport', 'rvCopy', 'rvInFile', 'rvInCsv', '#revision=', 'rvPlay', 'tourAfter'].every(x => src.includes(x)) ? 1 : 0, 1, 1); }
 

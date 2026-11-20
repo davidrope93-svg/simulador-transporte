@@ -575,7 +575,7 @@ body.exam #tutBtn{display:none}
 <main>
   <header class="top">
     <div class="brand">
-      <span class="eyebrow">SVA Trainer · simulador docente para SVA terrestre y HEMS · v1.35</span>
+      <span class="eyebrow">SVA Trainer · simulador docente para SVA terrestre y HEMS · v1.36</span>
       <div class="brandrow"><button class="btn homebtn" id="homeBtn" hidden title="Pantalla de inicio: el caso queda en pausa">‹ Inicio</button><h1>Ventilación, monitor y RCP</h1></div>
     </div>
     <div class="toolbar">
@@ -4067,12 +4067,15 @@ function pathProgress(pk, hist, name) {
   return { stages, done, tot, pct: Math.round(done / tot * 100), avg: n ? sum / n : null, examAvg: exN ? exS / exN : null, finished: !cur, cur: cur ? cur.i : null, next: nx ? nx.k : null, nextExam: !!(cur && cur.exam) };
 }
 
-/* ---------- Revisión externa (v1.28): lotes de casos para los compañeros que revisan antes de la 2.0 ---------- */
+/* ---------- Revisión externa (v1.28): lotes de casos para los compañeros que revisan antes de la 2.0 ----------
+   v1.36: un lote por revisor, variado y pensado para su perfil (más de la mitad en su terreno, el resto de otros bloques).
+   Entre los cinco, 60 casos distintos sin repetir. */
 const LOTS = {
-  A: { t: 'VMI, VMNI y vía aérea', k: ['tce', 'asma', 'neumo', 'obesoVmi', 'epocIni', 'eap', 'fracaso', 'isrSeptico', 'viaDificil', 'isrAsma', 'laringoespasmo', 'secuenciaRetrasada'] },
-  B: { t: 'Cardiología, arritmias, shock y parada', k: ['scaGomera', 'scaRescate', 'taponamiento', 'diseccionAorta', 'faPreexcitada', 'qtLargo', 'bav', 'sepsisIC', 'pcrFv', 'pcrTep', 'pcrHipotermia', 'pcrGestante'] },
-  C: { t: 'Pediatría, neonatal y obstetricia', k: ['bronquiolitis', 'crup', 'asmaPed', 'neumoSepsis', 'convulsionFebril', 'tsvLactante', 'rnRcp', 'prematuro', 'distociaHombros', 'preeclampsiaGrave', 'hpp', 'emboliaLA'] },
-  D: { t: 'HEMS, traslados, trauma, tóxicos y neurología', k: ['ptxAltitud', 'tceGomera', 'hdaPalma', 'bavHierro', 'drenajePinzado', 'buceoDci', 'pelvis', 'aplastamiento', 'organofosf', 'cianuro', 'ictusIsq', 'hsa'] }
+  A: { t: 'Variado: las islas y las decisiones médicas', k: ['scaGomera', 'ictusHierro', 'hdaPalma', 'meningococoGomera', 'politraumaFrio', 'hapeTeide', 'pcrFv', 'viaDificil', 'faPreexcitada', 'fracaso', 'hpp', 'organofosf'] },
+  B: { t: 'Variado: HEMS, traslados y coordinación', k: ['movil', 'extubVuelo', 'vmniVuelo', 'septicoFerry', 'bavHierro', 'bronquiolitisHierro', 'trasladoNeo', 'buceoDci', 'hemCerebral', 'scasest', 'fvMonitorizada', 'ptxAltitud'] },
+  C: { t: 'Variado: trauma, hemorragia y entornos hostiles', k: ['amputacion', 'heridaSoplante', 'pcrTamp', 'isrHemorragico', 'quemado', 'shockNeuro', 'cianuro', 'golpeCalor', 'politraumaPed', 'fvRefractaria', 'tvPulso', 'epocAsinc'] },
+  D: { t: 'Variado: paciente crítico y perfusiones', k: ['despierta', 'dopeTraslado', 'scaShock', 'sepsisUrin', 'eapIntolerante', 'hiperK', 'estatus', 'rceInestable', 'verapamilo', 'lactanteIntubado', 'cadPed', 'eclampsia'] },
+  E: { t: 'Variado: pediatría y neonatal', k: ['isrPediatrica', 'anafPed', 'deshidratacion', 'ahogPiscina', 'fallot', 'rnApnea', 'distociaHombros', 'pcrPedFv', 'ptxSdra', 'neumoVmni', 'tsvInestable', 'co'] }
 };
 root.SIM_CASES = CASES;
 root.SIM_GROUPS = GROUPS;
